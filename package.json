@@ -1,0 +1,22 @@
+{
+  "name": "llmcalls",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "server": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongoose": "^9.1.4",
+    "openai": "^6.16.0",
+    "twilio": "^5.11.2"
+  }
+}
