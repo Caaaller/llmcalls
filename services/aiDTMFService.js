@@ -54,7 +54,7 @@ Respond ONLY with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-4o', // Latest GPT-4 model - faster and better for decision-making
         messages: [
           { role: 'system', content: 'You are an intelligent IVR navigation assistant. Analyze call purpose and match to menu options. Respond only with valid JSON.' },
           { role: 'user', content: prompt }

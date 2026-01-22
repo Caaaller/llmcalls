@@ -9,13 +9,15 @@ const transferConfig = require('../config/transfer-config');
 const twilioService = require('../services/twilioService');
 const callHistoryService = require('../services/callHistoryService');
 const database = require('../services/database');
+const { authenticate } = require('../middleware/auth');
 const fs = require('fs');
 const path = require('path');
 
 /**
  * Get transfer configuration defaults
+ * Requires authentication
  */
-router.get('/config', (req, res) => {
+router.get('/config', authenticate, (req, res) => {
   res.json({
     success: true,
     config: {
@@ -29,8 +31,9 @@ router.get('/config', (req, res) => {
 
 /**
  * Get the transfer prompt
+ * Requires authentication
  */
-router.get('/prompt', (req, res) => {
+router.get('/prompt', authenticate, (req, res) => {
   try {
     const promptPath = path.join(__dirname, '../prompts/transfer-prompt.js');
     const promptContent = fs.readFileSync(promptPath, 'utf8');
@@ -53,8 +56,9 @@ router.get('/prompt', (req, res) => {
 
 /**
  * Get call history
+ * Requires authentication
  */
-router.get('/calls/history', async (req, res) => {
+router.get('/calls/history', authenticate, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const calls = await callHistoryService.getRecentCalls(limit);
@@ -86,8 +90,9 @@ router.get('/calls/history', async (req, res) => {
 
 /**
  * Get detailed call information
+ * Requires authentication
  */
-router.get('/calls/:callSid', async (req, res) => {
+router.get('/calls/:callSid', authenticate, async (req, res) => {
   try {
     const { callSid } = req.params;
     const call = await callHistoryService.getCall(callSid);
@@ -123,8 +128,9 @@ router.get('/calls/:callSid', async (req, res) => {
 
 /**
  * Save settings (prompt and config)
+ * Requires authentication
  */
-router.post('/settings', (req, res) => {
+router.post('/settings', authenticate, (req, res) => {
   try {
     const { transferNumber, toPhoneNumber, callPurpose, customInstructions, voice, userPhone, userEmail, prompt } = req.body;
     
@@ -152,8 +158,9 @@ router.post('/settings', (req, res) => {
 
 /**
  * Initiate a transfer-only call
+ * Requires authentication
  */
-router.post('/calls/initiate', async (req, res) => {
+router.post('/calls/initiate', authenticate, async (req, res) => {
   try {
     const { to, from, transferNumber, callPurpose, customInstructions } = req.body;
     

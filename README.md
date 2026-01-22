@@ -1,3 +1,78 @@
+# LLM Calls - Transfer-Only Phone Navigation System
+
+AI-powered phone navigation system that automatically navigates IVR menus and transfers calls to live representatives.
+
+## Quick Start
+
+See [SETUP.md](./SETUP.md) for complete setup instructions.
+
+### Quick Setup:
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   cd frontend && npm install && cd ..
+   ```
+
+2. **Configure `.env` file:**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your credentials
+   ```
+
+3. **Start MongoDB** (or use MongoDB Atlas)
+
+4. **Start ngrok:**
+   ```bash
+   ngrok http 3000
+   ```
+
+5. **Update `.env`** with ngrok URL
+
+6. **Run backend:**
+   ```bash
+   npm run server
+   ```
+
+7. **Run frontend** (in another terminal):
+   ```bash
+   cd frontend && npm start
+   ```
+
+8. **Open** http://localhost:3001
+
+## Features
+
+- 🤖 AI-powered IVR navigation
+- 📞 Automatic call transfer to representatives
+- 📋 Complete call history with MongoDB
+- 🎯 Transfer-only mode (no appointment booking)
+- 💬 Full conversation logging
+- 🔢 DTMF press tracking
+- 📊 Call analytics and reporting
+
+## Project Structure
+
+```
+llmcalls/
+├── config/              # Configuration files
+├── models/              # MongoDB models
+├── prompts/             # AI prompt templates
+├── routes/              # Express routes
+├── services/            # Business logic services
+├── utils/               # Utility functions
+├── frontend/            # React frontend
+├── server.js            # Main server file
+└── index.js             # CLI entry point
+```
+
+## Documentation
+
+- [SETUP.md](./SETUP.md) - Complete setup guide
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
+- [TRANSFER_ONLY_SETUP.md](./TRANSFER_ONLY_SETUP.md) - Transfer-only mode details
+- [ANALYTICS_REQUIREMENTS.md](./ANALYTICS_REQUIREMENTS.md) - Analytics features
+
 # LLM Calls - Dynamic Voice AI Platform
 
 A scalable Node.js platform for AI-powered voice calls with multiple configurable scenarios.

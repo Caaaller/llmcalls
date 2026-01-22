@@ -153,27 +153,102 @@ router.post('/process-speech', async (req, res) => {
     // Update last speech
     callStateManager.updateCallState(callSid, { lastSpeech: speechResult });
     
+    // Record ALL user speech in conversation history (even if we don't respond)
+    callHistoryService.addConversation(callSid, 'user', speechResult).catch(err => console.error('Error adding conversation:', err));
+    
+    // STEP 2: Check if we're awaiting a complete menu and this speech continues it
+    if (callState.awaitingCompleteMenu) {
+      console.log('📋 Checking if speech continues incomplete menu...');
+      const isContinuingMenu = ivrDetector.isIVRMenu(speechResult) || 
+                               /\b(for|press|select|choose)\s*\d+/i.test(speechResult) ||
+                               /\b\d+\s+(for|to|press)/i.test(speechResult);
+      
+      if (isContinuingMenu) {
+        console.log('✅ Speech continues menu - merging options...');
+        // This will be handled in the IVR menu detection below
+      } else {
+        // Not a menu continuation - clear the awaiting flag and continue normally
+        console.log('⚠️ Speech does not continue menu - clearing awaiting flag');
+        callStateManager.updateCallState(callSid, {
+          awaitingCompleteMenu: false,
+          partialMenuOptions: []
+        });
+      }
+    }
+    
     // STEP 2: Check for IVR menu
     const isIVRMenu = ivrDetector.isIVRMenu(speechResult);
     
-    if (isIVRMenu) {
+    if (isIVRMenu || callState.awaitingCompleteMenu) {
       console.log('📋 IVR Menu detected');
       const menuOptions = ivrDetector.extractMenuOptions(speechResult);
       
+      // Check if menu appears incomplete
+      const isIncomplete = ivrDetector.isIncompleteMenu(speechResult, menuOptions);
+      
+      if (isIncomplete) {
+        console.log('⚠️ Menu appears incomplete - waiting for complete menu...');
+        console.log(`   Found only ${menuOptions.length} option(s), waiting for more...`);
+        
+        // Store partial menu in state
+        callStateManager.updateCallState(callSid, {
+          partialMenuOptions: menuOptions,
+          awaitingCompleteMenu: true
+        });
+        
+        // Record incomplete menu detection (user speech already recorded at the start)
+        const menuSummary = menuOptions.length > 0 
+          ? `[IVR Menu incomplete - found: ${menuOptions.map(o => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
+          : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
+        callHistoryService.addConversation(callSid, 'system', menuSummary).catch(err => console.error('Error adding conversation:', err));
+        
+        // Wait silently for more speech
+        const gather = response.gather({
+          input: 'speech',
+          language: config.aiSettings.language || 'en-US',
+          speechTimeout: 'auto',
+          action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose)}`,
+          method: 'POST',
+          enhanced: true,
+          timeout: 10,
+        });
+        res.type('text/xml');
+        return res.send(response.toString());
+      }
+      
+      // If we have a previous partial menu, merge it with current options
+      let allMenuOptions = menuOptions;
+      if (callState.partialMenuOptions && callState.partialMenuOptions.length > 0) {
+        console.log('📋 Merging with previous partial menu options...');
+        allMenuOptions = [...callState.partialMenuOptions, ...menuOptions];
+        // Remove duplicates
+        const seen = new Set();
+        allMenuOptions = allMenuOptions.filter(opt => {
+          const key = `${opt.digit}-${opt.option}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        callStateManager.updateCallState(callSid, {
+          partialMenuOptions: [],
+          awaitingCompleteMenu: false
+        });
+      }
+      
       // Record IVR menu in history
-      callHistoryService.addIVRMenu(callSid, menuOptions);
+      callHistoryService.addIVRMenu(callSid, allMenuOptions);
       
       // Check for loops
-      const loopCheck = loopDetector.detectLoop(menuOptions);
+      const loopCheck = loopDetector.detectLoop(allMenuOptions);
       if (loopCheck && loopCheck.isLoop) {
         console.log(`🔄 ${loopCheck.message} - Acting immediately`);
         // Find best option (prefer "representative" or "other")
-        const bestOption = menuOptions.find(opt => 
+        const bestOption = allMenuOptions.find(opt => 
           opt.option.includes('representative') || 
           opt.option.includes('agent') || 
           opt.option.includes('other') ||
           opt.option.includes('operator')
-        ) || menuOptions[0];
+        ) || allMenuOptions[0];
         
         if (bestOption) {
           const digitToPress = bestOption.digit;
@@ -193,10 +268,10 @@ router.post('/process-speech', async (req, res) => {
       }
       
       // Add options to loop detector
-      menuOptions.forEach(opt => loopDetector.addOption(opt));
+      allMenuOptions.forEach(opt => loopDetector.addOption(opt));
       
       callStateManager.updateCallState(callSid, {
-        lastMenuOptions: menuOptions,
+        lastMenuOptions: allMenuOptions,
         menuLevel: (callState.menuLevel || 0) + 1
       });
       
@@ -205,7 +280,7 @@ router.post('/process-speech', async (req, res) => {
       const aiDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
         speechResult, 
         { callPurpose: config.callPurpose, ivrKeywords: [] }, 
-        menuOptions
+        allMenuOptions
       );
       
       let digitToPress = null;
@@ -213,18 +288,55 @@ router.post('/process-speech', async (req, res) => {
         digitToPress = aiDecision.digit;
         console.log(`✅ AI selected: Press ${digitToPress} (${aiDecision.matchedOption})`);
       } else {
-        // Fallback: prefer "representative" options
-        const repOption = menuOptions.find(opt => 
+        // Fallback: prefer options that might lead to a representative
+        // Priority order:
+        // 1. Options with "representative", "agent", "operator", "customer service", "support"
+        // 2. Options with "technical support" or "help" (more likely to have humans)
+        // 3. Options with "other" or "all other" (catch-all)
+        // 4. Don't select if none match - wait for better options
+        
+        const repOption = allMenuOptions.find(opt => 
           opt.option.includes('representative') || 
           opt.option.includes('agent') || 
-          opt.option.includes('operator')
+          opt.option.includes('operator') ||
+          opt.option.includes('customer service') ||
+          opt.option.includes('speak to')
         );
+        
         if (repOption) {
           digitToPress = repOption.digit;
-          console.log(`✅ Selected representative option: Press ${digitToPress}`);
-        } else if (menuOptions.length > 0) {
-          digitToPress = menuOptions[0].digit;
-          console.log(`✅ Selected first option: Press ${digitToPress}`);
+          console.log(`✅ Selected representative option: Press ${digitToPress} (${repOption.option})`);
+        } else {
+          // Try technical support or help options
+          const supportOption = allMenuOptions.find(opt => 
+            opt.option.includes('technical support') ||
+            opt.option.includes('support') ||
+            opt.option.includes('help') ||
+            opt.option.includes('assistance')
+          );
+          
+          if (supportOption) {
+            digitToPress = supportOption.digit;
+            console.log(`✅ Selected support option: Press ${digitToPress} (${supportOption.option})`);
+          } else {
+            // Try "other" or "all other" options
+            const otherOption = allMenuOptions.find(opt => 
+              opt.option.includes('other') ||
+              opt.option.includes('all other') ||
+              opt.option.includes('additional')
+            );
+            
+            if (otherOption) {
+              digitToPress = otherOption.digit;
+              console.log(`✅ Selected "other" option: Press ${digitToPress} (${otherOption.option})`);
+            } else {
+              // No good match - wait silently for more options or better menu
+              console.log('⚠️ No suitable option found for "speak with a representative" - waiting silently');
+              // Record that no suitable option was found (user speech already recorded at the start)
+              callHistoryService.addConversation(callSid, 'system', '[No suitable option found - waiting silently]').catch(err => console.error('Error adding conversation:', err));
+              digitToPress = null;
+            }
+          }
         }
       }
       
@@ -248,6 +360,8 @@ router.post('/process-speech', async (req, res) => {
       } else {
         // No option found - wait silently
         console.log('⚠️ No matching option found - waiting silently');
+        // Record that no matching option was found (user speech already recorded at the start)
+        callHistoryService.addConversation(callSid, 'system', '[No matching option found - waiting silently]').catch(err => console.error('Error adding conversation:', err));
         const gather = response.gather({
           input: 'speech',
           language: config.aiSettings.language || 'en-US',
@@ -356,6 +470,25 @@ router.post('/process-speech', async (req, res) => {
     }
     
     // STEP 5: Generate AI response for regular conversation
+    // Skip AI response if we're still awaiting a complete menu
+    if (callState.awaitingCompleteMenu) {
+      console.log('⚠️ Still awaiting complete menu - remaining silent, waiting for more options');
+      // Record that we're waiting silently (user speech already recorded above)
+      callHistoryService.addConversation(callSid, 'system', '[Waiting for complete menu - remaining silent]').catch(err => console.error('Error adding conversation:', err));
+      // Wait silently for more menu options
+      const gather = response.gather({
+        input: 'speech',
+        language: config.aiSettings.language || 'en-US',
+        speechTimeout: 'auto',
+        action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose)}`,
+        method: 'POST',
+        enhanced: true,
+        timeout: 10,
+      });
+      res.type('text/xml');
+      return res.send(response.toString());
+    }
+    
     const conversationHistory = callState.conversationHistory || [];
     const aiResponse = await aiService.generateResponse(
       config,
@@ -371,17 +504,24 @@ router.post('/process-speech', async (req, res) => {
       type: 'system',
       text: speechResult
     });
-    callStateManager.addToHistory(callSid, {
-      type: 'ai',
-      text: aiResponse
-    });
     
-    // Add to call history service
-    callHistoryService.addConversation(callSid, 'user', speechResult).catch(err => console.error('Error adding conversation:', err));
-    callHistoryService.addConversation(callSid, 'ai', aiResponse).catch(err => console.error('Error adding conversation:', err));
-    
-    // Respond
-    response.say({ voice: config.aiSettings.voice || 'Polly.Matthew', language: config.aiSettings.language || 'en-US' }, aiResponse);
+    // Only add AI response if it's not "Silent" or empty
+    if (aiResponse && aiResponse.trim().toLowerCase() !== 'silent' && aiResponse.trim().length > 0) {
+      callStateManager.addToHistory(callSid, {
+        type: 'ai',
+        text: aiResponse
+      });
+      
+      // Add AI response to call history service (user speech already recorded at the start)
+      callHistoryService.addConversation(callSid, 'ai', aiResponse).catch(err => console.error('Error adding conversation:', err));
+      
+      // Respond
+      response.say({ voice: config.aiSettings.voice || 'Polly.Matthew', language: config.aiSettings.language || 'en-US' }, aiResponse);
+    } else {
+      console.log('🤫 AI chose to remain silent - not speaking');
+      // Record that AI remained silent (user speech already recorded at the start)
+      callHistoryService.addConversation(callSid, 'system', '[AI remained silent]').catch(err => console.error('Error adding conversation:', err));
+    }
     
     const gather = response.gather({
       input: 'speech',

@@ -12,7 +12,7 @@ module.exports = {
     userPhone: process.env.USER_PHONE_NUMBER || '720-584-6358',
     userEmail: process.env.USER_EMAIL || 'oliverullman@gmail.com',
     aiSettings: {
-      model: 'gpt-4-turbo-preview',
+      model: 'gpt-4o', // Latest GPT-4 model - faster, cheaper, and better than gpt-4-turbo-preview
       maxTokens: 150,
       temperature: 0.7,
       voice: 'Polly.Matthew', // Professional male voice

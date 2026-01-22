@@ -11,6 +11,7 @@ const database = require('./services/database');
 // Import routes
 const voiceRoutes = require('./routes/voiceRoutes');
 const apiRoutes = require('./routes/apiRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -26,7 +27,7 @@ app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {
@@ -49,7 +50,8 @@ app.use(express.static('public'));
 // Routes - Mount BEFORE other routes to ensure they're matched first
 // Mount voice routes at root (so /voice works)
 app.use('/', voiceRoutes);
-app.use('/api', apiRoutes);
+app.use('/api/auth', authRoutes); // Authentication routes (public)
+app.use('/api', apiRoutes); // API routes (some may require auth)
 
 // Health check endpoint
 app.get('/health', (req, res) => {
