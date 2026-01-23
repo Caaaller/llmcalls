@@ -3,57 +3,65 @@
  * Protects routes that require authentication
  */
 
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import User, { IUser } from '../models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+export interface AuthRequest extends Request {
+  user?: IUser;
+}
 
 /**
  * Verify JWT token and attach user to request
  */
-const authenticate = async (req, res, next) => {
+export const authenticate = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
-    // Get token from header
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'No token provided. Please login.'
       });
+      return;
     }
     
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Get user from database
     const user = await User.findById(decoded.userId);
     
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'User not found. Please login again.'
       });
+      return;
     }
     
-    // Attach user to request
     req.user = user;
     next();
-  } catch (error) {
+  } catch (error: any) {
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Invalid token. Please login again.'
       });
+      return;
     }
     
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Token expired. Please login again.'
       });
+      return;
     }
     
     console.error('Auth middleware error:', error);
@@ -67,17 +75,13 @@ const authenticate = async (req, res, next) => {
 /**
  * Generate JWT token
  */
-const generateToken = (userId) => {
+export const generateToken = (userId: string): string => {
   return jwt.sign(
     { userId },
     JWT_SECRET,
-    { expiresIn: '7d' } // Token expires in 7 days
+    { expiresIn: '7d' }
   );
 };
 
-module.exports = {
-  authenticate,
-  generateToken,
-  JWT_SECRET
-};
+export { JWT_SECRET };
 

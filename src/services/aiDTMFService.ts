@@ -3,9 +3,30 @@
  * Uses AI to understand call purpose and decide which DTMF digit to press
  */
 
-const OpenAI = require('openai');
+import OpenAI from 'openai';
+import { MenuOption } from '../utils/ivrDetector';
+
+export interface TransferConfig {
+  callPurpose?: string;
+  customInstructions?: string;
+  description?: string;
+}
+
+export interface Scenario {
+  description?: string;
+}
+
+export interface DTMFDecision {
+  callPurpose: string;
+  shouldPress: boolean;
+  digit: string | null;
+  matchedOption: string;
+  reason: string;
+}
 
 class AIDTMFService {
+  private client: OpenAI;
+
   constructor() {
     this.client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -15,14 +36,17 @@ class AIDTMFService {
   /**
    * Understand the call purpose and match it to IVR menu options
    */
-  async understandCallPurposeAndPressDTMF(speech, configOrScenario, menuOptions = []) {
+  async understandCallPurposeAndPressDTMF(
+    speech: string,
+    configOrScenario: TransferConfig | Scenario,
+    menuOptions: MenuOption[] = []
+  ): Promise<DTMFDecision> {
     try {
-      // Extract menu options text
       const menuText = menuOptions.map(opt => `Press ${opt.digit} for ${opt.option}`).join(', ');
       
-      // Handle both transfer config and legacy scenario
-      const callPurpose = configOrScenario.callPurpose || configOrScenario.description || 'speak with a representative';
-      const customInstructions = configOrScenario.customInstructions || '';
+      const config = configOrScenario as TransferConfig;
+      const callPurpose = config.callPurpose || config.description || 'speak with a representative';
+      const customInstructions = config.customInstructions || '';
       
       const prompt = `You are analyzing a phone call IVR menu. Your task is to:
 1. Understand the PURPOSE of this call
@@ -54,7 +78,7 @@ Respond ONLY with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o', // Latest GPT-4 model - faster and better for decision-making
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: 'You are an intelligent IVR navigation assistant. Analyze call purpose and match to menu options. Respond only with valid JSON.' },
           { role: 'user', content: prompt }
@@ -64,22 +88,34 @@ Respond ONLY with JSON:
         response_format: { type: 'json_object' }
       });
 
-      const response = JSON.parse(completion.choices[0].message.content);
+      const content = completion.choices[0].message.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      const response: DTMFDecision = JSON.parse(content);
       console.log(`   🤖 AI Analysis:`);
       console.log(`      Call Purpose: ${response.callPurpose}`);
       console.log(`      Matched Option: ${response.matchedOption || 'none'}`);
       console.log(`      Reason: ${response.reason}`);
       return response;
     } catch (error) {
-      console.error('Error in AI DTMF decision:', error);
-      return { shouldPress: false, digit: null, reason: 'AI error', callPurpose: 'unknown' };
+      const err = error as Error;
+      console.error('Error in AI DTMF decision:', err);
+      return { 
+        shouldPress: false, 
+        digit: null, 
+        reason: 'AI error', 
+        callPurpose: 'unknown',
+        matchedOption: ''
+      };
     }
   }
 
   /**
    * Legacy method for backward compatibility
    */
-  async shouldPressDTMF(speech, scenario) {
+  async shouldPressDTMF(speech: string, scenario: Scenario): Promise<DTMFDecision> {
     return await this.understandCallPurposeAndPressDTMF(speech, scenario, []);
   }
 }
@@ -87,5 +123,5 @@ Respond ONLY with JSON:
 // Singleton instance
 const aiDTMFService = new AIDTMFService();
 
-module.exports = aiDTMFService;
+export default aiDTMFService;
 

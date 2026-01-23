@@ -3,14 +3,14 @@
  * Handles MongoDB connection
  */
 
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 let isConnected = false;
 
 /**
  * Connect to MongoDB
  */
-async function connect() {
+export async function connect(): Promise<void> {
   if (isConnected) {
     console.log('✅ MongoDB already connected');
     return;
@@ -26,13 +26,12 @@ async function connect() {
     }
     
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+      serverSelectionTimeoutMS: 5000,
     });
     
     isConnected = true;
-    console.log('✅ Connected to MongoDB:', mongoUri.replace(/\/\/.*@/, '//***:***@')); // Hide credentials in logs
+    console.log('✅ Connected to MongoDB:', mongoUri.replace(/\/\/.*@/, '//***:***@'));
     
-    // Handle connection events
     mongoose.connection.on('error', (err) => {
       console.error('❌ MongoDB connection error:', err);
       isConnected = false;
@@ -49,21 +48,20 @@ async function connect() {
     });
     
   } catch (error) {
-    console.error('❌ MongoDB connection failed:', error.message);
+    const err = error as Error;
+    console.error('❌ MongoDB connection failed:', err.message);
     console.error('\n💡 Options to fix this:');
     console.error('   1. Start local MongoDB: brew services start mongodb-community');
     console.error('   2. Use MongoDB Atlas (free cloud): https://www.mongodb.com/cloud/atlas');
     console.error('   3. Set MONGODB_URI in .env to your MongoDB connection string');
     console.error('\n⚠️  Server will continue without MongoDB. Call history will not be saved.');
-    // Don't throw error - allow server to start without MongoDB
-    // throw error;
   }
 }
 
 /**
  * Disconnect from MongoDB
  */
-async function disconnect() {
+export async function disconnect(): Promise<void> {
   if (!isConnected) return;
   
   try {
@@ -71,20 +69,15 @@ async function disconnect() {
     isConnected = false;
     console.log('✅ Disconnected from MongoDB');
   } catch (error) {
-    console.error('❌ Error disconnecting from MongoDB:', error.message);
+    const err = error as Error;
+    console.error('❌ Error disconnecting from MongoDB:', err.message);
   }
 }
 
 /**
  * Check if connected
  */
-function isDbConnected() {
+export function isDbConnected(): boolean {
   return isConnected && mongoose.connection.readyState === 1;
 }
-
-module.exports = {
-  connect,
-  disconnect,
-  isDbConnected
-};
 

@@ -3,10 +3,20 @@
  * MongoDB schema for user authentication
  */
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+import mongoose, { Schema, Document, Model } from 'mongoose';
+import bcrypt from 'bcrypt';
 
-const userSchema = new mongoose.Schema({
+export interface IUser extends Document {
+  email: string;
+  password: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
+  toJSON(): Omit<IUser, 'password'>;
+}
+
+const userSchema = new Schema<IUser>({
   email: {
     type: String,
     required: true,
@@ -35,12 +45,10 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// Hash password before saving and update timestamp
+// Hash password before saving
 userSchema.pre('save', async function() {
-  // Update updatedAt timestamp
-  this.updatedAt = Date.now();
+  this.updatedAt = new Date();
   
-  // Hash password if it was modified
   if (!this.isModified('password')) {
     return;
   }
@@ -50,7 +58,7 @@ userSchema.pre('save', async function() {
 });
 
 // Compare password method
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
@@ -61,5 +69,7 @@ userSchema.methods.toJSON = function() {
   return user;
 };
 
-module.exports = mongoose.model('User', userSchema);
+const User: Model<IUser> = mongoose.model<IUser>('User', userSchema);
+
+export default User;
 

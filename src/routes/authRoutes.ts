@@ -3,44 +3,45 @@
  * Signup, login, logout endpoints
  */
 
-const express = require('express');
+import express, { Request, Response } from 'express';
+import User from '../models/User';
+import { generateToken, authenticate, AuthRequest } from '../middleware/auth';
+
 const router = express.Router();
-const User = require('../models/User');
-const { generateToken, authenticate } = require('../middleware/auth');
 
 /**
  * Sign up a new user
  * POST /api/auth/signup
  */
-router.post('/signup', async (req, res) => {
+router.post('/signup', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name } = req.body;
     
-    // Validation
     if (!email || !password || !name) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Please provide email, password, and name'
       });
+      return;
     }
     
     if (password.length < 6) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Password must be at least 6 characters long'
       });
+      return;
     }
     
-    // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'User with this email already exists'
       });
+      return;
     }
     
-    // Create new user
     const user = new User({
       email: email.toLowerCase(),
       password,
@@ -49,8 +50,7 @@ router.post('/signup', async (req, res) => {
     
     await user.save();
     
-    // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id.toString());
     
     res.status(201).json({
       success: true,
@@ -62,7 +62,7 @@ router.post('/signup', async (req, res) => {
         name: user.name
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Signup error:', error);
     res.status(500).json({
       success: false,
@@ -75,38 +75,37 @@ router.post('/signup', async (req, res) => {
  * Login user
  * POST /api/auth/login
  */
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
     
-    // Validation
     if (!email || !password) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Please provide email and password'
       });
+      return;
     }
     
-    // Find user
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Invalid email or password'
       });
+      return;
     }
     
-    // Check password
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
-      return res.status(401).json({
+      res.status(401).json({
         success: false,
         error: 'Invalid email or password'
       });
+      return;
     }
     
-    // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id.toString());
     
     res.json({
       success: true,
@@ -118,7 +117,7 @@ router.post('/login', async (req, res) => {
         name: user.name
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
@@ -131,8 +130,16 @@ router.post('/login', async (req, res) => {
  * Get current user (requires authentication)
  * GET /api/auth/me
  */
-router.get('/me', authenticate, async (req, res) => {
+router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        error: 'User not found'
+      });
+      return;
+    }
+
     res.json({
       success: true,
       user: {
@@ -141,7 +148,7 @@ router.get('/me', authenticate, async (req, res) => {
         name: req.user.name
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
@@ -151,17 +158,15 @@ router.get('/me', authenticate, async (req, res) => {
 });
 
 /**
- * Logout (client-side token removal, but we can add token blacklisting here if needed)
+ * Logout
  * POST /api/auth/logout
  */
-router.post('/logout', authenticate, async (req, res) => {
-  // In a more advanced setup, you could blacklist the token here
-  // For now, logout is handled client-side by removing the token
+router.post('/logout', authenticate, async (_req: AuthRequest, res: Response) => {
   res.json({
     success: true,
     message: 'Logout successful'
   });
 });
 
-module.exports = router;
+export default router;
 
