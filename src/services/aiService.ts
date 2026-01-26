@@ -23,9 +23,13 @@ export interface TransferConfig {
   };
 }
 
+export interface UserData {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 export interface Scenario {
   promptTemplate?: string;
-  userData?: any;
+  userData?: UserData;
   aiSettings: {
     model: string;
     maxTokens: number;
@@ -118,4 +122,5 @@ class AIService {
 const aiService = new AIService();
 
 export default aiService;
+
 

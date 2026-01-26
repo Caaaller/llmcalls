@@ -4,11 +4,17 @@
  */
 
 import { MenuOption } from '../utils/ivrDetector';
+import { TransferConfig } from '../config/transfer-config';
 
 export interface ConversationEntry {
   type: 'user' | 'ai' | 'system';
   text: string;
   timestamp?: Date;
+}
+
+export interface LoopDetector {
+  detectLoop(options: MenuOption[]): { isLoop: boolean; message?: string };
+  reset(): void;
 }
 
 export interface CallState {
@@ -24,8 +30,8 @@ export interface CallState {
   lastSpeech?: string;
   humanConfirmed?: boolean;
   awaitingHumanConfirmation?: boolean;
-  transferConfig?: any;
-  loopDetector?: any;
+  transferConfig?: TransferConfig;
+  loopDetector?: LoopDetector;
   holdStartTime?: Date | null;
 }
 

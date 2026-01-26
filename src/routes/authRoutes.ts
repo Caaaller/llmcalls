@@ -62,11 +62,12 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
         name: user.name
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error creating user';
     console.error('Signup error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error creating user'
+      error: errorMessage
     });
   }
 });
@@ -117,11 +118,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         name: user.name
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error logging in';
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error logging in'
+      error: errorMessage
     });
   }
 });
@@ -148,11 +150,12 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
         name: req.user.name
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Error fetching user';
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error fetching user'
+      error: errorMessage
     });
   }
 });

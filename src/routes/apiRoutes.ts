@@ -45,10 +45,11 @@ router.get('/prompt', authenticate, (_req: Request, res: Response) => {
       success: true,
       prompt: prompt
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
-      error: `Failed to load prompt: ${error.message}. Path attempted: ${path.join(process.cwd(), 'src/prompts/transfer-prompt.ts')}`
+      error: `Failed to load prompt: ${errorMessage}. Path attempted: ${path.join(process.cwd(), 'src/prompts/transfer-prompt.ts')}`
     });
   }
 });
@@ -63,7 +64,7 @@ router.get('/calls/history', authenticate, async (req: Request, res: Response) =
     
     res.json({
       success: true,
-      calls: calls.map((call: any) => ({
+      calls: calls.map((call) => ({
         callSid: call.callSid,
         startTime: call.startTime,
         endTime: call.endTime,
@@ -76,11 +77,12 @@ router.get('/calls/history', authenticate, async (req: Request, res: Response) =
       })),
       mongoConnected: isDbConnected()
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching call history:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: errorMessage,
       mongoConnected: false
     });
   }
@@ -115,10 +117,11 @@ router.get('/calls/:callSid', authenticate, async (req: Request, res: Response) 
         events: call.events || []
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: errorMessage
     });
     return;
   }
@@ -206,10 +209,11 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
       }
     });
     return;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: errorMessage
     });
     return;
   }

@@ -11,13 +11,38 @@ import callHistoryService from '../services/callHistoryService';
 import * as ivrDetector from '../utils/ivrDetector';
 import * as transferDetector from '../utils/transferDetector';
 import * as terminationDetector from '../utils/terminationDetector';
-import { LoopDetector } from '../utils/loopDetector';
+import { LoopDetector } from '../services/callStateManager';
 import aiService from '../services/aiService';
 import aiDTMFService from '../services/aiDTMFService';
 import twilioService from '../services/twilioService';
 import { TransferConfig } from '../services/aiService';
+import { TransferConfig as TransferConfigType } from '../config/transfer-config';
 
 const router = express.Router();
+
+// Helper to create a LoopDetector instance
+function createLoopDetector(): LoopDetector {
+  const seenOptions: string[] = [];
+  return {
+    detectLoop: (options: { digit: string; option: string }[]) => {
+      const optionKey = options.map(o => `${o.digit}:${o.option}`).join('|');
+      if (seenOptions.includes(optionKey)) {
+        return { isLoop: true, message: 'Detected repeating menu options' };
+      }
+      seenOptions.push(optionKey);
+      return { isLoop: false };
+    },
+    reset: () => {
+      seenOptions.length = 0;
+    }
+  };
+}
+
+// Type definitions for Twilio TwiML properties that aren't fully typed
+interface TwiMLDialAttributes {
+  answerOnMedia?: boolean;
+  [key: string]: unknown;
+}
 
 /**
  * Get base URL from request
@@ -51,9 +76,9 @@ router.post('/voice', (req: Request, res: Response): void => {
     console.log('Call Purpose:', config.callPurpose);
     
     callStateManager.updateCallState(callSid, { 
-      transferConfig: config as any,
-      loopDetector: new LoopDetector() as any,
-      holdStartTime: null as any
+      transferConfig: config as TransferConfigType,
+      loopDetector: createLoopDetector(),
+      holdStartTime: null
     });
     
     callHistoryService.startCall(callSid, {
@@ -66,8 +91,8 @@ router.post('/voice', (req: Request, res: Response): void => {
     
     const response = new twilio.twiml.VoiceResponse();
     response.gather({
-      input: ['speech'],
-      language: (config.aiSettings.language || 'en-US') as any,
+      input: ['speech'] as unknown as twilio.twiml.GatherInput[],
+      language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.GatherLanguage,
       speechTimeout: 'auto',
       action: `${baseUrl}/process-speech?firstCall=true&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}${config.customInstructions ? '&customInstructions=' + encodeURIComponent(config.customInstructions) : ''}`,
       method: 'POST',
@@ -76,7 +101,7 @@ router.post('/voice', (req: Request, res: Response): void => {
     });
     
     response.say(
-      { voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any },
+      { voice: (config.aiSettings.voice || 'Polly.Matthew') as unknown as twilio.twiml.SayVoice, language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.SayLanguage },
       'Thank you. Goodbye.'
     );
     response.hangup();
@@ -84,8 +109,9 @@ router.post('/voice', (req: Request, res: Response): void => {
     res.type('text/xml');
     res.send(response.toString());
     return;
-  } catch (error: any) {
-    console.error('❌ Error in /voice endpoint:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Error in /voice endpoint:', errorMessage);
     const response = new twilio.twiml.VoiceResponse();
     response.say({ voice: 'alice', language: 'en-US' }, 'I apologize, but there was an error. Please try again later.');
     response.hangup();
@@ -123,10 +149,10 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
     }
     
     const callState = callStateManager.getCallState(callSid);
-    if (!(callState as any).loopDetector) {
-      callStateManager.updateCallState(callSid, { loopDetector: new LoopDetector() as any });
+    if (!callState.loopDetector) {
+      callStateManager.updateCallState(callSid, { loopDetector: createLoopDetector() });
     }
-    const loopDetector = (callState as any).loopDetector as LoopDetector;
+    const loopDetector = callState.loopDetector!;
     
     const previousSpeech = callState.lastSpeech || '';
     const termination = terminationDetector.shouldTerminate(speechResult, previousSpeech, 0);
@@ -136,7 +162,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       callHistoryService.addTermination(callSid, termination.reason || termination.message || '').catch(err => console.error('Error adding termination:', err));
       callHistoryService.endCall(callSid, 'terminated').catch(err => console.error('Error ending call:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Thank you. Goodbye.');
+      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew'), language: (config.aiSettings.language || 'en-US') }, 'Thank you. Goodbye.');
       response.hangup();
       callStateManager.clearCallState(callSid);
       res.type('text/xml');
@@ -182,13 +208,13 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
         });
         
         const menuSummary = menuOptions.length > 0 
-          ? `[IVR Menu incomplete - found: ${menuOptions.map(o => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
+          ? `[IVR Menu incomplete - found: ${menuOptions.map((o: { digit: string; option: string }) => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
           : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
         callHistoryService.addConversation(callSid, 'system', menuSummary).catch(err => console.error('Error adding conversation:', err));
         
         response.gather({
-          input: ['speech'],
-          language: (config.aiSettings.language || 'en-US') as any,
+          input: ['speech'] as unknown as twilio.twiml.GatherInput[],
+          language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.GatherLanguage,
           speechTimeout: 'auto',
           action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
           method: 'POST',
@@ -205,7 +231,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
         console.log('📋 Merging with previous partial menu options...');
         allMenuOptions = [...callState.partialMenuOptions, ...menuOptions];
         const seen = new Set<string>();
-        allMenuOptions = allMenuOptions.filter(opt => {
+        allMenuOptions = allMenuOptions.filter((opt: { digit: string; option: string }) => {
           const key = `${opt.digit}-${opt.option}`;
           if (seen.has(key)) return false;
           seen.add(key);
@@ -222,7 +248,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       const loopCheck = loopDetector.detectLoop(allMenuOptions);
       if (loopCheck && loopCheck.isLoop) {
         console.log(`🔄 ${loopCheck.message} - Acting immediately`);
-        const bestOption = allMenuOptions.find(opt => 
+        const bestOption = allMenuOptions.find((opt: { digit: string; option: string }) => 
           opt.option.includes('representative') || 
           opt.option.includes('agent') || 
           opt.option.includes('other') ||
@@ -246,7 +272,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
         }
       }
       
-      allMenuOptions.forEach(opt => loopDetector.addOption(opt));
+      // Track options for loop detection (handled internally by detectLoop)
       
       callStateManager.updateCallState(callSid, {
         lastMenuOptions: allMenuOptions,
@@ -256,7 +282,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       console.log('🤖 Using AI to select best option...');
       const aiDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
         speechResult, 
-        { callPurpose: config.callPurpose } as any, 
+        { callPurpose: config.callPurpose }, 
         allMenuOptions
       );
       
@@ -265,7 +291,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
         digitToPress = aiDecision.digit;
         console.log(`✅ AI selected: Press ${digitToPress} (${aiDecision.matchedOption})`);
       } else {
-        const repOption = allMenuOptions.find(opt => 
+        const repOption = allMenuOptions.find((opt: { digit: string; option: string }) => 
           opt.option.includes('representative') || 
           opt.option.includes('agent') || 
           opt.option.includes('operator') ||
@@ -277,7 +303,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
           digitToPress = repOption.digit;
           console.log(`✅ Selected representative option: Press ${digitToPress} (${repOption.option})`);
         } else {
-          const supportOption = allMenuOptions.find(opt => 
+          const supportOption = allMenuOptions.find((opt: { digit: string; option: string }) => 
             opt.option.includes('technical support') ||
             opt.option.includes('support') ||
             opt.option.includes('help') ||
@@ -288,7 +314,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
             digitToPress = supportOption.digit;
             console.log(`✅ Selected support option: Press ${digitToPress} (${supportOption.option})`);
           } else {
-            const otherOption = allMenuOptions.find(opt => 
+            const otherOption = allMenuOptions.find((opt: { digit: string; option: string }) => 
               opt.option.includes('other') ||
               opt.option.includes('all other') ||
               opt.option.includes('additional')
@@ -326,8 +352,8 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
         console.log('⚠️ No matching option found - waiting silently');
         callHistoryService.addConversation(callSid, 'system', '[No matching option found - waiting silently]').catch(err => console.error('Error adding conversation:', err));
         response.gather({
-          input: ['speech'] as any,
-          language: (config.aiSettings.language || 'en-US') as any,
+          input: ['speech'] as unknown as twilio.twiml.GatherInput[],
+          language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.GatherLanguage,
           speechTimeout: 'auto',
           action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
           method: 'POST',
@@ -346,11 +372,11 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       const needsConfirmation = !callState.humanConfirmed;
       if (needsConfirmation) {
         console.log('❓ Confirming human before transfer...');
-        response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Am I speaking with a real person or is this the automated system?');
+        response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew'), language: (config.aiSettings.language || 'en-US') }, 'Am I speaking with a real person or is this the automated system?');
         callStateManager.updateCallState(callSid, { awaitingHumanConfirmation: true });
         response.gather({
-          input: ['speech'],
-          language: (config.aiSettings.language || 'en-US') as any,
+          input: ['speech'] as unknown as twilio.twiml.GatherInput[],
+          language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.GatherLanguage,
           speechTimeout: 'auto',
           action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
           method: 'POST',
@@ -366,15 +392,15 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       
       callHistoryService.addTransfer(callSid, config.transferNumber, true).catch(err => console.error('Error adding transfer:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Hold on, please.');
+      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew'), language: (config.aiSettings.language || 'en-US') }, 'Hold on, please.');
       response.pause({ length: 1 });
       
       const dial = response.dial({
         action: `${baseUrl}/transfer-status`,
         method: 'POST',
         timeout: 30,
-      } as any);
-      (dial as any).answerOnMedia = true;
+      });
+      (dial as TwiMLDialAttributes).answerOnMedia = true;
       dial.number(config.transferNumber);
       
       res.type('text/xml');
@@ -391,15 +417,15 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
         
         callHistoryService.addTransfer(callSid, config.transferNumber, true).catch(err => console.error('Error adding transfer:', err));
         
-        response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Thank you. Hold on, please.');
+        response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew'), language: (config.aiSettings.language || 'en-US') }, 'Thank you. Hold on, please.');
         response.pause({ length: 1 });
         
         const dial = response.dial({
           action: `${baseUrl}/transfer-status`,
           method: 'POST',
           timeout: 30,
-        } as any);
-        (dial as any).answerOnMedia = true;
+        });
+        (dial as TwiMLDialAttributes).answerOnMedia = true;
         dial.number(config.transferNumber);
         
         res.type('text/xml');
@@ -413,15 +439,15 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       
       callHistoryService.addTransfer(callSid, config.transferNumber, true).catch(err => console.error('Error adding transfer:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Hold on, please.');
+      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew'), language: (config.aiSettings.language || 'en-US') }, 'Hold on, please.');
       response.pause({ length: 1 });
       
       const dial = response.dial({
         action: `${baseUrl}/transfer-status`,
         method: 'POST',
         timeout: 30,
-      } as any);
-      (dial as any).answerOnMedia = true;
+      });
+      (dial as TwiMLDialAttributes).answerOnMedia = true;
       dial.number(config.transferNumber);
       
       res.type('text/xml');
@@ -433,8 +459,8 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       console.log('⚠️ Still awaiting complete menu - remaining silent, waiting for more options');
       callHistoryService.addConversation(callSid, 'system', '[Waiting for complete menu - remaining silent]').catch(err => console.error('Error adding conversation:', err));
       response.gather({
-        input: ['speech'],
-        language: (config.aiSettings.language || 'en-US') as any,
+        input: ['speech'] as unknown as twilio.twiml.GatherInput[],
+        language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.GatherLanguage,
         speechTimeout: 'auto',
         action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
         method: 'POST',
@@ -469,15 +495,15 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       
       callHistoryService.addConversation(callSid, 'ai', aiResponse).catch(err => console.error('Error adding conversation:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, aiResponse);
+      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew'), language: (config.aiSettings.language || 'en-US') }, aiResponse);
     } else {
       console.log('🤫 AI chose to remain silent - not speaking');
       callHistoryService.addConversation(callSid, 'system', '[AI remained silent]').catch(err => console.error('Error adding conversation:', err));
     }
     
     response.gather({
-      input: ['speech'],
-      language: (config.aiSettings.language || 'en-US') as any,
+      input: ['speech'] as unknown as twilio.twiml.GatherInput[],
+      language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.GatherLanguage,
       speechTimeout: 'auto',
       action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
       method: 'POST',
@@ -488,10 +514,12 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
     res.type('text/xml');
     res.send(response.toString());
     
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('❌ Error in /process-speech:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Error message:', errorMessage);
+    console.error('Error stack:', errorStack);
     console.error('Call SID:', req.body.CallSid);
     console.error('Speech Result:', req.body.SpeechResult);
     console.error('Query params:', req.query);
@@ -521,7 +549,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   const response = new twilio.twiml.VoiceResponse();
   response.gather({
     input: ['speech'],
-      language: (config.aiSettings.language || 'en-US') as any,
+      language: (config.aiSettings.language || 'en-US') as unknown as twilio.twiml.GatherLanguage,
     speechTimeout: 'auto',
     action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
     method: 'POST',

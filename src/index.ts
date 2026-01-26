@@ -33,13 +33,15 @@ async function initiateCall(to: string, from: string, url: string) {
     console.log('Call SID:', call.sid);
     console.log('Status:', call.status);
     return call;
-  } catch (error: any) {
-    console.error('Error initiating call:', error.message);
-    if (error.code) {
-      console.error('Error code:', error.code);
+  } catch (error: unknown) {
+    const twilioError = error as { message?: string; code?: number; moreInfo?: string };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error initiating call:', errorMessage);
+    if (twilioError.code) {
+      console.error('Error code:', twilioError.code);
     }
-    if (error.moreInfo) {
-      console.error('More info:', error.moreInfo);
+    if (twilioError.moreInfo) {
+      console.error('More info:', twilioError.moreInfo);
     }
     throw error;
   }
@@ -52,8 +54,9 @@ async function getCallStatus(callSid: string) {
   try {
     const call = await client.calls(callSid).fetch();
     return call;
-  } catch (error: any) {
-    console.error('Error fetching call status:', error.message);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching call status:', errorMessage);
     throw error;
   }
 }
@@ -80,8 +83,9 @@ async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks
       if (i < maxChecks - 1) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
-    } catch (error: any) {
-      console.error('Error monitoring call:', error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error monitoring call:', errorMessage);
       throw error;
     }
   }
@@ -110,7 +114,7 @@ if (require.main === module) {
         console.log('Duration:', call.duration ? `${call.duration} seconds` : 'N/A');
         console.log('Price:', call.price ? `$${call.price} ${call.priceUnit}` : 'N/A');
       })
-      .catch((error: any) => {
+      .catch((error: unknown) => {
         console.error('Failed to check call status:', error);
         process.exit(1);
       });
@@ -154,7 +158,7 @@ if (require.main === module) {
         await new Promise(resolve => setTimeout(resolve, 3000));
         await monitorCall(call.sid);
       })
-      .catch((error: any) => {
+      .catch((error: unknown) => {
         console.error('Failed to initiate call:', error);
         process.exit(1);
       });
@@ -162,4 +166,5 @@ if (require.main === module) {
 }
 
 export { initiateCall, getCallStatus, monitorCall };
+
 

@@ -47,8 +47,9 @@ export const authenticate = async (
     
     req.user = user;
     next();
-  } catch (error: any) {
-    if (error.name === 'JsonWebTokenError') {
+  } catch (error: unknown) {
+    const jwtError = error as { name?: string; message?: string };
+    if (jwtError.name === 'JsonWebTokenError') {
       res.status(401).json({
         success: false,
         error: 'Invalid token. Please login again.'
@@ -56,7 +57,7 @@ export const authenticate = async (
       return;
     }
     
-    if (error.name === 'TokenExpiredError') {
+    if (jwtError.name === 'TokenExpiredError') {
       res.status(401).json({
         success: false,
         error: 'Token expired. Please login again.'
@@ -84,4 +85,5 @@ export const generateToken = (userId: string): string => {
 };
 
 export { JWT_SECRET };
+
 

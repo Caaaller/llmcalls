@@ -7,7 +7,9 @@ import twilio from 'twilio';
 
 export interface CallOptions {
   statusCallback?: string;
-  [key: string]: any;
+  statusCallbackMethod?: 'GET' | 'POST';
+  method?: 'GET' | 'POST';
+  [key: string]: string | number | boolean | undefined;
 }
 
 class TwilioService {
@@ -29,10 +31,11 @@ class TwilioService {
    */
   async sendDTMF(callSid: string, digits: string): Promise<boolean> {
     try {
-      await this.client.calls(callSid).update({ sendDigits: digits } as any);
+      // Twilio types don't include sendDigits in CallUpdateOptions, but it's valid
+      await this.client.calls(callSid).update({ sendDigits: digits } as twilio.twiml.CallUpdateOptions & { sendDigits: string });
       return true;
     } catch (error) {
-      const err = error as Error;
+      const err = error instanceof Error ? error : new Error(String(error));
       console.error('Error sending DTMF:', err.message);
       return false;
     }
