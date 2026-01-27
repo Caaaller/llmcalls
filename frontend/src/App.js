@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import HistoryTab from './HistoryTab';
+import Login from './components/Login';
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
   const [settings, setSettings] = useState({
     transferNumber: '',
     toPhoneNumber: '',
@@ -14,9 +19,72 @@ function App() {
   });
 
   const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeTab, setActiveTab] = useState('settings'); // 'settings' or 'history'
+
+  // Check if user is already logged in
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (token && storedUser) {
+      try {
+        // Verify token is still valid
+        const response = await fetch('http://localhost:3000/api/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          mode: 'cors'
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data.user);
+          setIsAuthenticated(true);
+        } else {
+          // Token invalid, clear storage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      } catch (error) {
+        console.error('Auth check error:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleLogin = (userData, token) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        await fetch('http://localhost:3000/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          mode: 'cors'
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  };
 
   const voiceOptions = [
     { value: 'Polly.Matthew', label: 'Polly.Matthew (Male, Natural)' },
@@ -29,13 +97,19 @@ function App() {
   ];
 
   useEffect(() => {
-    loadSettings();
-    loadPrompt();
-  }, []);
+    if (isAuthenticated) {
+      loadSettings();
+      loadPrompt();
+    }
+  }, [isAuthenticated]);
 
   const loadSettings = async () => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/config', {
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {},
         mode: 'cors'
       });
       if (response.ok) {
@@ -57,7 +131,11 @@ function App() {
 
   const loadPrompt = async () => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/prompt', {
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {},
         mode: 'cors'
       });
       if (response.ok) {
@@ -73,10 +151,12 @@ function App() {
     setLoading(true);
     setSaved(false);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           ...settings,
@@ -111,10 +191,12 @@ function App() {
 
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/calls/initiate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({
           to: settings.toPhoneNumber,
@@ -139,12 +221,37 @@ function App() {
     }
   };
 
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="App">
+        <div className="loading-container">
+          <div className="spinner"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
   return (
     <div className="App">
       <div className="container">
         <header className="header">
-          <h1>📞 Transfer Call Manager</h1>
-          <p>Configure and manage your transfer-only phone navigation system</p>
+          <div className="header-content">
+            <div>
+              <h1>📞 Transfer Call Manager</h1>
+              <p>Configure and manage your transfer-only phone navigation system</p>
+            </div>
+            <div className="user-info">
+              <span className="user-name">👤 {user?.name || user?.email}</span>
+              <button onClick={handleLogout} className="logout-btn">Logout</button>
+            </div>
+          </div>
         </header>
 
         {/* Tabs */}

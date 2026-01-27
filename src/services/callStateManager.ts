@@ -3,15 +3,39 @@
  * Manages state for each call (IVR navigation, conversation history, etc.)
  */
 
+import { MenuOption } from '../utils/ivrDetector';
+
+export interface ConversationEntry {
+  type: 'user' | 'ai' | 'system';
+  text: string;
+  timestamp?: Date;
+}
+
+export interface CallState {
+  callSid: string;
+  menuLevel: number;
+  lastMenuOptions: MenuOption[];
+  partialSpeech: string;
+  conversationHistory: ConversationEntry[];
+  scenarioId: string | null;
+  createdAt: Date;
+  awaitingCompleteMenu?: boolean;
+  partialMenuOptions?: MenuOption[];
+  lastSpeech?: string;
+  humanConfirmed?: boolean;
+  awaitingHumanConfirmation?: boolean;
+  transferConfig?: any;
+  loopDetector?: any;
+  holdStartTime?: Date | null;
+}
+
 class CallStateManager {
-  constructor() {
-    this.callStates = new Map();
-  }
+  private callStates: Map<string, CallState> = new Map();
 
   /**
    * Get or create call state
    */
-  getCallState(callSid) {
+  getCallState(callSid: string): CallState {
     if (!this.callStates.has(callSid)) {
       this.callStates.set(callSid, {
         callSid,
@@ -23,13 +47,13 @@ class CallStateManager {
         createdAt: new Date()
       });
     }
-    return this.callStates.get(callSid);
+    return this.callStates.get(callSid)!;
   }
 
   /**
    * Update call state
    */
-  updateCallState(callSid, updates) {
+  updateCallState(callSid: string, updates: Partial<CallState>): CallState {
     const state = this.getCallState(callSid);
     Object.assign(state, updates);
     return state;
@@ -38,7 +62,7 @@ class CallStateManager {
   /**
    * Add to conversation history
    */
-  addToHistory(callSid, entry) {
+  addToHistory(callSid: string, entry: Omit<ConversationEntry, 'timestamp'>): void {
     const state = this.getCallState(callSid);
     if (!state.conversationHistory) {
       state.conversationHistory = [];
@@ -56,14 +80,14 @@ class CallStateManager {
   /**
    * Clear call state
    */
-  clearCallState(callSid) {
+  clearCallState(callSid: string): void {
     this.callStates.delete(callSid);
   }
 
   /**
    * Clean up old call states (older than 1 hour)
    */
-  cleanup() {
+  cleanup(): void {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     for (const [callSid, state] of this.callStates.entries()) {
       if (state.createdAt < oneHourAgo) {
@@ -81,6 +105,5 @@ setInterval(() => {
   callStateManager.cleanup();
 }, 30 * 60 * 1000);
 
-module.exports = callStateManager;
-
+export default callStateManager;
 

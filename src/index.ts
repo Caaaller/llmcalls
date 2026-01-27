@@ -1,8 +1,7 @@
-require('dotenv').config();
-const twilio = require('twilio');
-const transferConfig = require('./config/transfer-config');
+import 'dotenv/config';
+import twilio from 'twilio';
+import transferConfig from './config/transfer-config';
 
-// Initialize Twilio client with credentials from environment variables
 const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
 const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
 
@@ -13,7 +12,6 @@ if (!accountSid || !authToken) {
   process.exit(1);
 }
 
-// Verify Account SID format (should start with AC)
 if (!accountSid.startsWith('AC')) {
   console.error('⚠️  Warning: Account SID should start with "AC"');
 }
@@ -23,7 +21,7 @@ const client = twilio(accountSid, authToken);
 /**
  * Initiates a phone call using Twilio
  */
-async function initiateCall(to, from, url) {
+async function initiateCall(to: string, from: string, url: string) {
   try {
     const call = await client.calls.create({
       to: to,
@@ -35,7 +33,7 @@ async function initiateCall(to, from, url) {
     console.log('Call SID:', call.sid);
     console.log('Status:', call.status);
     return call;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error initiating call:', error.message);
     if (error.code) {
       console.error('Error code:', error.code);
@@ -50,11 +48,11 @@ async function initiateCall(to, from, url) {
 /**
  * Fetches the current status and details of a call
  */
-async function getCallStatus(callSid) {
+async function getCallStatus(callSid: string) {
   try {
     const call = await client.calls(callSid).fetch();
     return call;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching call status:', error.message);
     throw error;
   }
@@ -63,7 +61,7 @@ async function getCallStatus(callSid) {
 /**
  * Monitors a call and checks its status periodically
  */
-async function monitorCall(callSid, intervalMs = 2000, maxChecks = 10) {
+async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks: number = 10) {
   console.log(`\nMonitoring call ${callSid}...`);
   
   for (let i = 0; i < maxChecks; i++) {
@@ -82,7 +80,7 @@ async function monitorCall(callSid, intervalMs = 2000, maxChecks = 10) {
       if (i < maxChecks - 1) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error monitoring call:', error.message);
       throw error;
     }
@@ -95,15 +93,13 @@ async function monitorCall(callSid, intervalMs = 2000, maxChecks = 10) {
 // Main execution
 if (require.main === module) {
   const args = process.argv.slice(2);
-  let callSidToCheck = args[0];
+  let callSidToCheck: string | null = args[0] || null;
   
-  // If first arg is empty string, treat as no call SID
   if (callSidToCheck && callSidToCheck.trim() === '') {
     callSidToCheck = null;
   }
   
   if (callSidToCheck) {
-    // Check status of existing call
     console.log(`Checking status of call: ${callSidToCheck}`);
     getCallStatus(callSidToCheck)
       .then((call) => {
@@ -114,32 +110,28 @@ if (require.main === module) {
         console.log('Duration:', call.duration ? `${call.duration} seconds` : 'N/A');
         console.log('Price:', call.price ? `$${call.price} ${call.priceUnit}` : 'N/A');
       })
-      .catch((error) => {
+      .catch((error: any) => {
         console.error('Failed to check call status:', error);
         process.exit(1);
       });
   } else {
-    // Initiate new transfer-only call
     const to = process.env.TO_PHONE_NUMBER || '+1234567890';
     const from = process.env.TWILIO_PHONE_NUMBER || '+1234567890';
     let url = process.env.TWIML_URL || 'http://demo.twilio.com/docs/voice.xml';
     
-    // Get transfer config (can be customized via query params or env vars)
     const config = transferConfig.createConfig({
       transferNumber: process.env.TRANSFER_PHONE_NUMBER,
       userPhone: process.env.USER_PHONE_NUMBER,
       userEmail: process.env.USER_EMAIL,
-      callPurpose: args[1] || 'speak with a representative', // Optional: custom call purpose
-      customInstructions: args[2] || '' // Optional: custom instructions
+      callPurpose: args[1] || 'speak with a representative',
+      customInstructions: args[2] || ''
     });
     
-    // Ensure TWIML_URL ends with /voice
     if (url.includes('ngrok') || url.includes('localhost') || url.includes('http')) {
       url = url.endsWith('/') ? url + 'voice' : url + '/voice';
-      // Pass config as query params (will be parsed in voiceRoutes)
       const params = new URLSearchParams({
         transferNumber: config.transferNumber,
-        callPurpose: config.callPurpose
+        callPurpose: config.callPurpose || 'speak with a representative'
       });
       if (config.customInstructions) {
         params.append('customInstructions', config.customInstructions);
@@ -162,11 +154,12 @@ if (require.main === module) {
         await new Promise(resolve => setTimeout(resolve, 3000));
         await monitorCall(call.sid);
       })
-      .catch((error) => {
+      .catch((error: any) => {
         console.error('Failed to initiate call:', error);
         process.exit(1);
       });
   }
 }
 
-module.exports = { initiateCall, getCallStatus, monitorCall };
+export { initiateCall, getCallStatus, monitorCall };
+

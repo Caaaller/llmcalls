@@ -16,7 +16,11 @@ function HistoryTab() {
 
   const loadHistory = async () => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/calls/history?limit=50', {
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {},
         mode: 'cors'
       });
       if (response.ok) {
@@ -42,7 +46,11 @@ function HistoryTab() {
   const loadCallDetails = async (callSid) => {
     setLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:3000/api/calls/${callSid}`, {
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : {},
         mode: 'cors'
       });
       if (response.ok) {

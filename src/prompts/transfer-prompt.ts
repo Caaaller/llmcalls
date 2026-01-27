@@ -3,19 +3,28 @@
  * Main prompt for navigating IVR systems and transferring to live representatives
  */
 
-module.exports = {
+export interface PromptResult {
+  system: string;
+  user?: string;
+}
+
+export interface TransferPromptConfig {
+  transferNumber?: string;
+  userPhone?: string;
+  userEmail?: string;
+  customInstructions?: string;
+  callPurpose?: string;
+}
+
+export const transferPrompt = {
   /**
    * Main transfer-only prompt template
-   * @param {Object} config - Configuration object
-   * @param {string} config.transferNumber - Phone number to transfer to (default: 720-584-6358)
-   * @param {string} config.userPhone - User's phone number (default: 720-584-6358)
-   * @param {string} config.userEmail - User's email (default: oliverullman@gmail.com)
-   * @param {string} config.customInstructions - Additional call-specific instructions from user
-   * @param {string} config.callPurpose - Purpose of the call (for IVR navigation)
-   * @param {string} conversationContext - Current conversation context
-   * @param {boolean} isFirstCall - Whether this is the first interaction
    */
-  'transfer-only': (config = {}, conversationContext = '', isFirstCall = false) => {
+  'transfer-only': (
+    config: TransferPromptConfig = {},
+    conversationContext: string = '',
+    _isFirstCall: boolean = false
+  ): PromptResult => {
     const transferNumber = config.transferNumber || '720-584-6358';
     const userPhone = config.userPhone || '720-584-6358';
     const userEmail = config.userEmail || 'oliverullman@gmail.com';

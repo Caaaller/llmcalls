@@ -3,19 +3,26 @@
  * Stores and retrieves call history with full conversation logs using MongoDB
  */
 
-const CallHistory = require('../models/CallHistory');
-const database = require('./database');
+import CallHistory, { MenuOption } from '../models/CallHistory';
+import { isDbConnected } from './database';
 
-// Helper to check if MongoDB is available
-function isMongoAvailable() {
-  return database.isDbConnected();
+function isMongoAvailable(): boolean {
+  return isDbConnected();
+}
+
+export interface CallMetadata {
+  to?: string;
+  from?: string;
+  transferNumber?: string;
+  callPurpose?: string;
+  customInstructions?: string;
 }
 
 class CallHistoryService {
   /**
    * Start tracking a new call
    */
-  async startCall(callSid, metadata = {}) {
+  async startCall(callSid: string, metadata: CallMetadata = {}): Promise<void> {
     if (!isMongoAvailable()) {
       console.log('⚠️  MongoDB not connected. Call history will not be saved.');
       return;
@@ -27,11 +34,11 @@ class CallHistoryService {
         startTime: new Date(),
         status: 'in-progress',
         metadata: {
-          to: metadata.to || null,
-          from: metadata.from || null,
-          transferNumber: metadata.transferNumber || null,
-          callPurpose: metadata.callPurpose || null,
-          customInstructions: metadata.customInstructions || null
+          to: metadata.to || undefined,
+          from: metadata.from || undefined,
+          transferNumber: metadata.transferNumber || undefined,
+          callPurpose: metadata.callPurpose || undefined,
+          customInstructions: metadata.customInstructions || undefined
         },
         conversation: [],
         dtmfPresses: [],
@@ -40,8 +47,7 @@ class CallHistoryService {
       
       await callHistory.save();
       console.log(`📞 Started tracking call: ${callSid}`);
-    } catch (error) {
-      // If call already exists (duplicate), update it instead
+    } catch (error: any) {
       if (error.code === 11000) {
         console.log(`📞 Call ${callSid} already exists, updating...`);
         await CallHistory.findOneAndUpdate(
@@ -51,11 +57,11 @@ class CallHistoryService {
               status: 'in-progress',
               startTime: new Date(),
               metadata: {
-                to: metadata.to || null,
-                from: metadata.from || null,
-                transferNumber: metadata.transferNumber || null,
-                callPurpose: metadata.callPurpose || null,
-                customInstructions: metadata.customInstructions || null
+                to: metadata.to || undefined,
+                from: metadata.from || undefined,
+                transferNumber: metadata.transferNumber || undefined,
+                callPurpose: metadata.callPurpose || undefined,
+                customInstructions: metadata.customInstructions || undefined
               }
             }
           }
@@ -68,9 +74,14 @@ class CallHistoryService {
   }
 
   /**
-   * Add a conversation event (user speech or AI response)
+   * Add a conversation event
    */
-  async addConversation(callSid, type, text, timestamp = null) {
+  async addConversation(
+    callSid: string,
+    type: 'user' | 'ai' | 'system',
+    text: string,
+    timestamp: Date | null = null
+  ): Promise<void> {
     if (!isMongoAvailable()) return;
     
     try {
@@ -87,12 +98,12 @@ class CallHistoryService {
             conversation: conversationEntry,
             events: {
               ...conversationEntry,
-              eventType: 'conversation'
+              eventType: 'conversation' as const
             }
           }
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error adding conversation:', error.message);
     }
   }
@@ -100,13 +111,18 @@ class CallHistoryService {
   /**
    * Record a DTMF press
    */
-  async addDTMF(callSid, digit, reason = null, timestamp = null) {
+  async addDTMF(
+    callSid: string,
+    digit: string,
+    reason: string | null = null,
+    timestamp: Date | null = null
+  ): Promise<void> {
     if (!isMongoAvailable()) return;
     
     try {
       const dtmfEvent = {
         digit,
-        reason,
+        reason: reason || undefined,
         timestamp: timestamp || new Date()
       };
 
@@ -117,12 +133,12 @@ class CallHistoryService {
             dtmfPresses: dtmfEvent,
             events: {
               ...dtmfEvent,
-              eventType: 'dtmf'
+              eventType: 'dtmf' as const
             }
           }
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error adding DTMF:', error.message);
     }
   }
@@ -130,7 +146,11 @@ class CallHistoryService {
   /**
    * Record an IVR menu detection
    */
-  async addIVRMenu(callSid, menuOptions, timestamp = null) {
+  async addIVRMenu(
+    callSid: string,
+    menuOptions: MenuOption[],
+    timestamp: Date | null = null
+  ): Promise<void> {
     if (!isMongoAvailable()) return;
     
     try {
@@ -139,14 +159,14 @@ class CallHistoryService {
         {
           $push: {
             events: {
-              eventType: 'ivr_menu',
+              eventType: 'ivr_menu' as const,
               menuOptions,
               timestamp: timestamp || new Date()
             }
           }
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error adding IVR menu:', error.message);
     }
   }
@@ -154,7 +174,12 @@ class CallHistoryService {
   /**
    * Record a transfer attempt
    */
-  async addTransfer(callSid, transferNumber, success = false, timestamp = null) {
+  async addTransfer(
+    callSid: string,
+    transferNumber: string,
+    success: boolean = false,
+    timestamp: Date | null = null
+  ): Promise<void> {
     if (!isMongoAvailable()) return;
     
     try {
@@ -163,7 +188,7 @@ class CallHistoryService {
         {
           $push: {
             events: {
-              eventType: 'transfer',
+              eventType: 'transfer' as const,
               transferNumber,
               success,
               timestamp: timestamp || new Date()
@@ -171,7 +196,7 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error adding transfer:', error.message);
     }
   }
@@ -179,7 +204,11 @@ class CallHistoryService {
   /**
    * Record a termination
    */
-  async addTermination(callSid, reason, timestamp = null) {
+  async addTermination(
+    callSid: string,
+    reason: string,
+    timestamp: Date | null = null
+  ): Promise<void> {
     if (!isMongoAvailable()) return;
     
     try {
@@ -188,14 +217,14 @@ class CallHistoryService {
         {
           $push: {
             events: {
-              eventType: 'termination',
+              eventType: 'termination' as const,
               reason,
               timestamp: timestamp || new Date()
             }
           }
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error adding termination:', error.message);
     }
   }
@@ -203,7 +232,7 @@ class CallHistoryService {
   /**
    * End a call
    */
-  async endCall(callSid, status = 'completed') {
+  async endCall(callSid: string, status: 'completed' | 'failed' | 'terminated' = 'completed'): Promise<void> {
     if (!isMongoAvailable()) return;
     
     try {
@@ -211,7 +240,7 @@ class CallHistoryService {
       if (!call) return;
 
       const endTime = new Date();
-      const duration = endTime - call.startTime;
+      const duration = endTime.getTime() - call.startTime.getTime();
 
       await CallHistory.findOneAndUpdate(
         { callSid },
@@ -223,7 +252,7 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error ending call:', error.message);
     }
   }
@@ -231,22 +260,22 @@ class CallHistoryService {
   /**
    * Get call history by callSid
    */
-  async getCall(callSid) {
+  async getCall(callSid: string) {
     if (!isMongoAvailable()) return null;
     
     try {
       const call = await CallHistory.findOne({ callSid }).lean();
       return call;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error getting call:', error.message);
       return null;
     }
   }
 
   /**
-   * Get all calls (sorted by start time, newest first)
+   * Get all calls
    */
-  async getAllCalls(limit = 100) {
+  async getAllCalls(limit: number = 100) {
     if (!isMongoAvailable()) return [];
     
     try {
@@ -255,7 +284,7 @@ class CallHistoryService {
         .limit(limit)
         .lean();
       return calls;
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error getting all calls:', error.message);
       return [];
     }
@@ -264,14 +293,14 @@ class CallHistoryService {
   /**
    * Get recent calls
    */
-  async getRecentCalls(limit = 20) {
+  async getRecentCalls(limit: number = 20) {
     return this.getAllCalls(limit);
   }
 
   /**
-   * Clean up old calls (older than specified days)
+   * Clean up old calls
    */
-  async cleanup(daysOld = 7) {
+  async cleanup(daysOld: number = 7): Promise<void> {
     if (!isMongoAvailable()) return;
     
     try {
@@ -280,10 +309,10 @@ class CallHistoryService {
         startTime: { $lt: cutoffDate }
       });
       
-      if (result.deletedCount > 0) {
+      if (result.deletedCount && result.deletedCount > 0) {
         console.log(`🧹 Cleaned up ${result.deletedCount} old calls`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error cleaning up calls:', error.message);
     }
   }
@@ -306,7 +335,7 @@ class CallHistoryService {
         failed,
         terminated
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error getting statistics:', error.message);
       return null;
     }
@@ -321,4 +350,5 @@ setInterval(() => {
   callHistoryService.cleanup(7).catch(console.error);
 }, 60 * 60 * 1000);
 
-module.exports = callHistoryService;
+export default callHistoryService;
+
