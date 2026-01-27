@@ -1,11 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import './HistoryTab.css';
 
+interface CallMetadata {
+  to?: string;
+  from?: string;
+  transferNumber?: string;
+  callPurpose?: string;
+}
+
+interface DTMFPress {
+  digit: string;
+  reason?: string;
+  timestamp?: Date | string;
+}
+
+interface ConversationEntry {
+  type: 'user' | 'ai' | 'system';
+  text: string;
+  timestamp?: Date | string;
+}
+
+interface MenuOption {
+  digit: string;
+  option: string;
+}
+
+interface CallEvent {
+  eventType: 'conversation' | 'dtmf' | 'ivr_menu' | 'transfer' | 'termination';
+  type?: 'user' | 'ai' | 'system';
+  text?: string;
+  digit?: string;
+  reason?: string;
+  menuOptions?: MenuOption[];
+  transferNumber?: string;
+  success?: boolean;
+  timestamp?: Date | string;
+}
+
+interface Call {
+  callSid: string;
+  startTime: Date | string;
+  endTime?: Date | string;
+  duration?: number;
+  status: 'in-progress' | 'completed' | 'failed' | 'terminated';
+  metadata?: CallMetadata;
+  conversationCount?: number;
+  dtmfCount?: number;
+}
+
+interface CallDetails extends Call {
+  conversation: ConversationEntry[];
+  dtmfPresses: DTMFPress[];
+  events: CallEvent[];
+}
+
 function HistoryTab() {
-  const [calls, setCalls] = useState([]);
-  const [selectedCall, setSelectedCall] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [calls, setCalls] = useState<Call[]>([]);
+  const [selectedCall, setSelectedCall] = useState<CallDetails | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadHistory();
@@ -14,7 +67,7 @@ function HistoryTab() {
     return () => clearInterval(interval);
   }, []);
 
-  const loadHistory = async () => {
+  const loadHistory = async (): Promise<void> => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3000/api/calls/history?limit=50', {
@@ -43,7 +96,7 @@ function HistoryTab() {
     }
   };
 
-  const loadCallDetails = async (callSid) => {
+  const loadCallDetails = async (callSid: string): Promise<void> => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -67,12 +120,12 @@ function HistoryTab() {
     }
   };
 
-  const formatTime = (date) => {
+  const formatTime = (date: Date | string | null | undefined): string => {
     if (!date) return 'N/A';
     return new Date(date).toLocaleString();
   };
 
-  const formatDuration = (ms) => {
+  const formatDuration = (ms: number | null | undefined): string => {
     if (!ms) return 'N/A';
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -80,7 +133,7 @@ function HistoryTab() {
     return `${minutes}m ${secs}s`;
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
       case 'completed': return '#28a745';
       case 'in-progress': return '#007bff';
@@ -144,8 +197,8 @@ function HistoryTab() {
                     <div>⏱️ {formatDuration(call.duration)}</div>
                   </div>
                   <div className="call-item-stats">
-                    <span>💬 {call.conversationCount} messages</span>
-                    <span>🔢 {call.dtmfCount} DTMF</span>
+                    <span>💬 {call.conversationCount || 0} messages</span>
+                    <span>🔢 {call.dtmfCount || 0} DTMF</span>
                   </div>
                 </div>
               ))}
@@ -198,7 +251,7 @@ function HistoryTab() {
               </div>
 
               {/* DTMF Presses */}
-              {selectedCall.dtmfPresses.length > 0 && (
+              {selectedCall.dtmfPresses && selectedCall.dtmfPresses.length > 0 && (
                 <div className="section">
                   <h4>🔢 DTMF Presses ({selectedCall.dtmfPresses.length})</h4>
                   <div className="dtmf-list">
@@ -216,7 +269,7 @@ function HistoryTab() {
               )}
 
               {/* Conversation */}
-              {selectedCall.conversation.length > 0 && (
+              {selectedCall.conversation && selectedCall.conversation.length > 0 && (
                 <div className="section">
                   <h4>💬 Conversation ({selectedCall.conversation.length} messages)</h4>
                   <div className="conversation-list">
@@ -239,7 +292,7 @@ function HistoryTab() {
               )}
 
               {/* All Events Timeline */}
-              {selectedCall.events.length > 0 && (
+              {selectedCall.events && selectedCall.events.length > 0 && (
                 <div className="section">
                   <h4>📋 Event Timeline ({selectedCall.events.length} events)</h4>
                   <div className="timeline">

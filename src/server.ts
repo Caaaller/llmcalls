@@ -5,6 +5,7 @@
 
 import 'dotenv/config';
 import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import path from 'path';
 import { connect, disconnect } from './services/database';
 import voiceRoutes from './routes/voiceRoutes';
 import apiRoutes from './routes/apiRoutes';
@@ -22,10 +23,23 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // CORS for React frontend
+const allowedOrigins = [
+  'http://localhost:3001',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+  process.env.BASE_URL
+].filter(Boolean) as string[];
+
 app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'production' && process.env.BASE_URL) {
+    res.header('Access-Control-Allow-Origin', process.env.BASE_URL);
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
@@ -42,11 +56,11 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-// Serve static files
+// Serve static files from public directory
 app.use(express.static('public'));
 
-// Routes
-app.use('/', voiceRoutes);
+// Routes (API routes before static file serving)
+app.use('/voice', voiceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
@@ -55,18 +69,35 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root endpoint
-app.get('/', (_req: Request, res: Response) => {
-  res.json({
-    message: 'LLM Calls API Server',
-    version: '2.0.0',
-    endpoints: {
-      health: '/health',
-      scenarios: '/api/scenarios',
-      initiateCall: '/api/calls/initiate'
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendBuildPath = path.join(__dirname, '../../frontend/build');
+  app.use(express.static(frontendBuildPath));
+  
+  // Catch-all handler: send back React's index.html file for client-side routing
+  app.get('*', (req: Request, res: Response, next: NextFunction) => {
+    // Don't serve React app for API routes or voice routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/voice') || req.path.startsWith('/health')) {
+      return next();
     }
+    res.sendFile(path.join(frontendBuildPath, 'index.html'));
   });
-});
+} else {
+  // Development: API info endpoint
+  app.get('/', (_req: Request, res: Response) => {
+    res.json({
+      message: 'LLM Calls API Server',
+      version: '2.0.0',
+      mode: 'development',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+        voice: '/voice'
+      },
+      note: 'Frontend runs separately on http://localhost:3001'
+    });
+  });
+}
 
 // Error handling middleware
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {

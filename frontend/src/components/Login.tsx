@@ -1,17 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, FormEvent, ChangeEvent } from 'react';
 import './Login.css';
 
-function Login({ onLogin }) {
-  const [isSignup, setIsSignup] = useState(false);
-  const [formData, setFormData] = useState({
+interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+
+interface LoginProps {
+  onLogin: (user: User, token: string) => void;
+}
+
+interface FormData {
+  email: string;
+  password: string;
+  name: string;
+}
+
+function Login({ onLogin }: LoginProps) {
+  const [isSignup, setIsSignup] = useState<boolean>(false);
+  const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     name: ''
   });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -19,7 +35,7 @@ function Login({ onLogin }) {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -137,5 +153,4 @@ function Login({ onLogin }) {
 }
 
 export default Login;
-
 

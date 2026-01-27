@@ -56,7 +56,7 @@ function getBaseUrl(req: Request): string {
 /**
  * Initial voice webhook - called when call starts
  */
-router.post('/voice', (req: Request, res: Response): void => {
+router.post('/', (req: Request, res: Response): void => {
   try {
     console.log('📞 /voice endpoint called');
     const callSid = req.body.CallSid;
