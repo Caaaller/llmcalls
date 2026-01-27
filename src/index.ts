@@ -127,7 +127,7 @@ if (require.main === module) {
       transferNumber: process.env.TRANSFER_PHONE_NUMBER,
       userPhone: process.env.USER_PHONE_NUMBER,
       userEmail: process.env.USER_EMAIL,
-      callPurpose: args[1] || 'speak with a representative',
+      callPurpose: args[1] || process.env.CALL_PURPOSE || 'speak with a representative',
       customInstructions: args[2] || ''
     });
     
@@ -135,7 +135,7 @@ if (require.main === module) {
       url = url.endsWith('/') ? url + 'voice' : url + '/voice';
       const params = new URLSearchParams({
         transferNumber: config.transferNumber,
-        callPurpose: config.callPurpose || 'speak with a representative'
+        callPurpose: config.callPurpose || process.env.CALL_PURPOSE || 'speak with a representative'
       });
       if (config.customInstructions) {
         params.append('customInstructions', config.customInstructions);

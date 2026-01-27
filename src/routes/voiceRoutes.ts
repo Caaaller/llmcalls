@@ -66,7 +66,7 @@ router.post('/', (req: Request, res: Response): void => {
       transferNumber: req.query.transferNumber as string || process.env.TRANSFER_PHONE_NUMBER,
       userPhone: req.query.userPhone as string || process.env.USER_PHONE_NUMBER,
       userEmail: req.query.userEmail as string || process.env.USER_EMAIL,
-      callPurpose: req.query.callPurpose as string || 'speak with a representative',
+      callPurpose: req.query.callPurpose as string || process.env.CALL_PURPOSE || 'speak with a representative',
       customInstructions: req.query.customInstructions as string || ''
     });
     
@@ -136,7 +136,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       transferNumber: req.query.transferNumber as string || process.env.TRANSFER_PHONE_NUMBER,
       userPhone: req.query.userPhone as string || process.env.USER_PHONE_NUMBER,
       userEmail: req.query.userEmail as string || process.env.USER_EMAIL,
-      callPurpose: req.query.callPurpose as string || 'speak with a representative',
+      callPurpose: req.query.callPurpose as string || process.env.CALL_PURPOSE || 'speak with a representative',
       customInstructions: req.query.customInstructions as string || ''
     });
     
@@ -541,7 +541,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   
   const config = transferConfig.createConfig({
     transferNumber: req.query.transferNumber as string || process.env.TRANSFER_PHONE_NUMBER,
-    callPurpose: req.query.callPurpose as string || 'speak with a representative'
+    callPurpose: req.query.callPurpose as string || process.env.CALL_PURPOSE || 'speak with a representative'
   });
   
   console.log('🔢 DTMF processed:', digits);

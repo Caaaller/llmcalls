@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import './HistoryTab.css';
+import { api } from './api/client';
 
 interface CallMetadata {
   to?: string;
@@ -55,70 +57,25 @@ interface CallDetails extends Call {
 }
 
 function HistoryTab() {
-  const [calls, setCalls] = useState<Call[]>([]);
-  const [selectedCall, setSelectedCall] = useState<CallDetails | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedCallSid, setSelectedCallSid] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadHistory();
-    // Refresh every 5 seconds
-    const interval = setInterval(loadHistory, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  // Fetch call history with auto-refresh
+  const { data: historyData, isLoading: isLoadingHistory, error: historyError, refetch } = useQuery({
+    queryKey: ['calls', 'history'],
+    queryFn: () => api.calls.history(50),
+    refetchInterval: 5000, // Refresh every 5 seconds
+  });
 
-  const loadHistory = async (): Promise<void> => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/api/calls/history?limit=50', {
-        headers: token ? {
-          'Authorization': `Bearer ${token}`
-        } : {},
-        mode: 'cors'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCalls(data.calls || []);
-        
-        // Show helpful message if MongoDB is not connected
-        if (data.mongoConnected === false) {
-          setError('⚠️ MongoDB not connected. Call history will not be saved. Add MONGODB_URI to .env to enable call history.');
-        } else {
-          setError(null);
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        setError(errorData.error || 'Failed to load call history');
-      }
-    } catch (err) {
-      console.error('Error loading history:', err);
-      setError('Error loading call history. Make sure the backend server is running.');
-    }
-  };
+  // Fetch call details when a call is selected
+  const { data: callDetailsData, isLoading: isLoadingDetails } = useQuery({
+    queryKey: ['calls', selectedCallSid],
+    queryFn: () => api.calls.get(selectedCallSid!),
+    enabled: !!selectedCallSid,
+  });
 
-  const loadCallDetails = async (callSid: string): Promise<void> => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/calls/${callSid}`, {
-        headers: token ? {
-          'Authorization': `Bearer ${token}`
-        } : {},
-        mode: 'cors'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedCall(data.call);
-      } else {
-        alert('Failed to load call details');
-      }
-    } catch (err) {
-      console.error('Error loading call details:', err);
-      alert('Error loading call details');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const calls = historyData?.calls || [];
+  const selectedCall = callDetailsData?.call || null;
+  const mongoConnected = historyData?.mongoConnected !== false;
 
   const formatTime = (date: Date | string | null | undefined): string => {
     if (!date) return 'N/A';
@@ -143,17 +100,25 @@ function HistoryTab() {
     }
   };
 
+  const errorMessage = historyError
+    ? 'Error loading call history. Make sure the backend server is running.'
+    : !mongoConnected
+    ? '⚠️ MongoDB not connected. Call history will not be saved. Add MONGODB_URI to .env to enable call history.'
+    : null;
+
   return (
     <div className="history-container">
       <div className="history-header">
         <h2>📞 Call History</h2>
-        <button onClick={loadHistory} className="btn-refresh">🔄 Refresh</button>
+        <button onClick={() => refetch()} className="btn-refresh" disabled={isLoadingHistory}>
+          {isLoadingHistory ? '⏳ Loading...' : '🔄 Refresh'}
+        </button>
       </div>
 
-      {error && (
-        <div className={`error-message ${error.includes('MongoDB') ? 'warning-message' : ''}`}>
-          {error}
-          {error.includes('MongoDB') && (
+      {errorMessage && (
+        <div className={`error-message ${!mongoConnected ? 'warning-message' : ''}`}>
+          {errorMessage}
+          {!mongoConnected && (
             <div style={{ marginTop: '10px', fontSize: '0.9rem' }}>
               <strong>Quick Setup:</strong>
               <ol style={{ marginLeft: '20px', marginTop: '5px' }}>
@@ -172,15 +137,17 @@ function HistoryTab() {
         {/* Calls List */}
         <div className="calls-list">
           <h3>Recent Calls ({calls.length})</h3>
-          {calls.length === 0 ? (
+          {isLoadingHistory ? (
+            <div className="empty-state">Loading calls...</div>
+          ) : calls.length === 0 ? (
             <div className="empty-state">No calls yet</div>
           ) : (
             <div className="calls-list-items">
               {calls.map((call) => (
                 <div
                   key={call.callSid}
-                  className={`call-item ${selectedCall?.callSid === call.callSid ? 'active' : ''}`}
-                  onClick={() => loadCallDetails(call.callSid)}
+                  className={`call-item ${selectedCallSid === call.callSid ? 'active' : ''}`}
+                  onClick={() => setSelectedCallSid(call.callSid)}
                 >
                   <div className="call-item-header">
                     <span className="call-sid">{call.callSid.substring(0, 20)}...</span>
@@ -208,13 +175,13 @@ function HistoryTab() {
 
         {/* Call Details */}
         <div className="call-details">
-          {loading ? (
+          {isLoadingDetails ? (
             <div className="loading">Loading call details...</div>
           ) : selectedCall ? (
             <>
               <div className="call-details-header">
                 <h3>Call Details</h3>
-                <button onClick={() => setSelectedCall(null)} className="btn-close">✕</button>
+                <button onClick={() => setSelectedCallSid(null)} className="btn-close">✕</button>
               </div>
 
               <div className="call-info">
@@ -350,4 +317,3 @@ function HistoryTab() {
 }
 
 export default HistoryTab;
-

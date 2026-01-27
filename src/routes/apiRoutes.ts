@@ -154,7 +154,7 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
     
     const config = transferConfig.createConfig({
       transferNumber: transferNumber || process.env.TRANSFER_PHONE_NUMBER,
-      callPurpose: callPurpose || 'speak with a representative',
+      callPurpose: callPurpose || process.env.CALL_PURPOSE || 'speak with a representative',
       customInstructions: customInstructions || ''
     });
     

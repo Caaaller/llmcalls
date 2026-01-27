@@ -1,5 +1,8 @@
 import React, { useState, FormEvent, ChangeEvent } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import './Login.css';
+import { api } from '../api/client';
+import { setAuth, type User } from '../utils/auth';
 
 interface User {
   id: string;
@@ -25,7 +28,34 @@ function Login({ onLogin }: LoginProps) {
     name: ''
   });
   const [error, setError] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+
+  const loginMutation = useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      api.auth.login(email, password),
+    onSuccess: (data) => {
+      if (data.success) {
+        setAuth(data.user, data.token);
+        onLogin(data.user, data.token);
+      }
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'An error occurred');
+    },
+  });
+
+  const signupMutation = useMutation({
+    mutationFn: ({ email, password, name }: { email: string; password: string; name: string }) =>
+      api.auth.signup(email, password, name),
+    onSuccess: (data) => {
+      if (data.success) {
+        setAuth(data.user, data.token);
+        onLogin(data.user, data.token);
+      }
+    },
+    onError: (err: Error) => {
+      setError(err.message || 'An error occurred');
+    },
+  });
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -35,43 +65,25 @@ function Login({ onLogin }: LoginProps) {
     setError('');
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    try {
-      const endpoint = isSignup ? '/api/auth/signup' : '/api/auth/login';
-      const body = isSignup 
-        ? { email: formData.email, password: formData.password, name: formData.name }
-        : { email: formData.email, password: formData.password };
-
-      const response = await fetch(`http://localhost:3000${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-        mode: 'cors'
+    if (isSignup) {
+      signupMutation.mutate({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name
       });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Store token and user info
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        onLogin(data.user, data.token);
-      } else {
-        setError(data.error || 'An error occurred');
-      }
-    } catch (err) {
-      setError('Network error. Please check if the server is running.');
-      console.error('Auth error:', err);
-    } finally {
-      setLoading(false);
+    } else {
+      loginMutation.mutate({
+        email: formData.email,
+        password: formData.password
+      });
     }
   };
+
+  const isLoading = loginMutation.isPending || signupMutation.isPending;
 
   return (
     <div className="login-container">
@@ -126,8 +138,8 @@ function Login({ onLogin }: LoginProps) {
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Please wait...' : (isSignup ? 'Sign Up' : 'Login')}
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? 'Please wait...' : (isSignup ? 'Sign Up' : 'Login')}
           </button>
         </form>
 
@@ -153,4 +165,3 @@ function Login({ onLogin }: LoginProps) {
 }
 
 export default Login;
-
