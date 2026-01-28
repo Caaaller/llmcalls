@@ -131,17 +131,27 @@ app.use(errorHandler);
 // Connect to MongoDB and start server
 async function startServer(): Promise<void> {
   try {
-    connect().catch(_err => {
-      console.log('⚠️  Continuing without MongoDB connection...');
-    });
+    // Attempt to connect to MongoDB, but don't block server startup
+    if (process.env.MONGODB_URI) {
+      connect().catch((err) => {
+        console.error('⚠️  MongoDB connection failed:', err instanceof Error ? err.message : String(err));
+        console.log('⚠️  Server will continue, but database operations will fail.');
+        console.log('💡 Please check MONGODB_URI environment variable in Railway.');
+      });
+    } else {
+      console.log('⚠️  MONGODB_URI not set. Database operations will fail.');
+      console.log('💡 Set MONGODB_URI in Railway environment variables.');
+    }
     
     app.listen(port, () => {
       console.log(`\n🚀 Server running on port ${port}`);
       console.log(`📡 Health check: http://localhost:${port}/health`);
       console.log(`📋 Scenarios: http://localhost:${port}/api/scenarios`);
-      console.log(`\n⚠️  For production, use ngrok or similar to expose this server:`);
-      console.log(`   ngrok http ${port}`);
-      console.log(`   Then update TWIML_URL in .env to: https://your-ngrok-url.ngrok.io/voice`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`\n⚠️  For production, use ngrok or similar to expose this server:`);
+        console.log(`   ngrok http ${port}`);
+        console.log(`   Then update TWIML_URL in .env to: https://your-ngrok-url.ngrok.io/voice`);
+      }
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

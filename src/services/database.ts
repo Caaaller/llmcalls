@@ -17,16 +17,20 @@ export async function connect(): Promise<void> {
   }
 
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/llmcalls';
+    // Railway provides MONGO_URL, but we also support MONGODB_URI for flexibility
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/llmcalls';
     
     if (!mongoUri || mongoUri === 'mongodb://localhost:27017/llmcalls') {
       console.log('⚠️  MongoDB URI not set. Using default: mongodb://localhost:27017/llmcalls');
-      console.log('💡 To use MongoDB Atlas (cloud), set MONGODB_URI in .env');
+      console.log('💡 Railway: Add MongoDB service to get MONGO_URL automatically');
+      console.log('💡 Or set MONGODB_URI in Railway environment variables');
       console.log('💡 Example: MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/llmcalls');
     }
     
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000, // 30 seconds
+      socketTimeoutMS: 45000, // 45 seconds
+      connectTimeoutMS: 30000, // 30 seconds
     });
     
     isConnected = true;

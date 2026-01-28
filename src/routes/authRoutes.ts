@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import { generateToken, authenticate, AuthRequest } from '../middleware/auth';
 
@@ -29,6 +30,15 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({
         success: false,
         error: 'Password must be at least 6 characters long'
+      });
+      return;
+    }
+    
+    // Check MongoDB connection before querying
+    if (mongoose.connection.readyState !== 1) {
+      res.status(503).json({
+        success: false,
+        error: 'Database connection unavailable. Please try again later.'
       });
       return;
     }
@@ -84,6 +94,15 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({
         success: false,
         error: 'Please provide email and password'
+      });
+      return;
+    }
+    
+    // Check MongoDB connection before querying
+    if (mongoose.connection.readyState !== 1) {
+      res.status(503).json({
+        success: false,
+        error: 'Database connection unavailable. Please try again later.'
       });
       return;
     }
