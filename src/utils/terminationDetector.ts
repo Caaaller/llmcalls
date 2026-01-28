@@ -3,6 +3,8 @@
  * Detects when call should be terminated (closed, voicemail, dead end)
  */
 
+import { CLOSED_PATTERNS, VOICEMAIL_PATTERNS } from './detectionPatterns';
+
 export interface TerminationResult {
   shouldTerminate: boolean;
   reason: 'voicemail' | 'closed_no_menu' | 'dead_end' | null;
@@ -16,18 +18,9 @@ export function isClosedNoMenu(speechResult: string | null | undefined): boolean
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
-  const closedPatterns = [
-    'we are currently closed',
-    'our office is currently closed',
-    'outside of our normal business hours',
-    'our hours are',
-    'business hours are',
-    'please call back during business hours'
-  ];
-
   const hasMenuPattern = /(press\s*\d|\d\s+for\s+)/.test(text);
 
-  return closedPatterns.some(p => text.includes(p)) && !hasMenuPattern;
+  return CLOSED_PATTERNS.some(p => text.includes(p)) && !hasMenuPattern;
 }
 
 /**
@@ -37,16 +30,7 @@ export function isVoicemailRecording(speechResult: string | null | undefined): b
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
-  const voicemailPatterns = [
-    'please leave a message after the beep',
-    'please leave your message after the tone',
-    'record your message',
-    'at the tone',
-    'voicemail',
-    'leave a message'
-  ];
-
-  return voicemailPatterns.some(p => text.includes(p));
+  return VOICEMAIL_PATTERNS.some(p => text.includes(p));
 }
 
 /**

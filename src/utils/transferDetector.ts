@@ -3,6 +3,8 @@
  * Detects when a call should be transferred based on speech patterns
  */
 
+import { TRANSFER_PATTERNS } from './detectionPatterns';
+
 /**
  * Check if speech indicates a transfer request
  */
@@ -10,28 +12,7 @@ export function wantsTransfer(speechResult: string | null | undefined): boolean 
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
-  const patterns = [
-    'transfer me',
-    'transfer the call',
-    'transfer this call',
-    'speak to a representative',
-    'speak with a representative',
-    'customer service',
-    'human representative',
-    'real person',
-    'agent',
-    'operator',
-    'representative please',
-    'talk to someone',
-    'talk to a person',
-    "i'm transferring you",
-    'i am transferring you',
-    'i will transfer you',
-    'you will be transferred',
-    "you'll be transferred"
-  ];
-
-  return patterns.some(p => text.includes(p));
+  return TRANSFER_PATTERNS.some(p => text.includes(p));
 }
 
 /**

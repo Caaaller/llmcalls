@@ -5,6 +5,7 @@
 
 import express, { Request, Response } from 'express';
 import twilio from 'twilio';
+import { TwilioGatherInput, TwilioSayAttributes } from '../types/twilio-twiml';
 import transferConfig from '../config/transfer-config';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
@@ -19,6 +20,24 @@ import { TransferConfig } from '../services/aiService';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
 
 const router = express.Router();
+
+// Helper functions for properly typed Twilio TwiML calls
+function createGatherAttributes(config: TransferConfigType, overrides: Partial<TwilioGatherInput> = {}): TwilioGatherInput {
+  return {
+    input: ['speech'],
+    language: config.aiSettings.language || 'en-US',
+    speechTimeout: 'auto',
+    ...overrides,
+  };
+}
+
+function createSayAttributes(config: TransferConfigType, overrides: Partial<TwilioSayAttributes> = {}): TwilioSayAttributes {
+  return {
+    voice: config.aiSettings.voice || 'Polly.Matthew',
+    language: config.aiSettings.language || 'en-US',
+    ...overrides,
+  };
+}
 
 // Helper to create a LoopDetector instance
 function createLoopDetector(): LoopDetector {
@@ -90,20 +109,16 @@ router.post('/', (req: Request, res: Response): void => {
     }).catch(err => console.error('Error starting call history:', err));
     
     const response = new twilio.twiml.VoiceResponse();
-    response.gather({
-      input: ['speech'] as any,
-      language: (config.aiSettings.language || 'en-US') as any,
-      speechTimeout: 'auto',
+    const gatherAttributes = createGatherAttributes(config, {
       action: `${baseUrl}/process-speech?firstCall=true&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}${config.customInstructions ? '&customInstructions=' + encodeURIComponent(config.customInstructions) : ''}`,
       method: 'POST',
       enhanced: true,
       timeout: 10,
     });
+    response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
     
-    response.say(
-      { voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any },
-      'Thank you. Goodbye.'
-    );
+    const sayAttributes = createSayAttributes(config);
+    response.say(sayAttributes as Parameters<typeof response.say>[0], 'Thank you. Goodbye.');
     response.hangup();
     
     res.type('text/xml');
@@ -162,7 +177,8 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       callHistoryService.addTermination(callSid, termination.reason || termination.message || '').catch(err => console.error('Error adding termination:', err));
       callHistoryService.endCall(callSid, 'terminated').catch(err => console.error('Error ending call:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Thank you. Goodbye.');
+      const sayAttributes = createSayAttributes(config);
+      response.say(sayAttributes as Parameters<typeof response.say>[0], 'Thank you. Goodbye.');
       response.hangup();
       callStateManager.clearCallState(callSid);
       res.type('text/xml');
@@ -212,15 +228,13 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
           : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
         callHistoryService.addConversation(callSid, 'system', menuSummary).catch(err => console.error('Error adding conversation:', err));
         
-        response.gather({
-          input: ['speech'] as any,
-          language: (config.aiSettings.language || 'en-US') as any,
-          speechTimeout: 'auto',
+        const gatherAttributes = createGatherAttributes(config, {
           action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
           method: 'POST',
           enhanced: true,
           timeout: 10,
         });
+        response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
         res.type('text/xml');
         res.send(response.toString());
         return;
@@ -351,15 +365,13 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       } else {
         console.log('⚠️ No matching option found - waiting silently');
         callHistoryService.addConversation(callSid, 'system', '[No matching option found - waiting silently]').catch(err => console.error('Error adding conversation:', err));
-        response.gather({
-          input: ['speech'] as any,
-          language: (config.aiSettings.language || 'en-US') as any,
-          speechTimeout: 'auto',
+        const gatherAttributes = createGatherAttributes(config, {
           action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
           method: 'POST',
           enhanced: true,
           timeout: 10,
         });
+        response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
         res.type('text/xml');
         res.send(response.toString());
         return;
@@ -372,17 +384,16 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       const needsConfirmation = !callState.humanConfirmed;
       if (needsConfirmation) {
         console.log('❓ Confirming human before transfer...');
-        response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Am I speaking with a real person or is this the automated system?');
+        const sayAttributes = createSayAttributes(config);
+        response.say(sayAttributes as Parameters<typeof response.say>[0], 'Am I speaking with a real person or is this the automated system?');
         callStateManager.updateCallState(callSid, { awaitingHumanConfirmation: true });
-        response.gather({
-          input: ['speech'] as any,
-          language: (config.aiSettings.language || 'en-US') as any,
-          speechTimeout: 'auto',
+        const gatherAttributes = createGatherAttributes(config, {
           action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
           method: 'POST',
           enhanced: true,
           timeout: 10,
         });
+        response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
         res.type('text/xml');
         res.send(response.toString());
         return;
@@ -392,7 +403,8 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       
       callHistoryService.addTransfer(callSid, config.transferNumber, true).catch(err => console.error('Error adding transfer:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Hold on, please.');
+      const sayAttributes = createSayAttributes(config);
+      response.say(sayAttributes as Parameters<typeof response.say>[0], 'Hold on, please.');
       response.pause({ length: 1 });
       
       const dial = response.dial({
@@ -417,7 +429,8 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
         
         callHistoryService.addTransfer(callSid, config.transferNumber, true).catch(err => console.error('Error adding transfer:', err));
         
-        response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Thank you. Hold on, please.');
+        const sayAttributes = createSayAttributes(config);
+        response.say(sayAttributes as Parameters<typeof response.say>[0], 'Thank you. Hold on, please.');
         response.pause({ length: 1 });
         
         const dial = response.dial({
@@ -439,7 +452,8 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       
       callHistoryService.addTransfer(callSid, config.transferNumber, true).catch(err => console.error('Error adding transfer:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, 'Hold on, please.');
+      const sayAttributes = createSayAttributes(config);
+      response.say(sayAttributes as Parameters<typeof response.say>[0], 'Hold on, please.');
       response.pause({ length: 1 });
       
       const dial = response.dial({
@@ -458,15 +472,13 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
     if (callState.awaitingCompleteMenu) {
       console.log('⚠️ Still awaiting complete menu - remaining silent, waiting for more options');
       callHistoryService.addConversation(callSid, 'system', '[Waiting for complete menu - remaining silent]').catch(err => console.error('Error adding conversation:', err));
-        response.gather({
-          input: ['speech'] as any,
-          language: (config.aiSettings.language || 'en-US') as any,
-        speechTimeout: 'auto',
-        action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
-        method: 'POST',
-        enhanced: true,
-        timeout: 10,
-      });
+        const gatherAttributes = createGatherAttributes(config, {
+          action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
+          method: 'POST',
+          enhanced: true,
+          timeout: 10,
+        });
+        response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
       res.type('text/xml');
       res.send(response.toString());
       return;
@@ -495,21 +507,20 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       
       callHistoryService.addConversation(callSid, 'ai', aiResponse).catch(err => console.error('Error adding conversation:', err));
       
-      response.say({ voice: (config.aiSettings.voice || 'Polly.Matthew') as any, language: (config.aiSettings.language || 'en-US') as any }, aiResponse);
+      const sayAttributes = createSayAttributes(config);
+      response.say(sayAttributes as Parameters<typeof response.say>[0], aiResponse);
     } else {
       console.log('🤫 AI chose to remain silent - not speaking');
       callHistoryService.addConversation(callSid, 'system', '[AI remained silent]').catch(err => console.error('Error adding conversation:', err));
     }
     
-    response.gather({
-      input: ['speech'] as any,
-      language: (config.aiSettings.language || 'en-US') as any,
-      speechTimeout: 'auto',
+    const gatherAttributes = createGatherAttributes(config, {
       action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
       method: 'POST',
       enhanced: true,
       timeout: 10,
     });
+    response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
     
     res.type('text/xml');
     res.send(response.toString());
@@ -547,15 +558,13 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   console.log('🔢 DTMF processed:', digits);
   
   const response = new twilio.twiml.VoiceResponse();
-  response.gather({
-    input: ['speech'] as any,
-    language: (config.aiSettings.language || 'en-US') as any,
-    speechTimeout: 'auto',
+  const gatherAttributes = createGatherAttributes(config, {
     action: `${baseUrl}/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
     method: 'POST',
     enhanced: true,
     timeout: 10,
   });
+  response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
   
   res.type('text/xml');
   res.send(response.toString());

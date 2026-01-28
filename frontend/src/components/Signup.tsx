@@ -4,30 +4,32 @@ import './Login.css';
 import { api } from '../api/client';
 import { setAuth, type User } from '../utils/auth';
 
-interface LoginProps {
-  onLogin: (user: User, token: string) => void;
-  onSwitchToSignup: () => void;
+interface SignupProps {
+  onSignup: (user: User, token: string) => void;
+  onSwitchToLogin: () => void;
 }
 
 interface FormData {
   email: string;
   password: string;
+  name: string;
 }
 
-function Login({ onLogin, onSwitchToSignup }: LoginProps) {
+function Signup({ onSignup, onSwitchToLogin }: SignupProps) {
   const [formData, setFormData] = useState<FormData>({
     email: '',
-    password: ''
+    password: '',
+    name: ''
   });
   const [error, setError] = useState<string>('');
 
-  const loginMutation = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      api.auth.login(email, password),
+  const signupMutation = useMutation({
+    mutationFn: ({ email, password, name }: { email: string; password: string; name: string }) =>
+      api.auth.signup(email, password, name),
     onSuccess: (data) => {
       if (data.success) {
         setAuth(data.user, data.token);
-        onLogin(data.user, data.token);
+        onSignup(data.user, data.token);
       }
     },
     onError: (err: Error) => {
@@ -47,9 +49,10 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
     e.preventDefault();
     setError('');
 
-    loginMutation.mutate({
+    signupMutation.mutate({
       email: formData.email,
-      password: formData.password
+      password: formData.password,
+      name: formData.name
     });
   };
 
@@ -58,10 +61,23 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
       <div className="login-card">
         <div className="login-header">
           <h1>📞 Transfer Call Manager</h1>
-          <p>Welcome back!</p>
+          <p>Create your account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
+          <div className="form-group">
+            <label htmlFor="name">Full Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              placeholder="John Doe"
+            />
+          </div>
+
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -84,30 +100,31 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
               value={formData.password}
               onChange={handleChange}
               required
-              placeholder="Your password"
+              placeholder="At least 6 characters"
+              minLength={6}
             />
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="btn-primary" disabled={loginMutation.isPending}>
-            {loginMutation.isPending ? 'Please wait...' : 'Login'}
+          <button type="submit" className="btn-primary" disabled={signupMutation.isPending}>
+            {signupMutation.isPending ? 'Please wait...' : 'Sign Up'}
           </button>
         </form>
 
         <div className="login-footer">
           <p>
-            Don't have an account?{' '}
+            Already have an account?{' '}
             <button
               type="button"
               className="link-button"
               onClick={() => {
-                onSwitchToSignup();
+                onSwitchToLogin();
                 setError('');
-                setFormData({ email: '', password: '' });
+                setFormData({ email: '', password: '', name: '' });
               }}
             >
-              Sign Up
+              Login
             </button>
           </p>
         </div>
@@ -116,4 +133,5 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
   );
 }
 
-export default Login;
+export default Signup;
+

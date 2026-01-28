@@ -4,6 +4,7 @@
  */
 
 import twilio from 'twilio';
+import { TwilioCallUpdateOptions } from '../types/twilio-twiml';
 
 export interface CallOptions {
   statusCallback?: string;
@@ -32,7 +33,8 @@ class TwilioService {
   async sendDTMF(callSid: string, digits: string): Promise<boolean> {
     try {
       // Twilio types don't include sendDigits in CallUpdateOptions, but it's valid
-      await this.client.calls(callSid).update({ sendDigits: digits } as any);
+      const updateOptions: TwilioCallUpdateOptions = { sendDigits: digits };
+      await this.client.calls(callSid).update(updateOptions as Parameters<ReturnType<typeof this.client.calls>['update']>[0]);
       return true;
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));

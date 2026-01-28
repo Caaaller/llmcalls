@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './App.css';
 import HistoryTab from './HistoryTab';
 import Login from './components/Login';
+import Signup from './components/Signup';
 import { api, type ApiConfigResponse } from './api/client';
 import { isAuthenticated, getStoredUser, clearAuth, setAuth, type User } from './utils/auth';
 
@@ -37,6 +38,7 @@ function App() {
   const [prompt, setPrompt] = useState<string>('');
   const [saved, setSaved] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'settings' | 'history'>('settings');
+  const [showSignup, setShowSignup] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
   // Initialize auth state from localStorage
@@ -183,6 +185,15 @@ function App() {
     setAuth(userData, token);
     setUser(userData);
     setIsAuthenticatedState(true);
+    setShowSignup(false);
+    queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+  };
+
+  const handleSignup = (userData: User, token: string): void => {
+    setAuth(userData, token);
+    setUser(userData);
+    setIsAuthenticatedState(true);
+    setShowSignup(false);
     queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
   };
 
@@ -247,9 +258,12 @@ function App() {
     );
   }
 
-  // Show login if not authenticated
+  // Show login or signup if not authenticated
   if (!isAuthenticatedState) {
-    return <Login onLogin={handleLogin} />;
+    if (showSignup) {
+      return <Signup onSignup={handleSignup} onSwitchToLogin={() => setShowSignup(false)} />;
+    }
+    return <Login onLogin={handleLogin} onSwitchToSignup={() => setShowSignup(true)} />;
   }
 
   return (
