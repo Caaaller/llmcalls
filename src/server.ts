@@ -75,12 +75,17 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(frontendBuildPath));
   
   // Catch-all handler: send back React's index.html file for client-side routing
-  app.get('*', (req: Request, res: Response, next: NextFunction) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     // Don't serve React app for API routes or voice routes
     if (req.path.startsWith('/api') || req.path.startsWith('/voice') || req.path.startsWith('/health')) {
       return next();
     }
-    res.sendFile(path.join(frontendBuildPath, 'index.html'));
+    // Only handle GET requests for the catch-all
+    if (req.method === 'GET') {
+      res.sendFile(path.join(frontendBuildPath, 'index.html'));
+    } else {
+      next();
+    }
   });
 } else {
   // Development: API info endpoint
