@@ -3,9 +3,8 @@ name: Deploy Demo
 on:
   push:
     branches:
-      - master
-      - main
-  workflow_dispatch: # Allow manual trigger
+      - typescripe_migration  # PR 2 branch - deploy from here
+  workflow_dispatch: # Allow manual trigger from any branch
 
 jobs:
   build-and-deploy:
