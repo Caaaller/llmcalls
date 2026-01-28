@@ -71,7 +71,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
-  const frontendBuildPath = path.join(__dirname, '../../frontend/build');
+  const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
   app.use(express.static(frontendBuildPath));
   
   // Catch-all handler: send back React's index.html file for client-side routing

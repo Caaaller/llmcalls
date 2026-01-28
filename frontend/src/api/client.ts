@@ -1,8 +1,9 @@
 // API client utilities for react-query
 import { getToken } from '../utils/auth';
 
-// Get API URL from environment variable, default to localhost for development
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+// Get API URL from environment variable, default to relative URL in production or localhost for development
+const API_URL = process.env.REACT_APP_API_URL || 
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
 
 /**
  * Shared API types
