@@ -1,80 +1,40 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import './HistoryTab.css';
-import { api } from './api/client';
-
-interface CallMetadata {
-  to?: string;
-  from?: string;
-  transferNumber?: string;
-  callPurpose?: string;
-}
-
-interface DTMFPress {
-  digit: string;
-  reason?: string;
-  timestamp?: Date | string;
-}
-
-interface ConversationEntry {
-  type: 'user' | 'ai' | 'system';
-  text: string;
-  timestamp?: Date | string;
-}
-
-interface MenuOption {
-  digit: string;
-  option: string;
-}
-
-interface CallEvent {
-  eventType: 'conversation' | 'dtmf' | 'ivr_menu' | 'transfer' | 'termination';
-  type?: 'user' | 'ai' | 'system';
-  text?: string;
-  digit?: string;
-  reason?: string;
-  menuOptions?: MenuOption[];
-  transferNumber?: string;
-  success?: boolean;
-  timestamp?: Date | string;
-}
-
-interface Call {
-  callSid: string;
-  startTime: Date | string;
-  endTime?: Date | string;
-  duration?: number;
-  status: 'in-progress' | 'completed' | 'failed' | 'terminated';
-  metadata?: CallMetadata;
-  conversationCount?: number;
-  dtmfCount?: number;
-}
-
-interface CallDetails extends Call {
-  conversation: ConversationEntry[];
-  dtmfPresses: DTMFPress[];
-  events: CallEvent[];
-}
+import {
+  api,
+  type CallHistoryResponse,
+  type CallDetailsResponse,
+  type CallDetails,
+} from './api/client';
 
 function HistoryTab() {
   const [selectedCallSid, setSelectedCallSid] = useState<string | null>(null);
 
   // Fetch call history with auto-refresh
-  const { data: historyData, isLoading: isLoadingHistory, error: historyError, refetch } = useQuery({
+  const {
+    data: historyData,
+    isLoading: isLoadingHistory,
+    error: historyError,
+    refetch,
+  } = useQuery<CallHistoryResponse>({
     queryKey: ['calls', 'history'],
     queryFn: () => api.calls.history(50),
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   // Fetch call details when a call is selected
-  const { data: callDetailsData, isLoading: isLoadingDetails } = useQuery({
+  const {
+    data: callDetailsData,
+    isLoading: isLoadingDetails,
+  } = useQuery<CallDetailsResponse>({
     queryKey: ['calls', selectedCallSid],
     queryFn: () => api.calls.get(selectedCallSid!),
     enabled: !!selectedCallSid,
   });
 
-  const calls = historyData?.calls || [];
-  const selectedCall = callDetailsData?.call || null;
+  const calls = historyData?.calls ?? [];
+  const selectedCall: CallDetails | null = callDetailsData?.call ?? null;
   const mongoConnected = historyData?.mongoConnected !== false;
 
   const formatTime = (date: Date | string | null | undefined): string => {

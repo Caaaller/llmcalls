@@ -41,7 +41,7 @@ function createLoopDetector(): LoopDetector {
 // Type definitions for Twilio TwiML properties that aren't fully typed
 interface TwiMLDialAttributes {
   answerOnMedia?: boolean;
-  [key: string]: unknown;
+  [key: string]: string | number | boolean | undefined;
 }
 
 /**
@@ -109,7 +109,7 @@ router.post('/', (req: Request, res: Response): void => {
     res.type('text/xml');
     res.send(response.toString());
     return;
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('❌ Error in /voice endpoint:', errorMessage);
     const response = new twilio.twiml.VoiceResponse();
@@ -514,7 +514,7 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
     res.type('text/xml');
     res.send(response.toString());
     
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('❌ Error in /process-speech:', error);

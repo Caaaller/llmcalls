@@ -1,9 +1,9 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, ChangeEvent, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './App.css';
 import HistoryTab from './HistoryTab';
 import Login from './components/Login';
-import { api } from './api/client';
+import { api, type ApiConfigResponse } from './api/client';
 import { isAuthenticated, getStoredUser, clearAuth, setAuth, type User } from './utils/auth';
 
 interface Settings {
@@ -45,57 +45,69 @@ function App() {
   const [user, setUser] = useState<User | null>(hasStoredAuth ? getStoredUser() : null);
 
   // Verify token validity with react-query
-  const { isLoading: isAuthChecking } = useQuery<{ user: User }>({
+  const {
+    data: meData,
+    isLoading: isAuthChecking,
+    error: authError,
+  } = useQuery<{ user: User }>({
     queryKey: ['auth', 'me'],
     queryFn: () => api.auth.me(),
     enabled: hasStoredAuth,
     retry: false,
-    onSuccess: (data: { user: User }) => {
-      setUser(data.user);
+  });
+
+  // React to auth query results
+  useEffect(() => {
+    if (meData?.user) {
+      setUser(meData.user);
       setIsAuthenticatedState(true);
       setLoading(false);
-    },
-    onError: () => {
-      // Token invalid, clear storage
+    } else if (!hasStoredAuth && !isAuthChecking) {
+      setLoading(false);
+    }
+  }, [meData, hasStoredAuth, isAuthChecking]);
+
+  useEffect(() => {
+    if (authError) {
       clearAuth();
       setUser(null);
       setIsAuthenticatedState(false);
       setLoading(false);
-    },
-    onSettled: () => {
-      if (!hasStoredAuth) {
-        setLoading(false);
-      }
-    },
-  });
+    }
+  }, [authError]);
 
   // Load settings
-  useQuery<{ config: any }>({
+  const { data: configData } = useQuery<ApiConfigResponse>({
     queryKey: ['config'],
     queryFn: () => api.config.get(),
     enabled: isAuthenticatedState,
-    onSuccess: (data: { config: any }) => {
-      if (data.config) {
-        setSettings(prev => ({
-          ...prev,
-          transferNumber: data.config.transferNumber || '',
-          userPhone: data.config.userPhone || '',
-          userEmail: data.config.userEmail || '',
-          voice: data.config.aiSettings?.voice || 'Polly.Matthew'
-        }));
-      }
-    },
   });
 
+  useEffect(() => {
+    if (configData?.config) {
+      const cfg = configData.config;
+      setSettings(prev => ({
+        ...prev,
+        transferNumber: cfg.transferNumber || '',
+        userPhone: cfg.userPhone || '',
+        userEmail: cfg.userEmail || '',
+        voice: cfg.aiSettings?.voice || 'Polly.Matthew',
+      }));
+    }
+  }, [configData]);
+
   // Load prompt
-  useQuery<{ prompt: string }>({
+  const { data: promptData } = useQuery<{ success: boolean; prompt: string }>({
     queryKey: ['prompt'],
     queryFn: () => api.prompt.get(),
     enabled: isAuthenticatedState,
-    onSuccess: (data: { prompt: string }) => {
-      setPrompt(data.prompt || '');
-    },
   });
+
+  useEffect(() => {
+    if (promptData?.prompt) {
+      setPrompt(promptData.prompt);
+    }
+  }, [promptData]);
 
   // Logout mutation
   const logoutMutation = useMutation({
@@ -119,7 +131,19 @@ function App() {
   const saveMutation = useMutation({
     mutationFn: (data: { settings: Settings; prompt: string }) =>
       api.config.update({
-        ...data.settings,
+        transferNumber: data.settings.transferNumber,
+        userPhone: data.settings.userPhone,
+        userEmail: data.settings.userEmail,
+        aiSettings: {
+          model: 'gpt-4o',
+          maxTokens: 150,
+          temperature: 0.7,
+          voice: data.settings.voice,
+          language: 'en-US',
+        },
+        toPhoneNumber: data.settings.toPhoneNumber,
+        callPurpose: data.settings.callPurpose,
+        customInstructions: data.settings.customInstructions,
         prompt: data.prompt,
       }),
     onSuccess: () => {

@@ -33,7 +33,7 @@ async function initiateCall(to: string, from: string, url: string) {
     console.log('Call SID:', call.sid);
     console.log('Status:', call.status);
     return call;
-  } catch (error: unknown) {
+  } catch (error) {
     const twilioError = error as { message?: string; code?: number; moreInfo?: string };
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error initiating call:', errorMessage);
@@ -54,7 +54,7 @@ async function getCallStatus(callSid: string) {
   try {
     const call = await client.calls(callSid).fetch();
     return call;
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching call status:', errorMessage);
     throw error;
@@ -83,7 +83,7 @@ async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks
       if (i < maxChecks - 1) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
-    } catch (error: unknown) {
+    } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('Error monitoring call:', errorMessage);
       throw error;
@@ -114,7 +114,7 @@ if (require.main === module) {
         console.log('Duration:', call.duration ? `${call.duration} seconds` : 'N/A');
         console.log('Price:', call.price ? `$${call.price} ${call.priceUnit}` : 'N/A');
       })
-      .catch((error: unknown) => {
+      .catch((error) => {
         console.error('Failed to check call status:', error);
         process.exit(1);
       });
@@ -158,7 +158,7 @@ if (require.main === module) {
         await new Promise(resolve => setTimeout(resolve, 3000));
         await monitorCall(call.sid);
       })
-      .catch((error: unknown) => {
+      .catch((error) => {
         console.error('Failed to initiate call:', error);
         process.exit(1);
       });

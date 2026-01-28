@@ -47,7 +47,7 @@ export const authenticate = async (
     
     req.user = user;
     next();
-  } catch (error: unknown) {
+  } catch (error) {
     const jwtError = error as { name?: string; message?: string };
     if (jwtError.name === 'JsonWebTokenError') {
       res.status(401).json({

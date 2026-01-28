@@ -4,12 +4,6 @@ import './Login.css';
 import { api } from '../api/client';
 import { setAuth, type User } from '../utils/auth';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
 interface LoginProps {
   onLogin: (user: User, token: string) => void;
 }

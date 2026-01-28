@@ -138,7 +138,7 @@ async function startServer(): Promise<void> {
       console.log(`   ngrok http ${port}`);
       console.log(`   Then update TWIML_URL in .env to: https://your-ngrok-url.ngrok.io/voice`);
     });
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('❌ Failed to start server:', errorMessage);
     process.exit(1);

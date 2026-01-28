@@ -45,7 +45,7 @@ router.get('/prompt', authenticate, (_req: Request, res: Response) => {
       success: true,
       prompt: prompt
     });
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
@@ -77,7 +77,7 @@ router.get('/calls/history', authenticate, async (req: Request, res: Response) =
       })),
       mongoConnected: isDbConnected()
     });
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching call history:', error);
     res.status(500).json({
@@ -117,7 +117,7 @@ router.get('/calls/:callSid', authenticate, async (req: Request, res: Response) 
         events: call.events || []
       }
     });
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
@@ -209,7 +209,7 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
       }
     });
     return;
-  } catch (error: unknown) {
+  } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
