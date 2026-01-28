@@ -4,7 +4,7 @@ This directory contains CI/CD workflows for automated testing and deployment.
 
 ## Workflows
 
-### `ci.yml` - Continuous Integration
+### `ci.yml` - Continuous Integration 
 - **Triggers**: Pull requests and pushes to `master`/`main`
 - **Purpose**: Validate code quality before merge
 - **Actions**:
