@@ -11,7 +11,7 @@ export function extractMenuOptions(speech: string): MenuOption[] {
 
   // Pattern 1: "for X, press Y" or "to X, press Y" (description BEFORE press)
   const reversePattern = /(?:for|to)\s+([^,]+?),\s*press\s*(\d+)/gi;
-  let match: RegExpExecArray | null;
+  let match: RegExpExecArray | null = null;
   while ((match = reversePattern.exec(speech)) !== null) {
     const option = match[1].trim().replace(/^[,.\s]+|[,.\s]+$/g, '');
     const digit = match[2];
@@ -20,11 +20,31 @@ export function extractMenuOptions(speech: string): MenuOption[] {
     }
   }
 
-  // Pattern 2: "Press X, to Y" or "Press X, for Y"
-  const pressPattern1 = /press\s*(\d+)\s*[,.]?\s*(?:to|for)\s+([^,]+?)(?=\s*[,.]?\s*(?:press|online|$))/gi;
-  while ((match = pressPattern1.exec(speech)) !== null) {
-    const digit = match[1];
-    const option = match[2].trim().replace(/^[,.\s]+|[,.\s]+$/g, '');
+  // Pattern 2: "Press X, to Y" or "Press X, for Y" - improved to handle long descriptions
+  // Use a simpler approach: find "press X" and capture everything after "to/for" until next "press" or end
+  const pressMatches = [...speech.matchAll(/press\s*(\d+)\s*[,.]?\s*(?:to|for)\s+/gi)];
+  for (const pressMatch of pressMatches) {
+    if (!pressMatch.index) continue;
+    
+    const digit = pressMatch[1];
+    const matchStart = pressMatch.index + pressMatch[0].length;
+    const textAfterPress = speech.substring(matchStart);
+    
+    // Find the next "press X" pattern
+    const nextPressMatch = textAfterPress.match(/press\s*\d/i);
+    let option: string;
+    
+    if (nextPressMatch && nextPressMatch.index !== undefined) {
+      // Capture text up to the next "press"
+      option = textAfterPress.substring(0, nextPressMatch.index).trim();
+    } else {
+      // No next "press" - capture all remaining text
+      option = textAfterPress.trim();
+    }
+    
+    // Clean up the option text
+    option = option.replace(/^[,.\s]+|[,.\s]+$/g, '').replace(/[,.]+\s*$/, '').trim();
+    
     if (digit && option && option.length > 0 && !options.some(opt => opt.digit === digit)) {
       options.push({ digit, option: option.toLowerCase() });
     }

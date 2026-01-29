@@ -171,16 +171,31 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
     let baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
     
     if (!baseUrl) {
+      // Try to detect ngrok URL from request headers
       const host = req.get('host');
-      if (host && host.includes('localhost')) {
+      const protocol = req.protocol || 'https';
+      const forwardedHost = req.get('x-forwarded-host');
+      const forwardedProto = req.get('x-forwarded-proto');
+      
+      // Use forwarded headers if available (ngrok sets these)
+      const detectedHost = forwardedHost || host;
+      const detectedProtocol = forwardedProto || protocol;
+      
+      if (detectedHost && detectedHost.includes('localhost')) {
         console.log('❌ Cannot use localhost URL');
+        console.log('💡 Tip: Set TWIML_URL or BASE_URL in .env, or access the app through ngrok');
         res.status(500).json({
           success: false,
-          error: 'Cannot use localhost URL. Please set TWIML_URL or BASE_URL in .env to your ngrok URL (e.g., https://abc123.ngrok-free.app)'
+          error: 'Cannot use localhost URL. Please set TWIML_URL or BASE_URL in .env to your ngrok URL (e.g., https://abc123.ngrok-free.app), or access the app through ngrok.'
         });
         return;
       }
-      baseUrl = `https://${host}`;
+      
+      baseUrl = `${detectedProtocol}://${detectedHost}`;
+      console.log('🔍 Auto-detected base URL from request:', baseUrl);
+      console.log('💡 Tip: Set TWIML_URL or BASE_URL in .env for more reliable URL detection');
+    } else {
+      console.log('✅ Using configured base URL from environment:', baseUrl);
     }
     
     if (baseUrl.endsWith('/voice')) {
