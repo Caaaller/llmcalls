@@ -132,15 +132,19 @@ app.use(errorHandler);
 async function startServer(): Promise<void> {
   try {
     // Attempt to connect to MongoDB, but don't block server startup
-    if (process.env.MONGODB_URI) {
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
+    if (mongoUri) {
+      // Try to connect, but don't block server startup
       connect().catch((err) => {
         console.error('⚠️  MongoDB connection failed:', err instanceof Error ? err.message : String(err));
         console.log('⚠️  Server will continue, but database operations will fail.');
-        console.log('💡 Please check MONGODB_URI environment variable in Railway.');
+        console.log('💡 Please check MongoDB connection in Railway.');
+        console.log('💡 Railway: Ensure MongoDB service is added and MONGO_URL is available.');
       });
     } else {
-      console.log('⚠️  MONGODB_URI not set. Database operations will fail.');
-      console.log('💡 Set MONGODB_URI in Railway environment variables.');
+      console.log('⚠️  MONGODB_URI or MONGO_URL not set. Database operations will fail.');
+      console.log('💡 Railway: Add MongoDB service to get MONGO_URL automatically');
+      console.log('💡 Or set MONGODB_URI in Railway environment variables.');
     }
     
     app.listen(port, () => {
