@@ -18,10 +18,10 @@ export async function connect(): Promise<void> {
 
   try {
     // Railway provides MONGO_URL, but we also support MONGODB_URI for flexibility
-    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://localhost:27017/llmcalls';
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL || 'mongodb://mongo:owfRyHtXAKGGTvRqGePuNfOGFFjYwJDw@mongodb.railway.internal:27017';
     
-    if (!mongoUri || mongoUri === 'mongodb://localhost:27017/llmcalls') {
-      console.log('⚠️  MongoDB URI not set. Using default: mongodb://localhost:27017/llmcalls');
+    if (!mongoUri || mongoUri === 'mongodb://mongo:owfRyHtXAKGGTvRqGePuNfOGFFjYwJDw@mongodb.railway.internal:27017') {
+      console.log('⚠️  MongoDB URI not set. Using default: mongodb://mongo:owfRyHtXAKGGTvRqGePuNfOGFFjYwJDw@mongodb.railway.internal:27017');
       console.log('💡 Railway: Add MongoDB service to get MONGO_URL automatically');
       console.log('💡 Or set MONGODB_URI in Railway environment variables');
       console.log('💡 Example: MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/llmcalls');
