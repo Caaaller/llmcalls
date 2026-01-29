@@ -48,6 +48,11 @@ class TwilioService {
    */
   async initiateCall(to: string, from: string, url: string, options: CallOptions = {}) {
     try {
+      console.log('📞 TwilioService: Creating call...');
+      console.log('  To:', to);
+      console.log('  From:', from);
+      console.log('  URL:', url);
+      
       const call = await this.client.calls.create({
         to,
         from,
@@ -57,9 +62,17 @@ class TwilioService {
         statusCallbackMethod: 'POST',
         ...options
       });
+      
+      console.log('✅ TwilioService: Call created successfully');
+      console.log('  Call SID:', call.sid);
+      console.log('  Status:', call.status);
+      console.log('  Direction:', call.direction);
+      
       return call;
     } catch (error) {
-      const err = error as Error;
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error('❌ TwilioService: Failed to initiate call:', err.message);
+      console.error('  Error details:', error);
       throw new Error(`Failed to initiate call: ${err.message}`);
     }
   }

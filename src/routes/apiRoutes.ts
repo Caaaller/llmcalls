@@ -142,9 +142,13 @@ router.post('/settings', authenticate, (_req: Request, res: Response): void => {
  */
 router.post('/calls/initiate', authenticate, async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('📞 POST /api/calls/initiate');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const { to, from, transferNumber, callPurpose, customInstructions } = req.body;
     
     if (!to) {
+      console.log('❌ Missing required field: to');
       res.status(400).json({
         success: false,
         error: 'Missing required field: to'
@@ -158,11 +162,18 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
       customInstructions: customInstructions || ''
     });
     
+    console.log('📋 Call configuration:', {
+      transferNumber: config.transferNumber,
+      callPurpose: config.callPurpose,
+      hasCustomInstructions: !!config.customInstructions
+    });
+    
     let baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
     
     if (!baseUrl) {
       const host = req.get('host');
       if (host && host.includes('localhost')) {
+        console.log('❌ Cannot use localhost URL');
         res.status(500).json({
           success: false,
           error: 'Cannot use localhost URL. Please set TWIML_URL or BASE_URL in .env to your ngrok URL (e.g., https://abc123.ngrok-free.app)'
@@ -185,11 +196,18 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
     }
     const twimlUrl = `${baseUrl}/voice?${params.toString()}`;
     
+    console.log('🔗 TwiML URL:', twimlUrl);
+    console.log('📞 Initiating call to:', to, 'from:', from || process.env.TWILIO_PHONE_NUMBER || 'default');
+    
     const call = await twilioService.initiateCall(
       to,
       from || process.env.TWILIO_PHONE_NUMBER || '',
       twimlUrl
     );
+    
+    console.log('✅ Call initiated successfully');
+    console.log('Call SID:', call.sid);
+    console.log('Call status:', call.status);
     
     await callHistoryService.startCall(call.sid, {
       to: call.to,
@@ -198,6 +216,8 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
       callPurpose: config.callPurpose,
       customInstructions: config.customInstructions
     });
+    
+    console.log('📝 Call history started for:', call.sid);
     
     res.json({
       success: true,
