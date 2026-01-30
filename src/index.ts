@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import twilio from 'twilio';
 import transferConfig from './config/transfer-config';
+import { getErrorMessage } from './utils/errorUtils';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
 const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
@@ -33,10 +34,9 @@ async function initiateCall(to: string, from: string, url: string) {
     console.log('Call SID:', call.sid);
     console.log('Status:', call.status);
     return call;
-  } catch (error) {
+  } catch (error: unknown) {
     const twilioError = error as { message?: string; code?: number; moreInfo?: string };
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error initiating call:', errorMessage);
+    console.error('Error initiating call:', getErrorMessage(error));
     if (twilioError.code) {
       console.error('Error code:', twilioError.code);
     }
@@ -54,9 +54,8 @@ async function getCallStatus(callSid: string) {
   try {
     const call = await client.calls(callSid).fetch();
     return call;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Error fetching call status:', errorMessage);
+  } catch (error: unknown) {
+    console.error('Error fetching call status:', getErrorMessage(error));
     throw error;
   }
 }
@@ -83,9 +82,8 @@ async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks
       if (i < maxChecks - 1) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Error monitoring call:', errorMessage);
+    } catch (error: unknown) {
+      console.error('Error monitoring call:', getErrorMessage(error));
       throw error;
     }
   }

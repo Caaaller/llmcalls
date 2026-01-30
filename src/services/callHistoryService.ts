@@ -5,6 +5,8 @@
 
 import CallHistory, { MenuOption } from '../models/CallHistory';
 import { isDbConnected } from './database';
+import { isDuplicateKeyError } from '../utils/mongoErrorCodes';
+import { getErrorMessage, getMongoErrorCode } from '../utils/errorUtils';
 
 function isMongoAvailable(): boolean {
   return isDbConnected();
@@ -47,9 +49,8 @@ class CallHistoryService {
       
       await callHistory.save();
       console.log(`📞 Started tracking call: ${callSid}`);
-    } catch (error) {
-      const mongoError = error as { code?: number; message?: string };
-      if (mongoError.code === 11000) {
+    } catch (error: unknown) {
+      if (isDuplicateKeyError(getMongoErrorCode(error))) {
         console.log(`📞 Call ${callSid} already exists, updating...`);
         await CallHistory.findOneAndUpdate(
           { callSid },
@@ -68,8 +69,7 @@ class CallHistoryService {
           }
         );
       } else {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('❌ Error starting call tracking:', errorMessage);
+        console.error('❌ Error starting call tracking:', getErrorMessage(error));
         throw error;
       }
     }
@@ -105,9 +105,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error adding conversation:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error adding conversation:', getErrorMessage(error));
     }
   }
 
@@ -141,9 +140,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error adding DTMF:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error adding DTMF:', getErrorMessage(error));
     }
   }
 
@@ -170,9 +168,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error adding IVR menu:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error adding IVR menu:', getErrorMessage(error));
     }
   }
 
@@ -201,9 +198,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error adding transfer:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error adding transfer:', getErrorMessage(error));
     }
   }
 
@@ -230,9 +226,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error adding termination:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error adding termination:', getErrorMessage(error));
     }
   }
 
@@ -259,9 +254,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error ending call:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error ending call:', getErrorMessage(error));
     }
   }
 
@@ -274,9 +268,8 @@ class CallHistoryService {
     try {
       const call = await CallHistory.findOne({ callSid }).lean();
       return call;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error getting call:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error getting call:', getErrorMessage(error));
       return null;
     }
   }
@@ -293,9 +286,8 @@ class CallHistoryService {
         .limit(limit)
         .lean();
       return calls;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error getting all calls:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error getting all calls:', getErrorMessage(error));
       return [];
     }
   }
@@ -322,9 +314,8 @@ class CallHistoryService {
       if (result.deletedCount && result.deletedCount > 0) {
         console.log(`🧹 Cleaned up ${result.deletedCount} old calls`);
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error cleaning up calls:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error cleaning up calls:', getErrorMessage(error));
     }
   }
 
@@ -346,9 +337,8 @@ class CallHistoryService {
         failed,
         terminated
       };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('❌ Error getting statistics:', errorMessage);
+    } catch (error: unknown) {
+      console.error('❌ Error getting statistics:', getErrorMessage(error));
       return null;
     }
   }
