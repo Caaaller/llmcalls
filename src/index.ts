@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import twilio from 'twilio';
 import transferConfig from './config/transfer-config';
+import { getErrorMessage } from './utils/errorUtils';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
 const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
@@ -33,13 +34,14 @@ async function initiateCall(to: string, from: string, url: string) {
     console.log('Call SID:', call.sid);
     console.log('Status:', call.status);
     return call;
-  } catch (error: any) {
-    console.error('Error initiating call:', error.message);
-    if (error.code) {
-      console.error('Error code:', error.code);
+  } catch (error: unknown) {
+    const twilioError = error as { message?: string; code?: number; moreInfo?: string };
+    console.error('Error initiating call:', getErrorMessage(error));
+    if (twilioError.code) {
+      console.error('Error code:', twilioError.code);
     }
-    if (error.moreInfo) {
-      console.error('More info:', error.moreInfo);
+    if (twilioError.moreInfo) {
+      console.error('More info:', twilioError.moreInfo);
     }
     throw error;
   }
@@ -52,8 +54,8 @@ async function getCallStatus(callSid: string) {
   try {
     const call = await client.calls(callSid).fetch();
     return call;
-  } catch (error: any) {
-    console.error('Error fetching call status:', error.message);
+  } catch (error: unknown) {
+    console.error('Error fetching call status:', getErrorMessage(error));
     throw error;
   }
 }
@@ -80,8 +82,8 @@ async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks
       if (i < maxChecks - 1) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
-    } catch (error: any) {
-      console.error('Error monitoring call:', error.message);
+    } catch (error: unknown) {
+      console.error('Error monitoring call:', getErrorMessage(error));
       throw error;
     }
   }
@@ -110,7 +112,7 @@ if (require.main === module) {
         console.log('Duration:', call.duration ? `${call.duration} seconds` : 'N/A');
         console.log('Price:', call.price ? `$${call.price} ${call.priceUnit}` : 'N/A');
       })
-      .catch((error: any) => {
+      .catch((error) => {
         console.error('Failed to check call status:', error);
         process.exit(1);
       });
@@ -123,7 +125,7 @@ if (require.main === module) {
       transferNumber: process.env.TRANSFER_PHONE_NUMBER,
       userPhone: process.env.USER_PHONE_NUMBER,
       userEmail: process.env.USER_EMAIL,
-      callPurpose: args[1] || 'speak with a representative',
+      callPurpose: args[1] || process.env.CALL_PURPOSE || 'speak with a representative',
       customInstructions: args[2] || ''
     });
     
@@ -131,7 +133,7 @@ if (require.main === module) {
       url = url.endsWith('/') ? url + 'voice' : url + '/voice';
       const params = new URLSearchParams({
         transferNumber: config.transferNumber,
-        callPurpose: config.callPurpose || 'speak with a representative'
+        callPurpose: config.callPurpose || process.env.CALL_PURPOSE || 'speak with a representative'
       });
       if (config.customInstructions) {
         params.append('customInstructions', config.customInstructions);
@@ -154,7 +156,7 @@ if (require.main === module) {
         await new Promise(resolve => setTimeout(resolve, 3000));
         await monitorCall(call.sid);
       })
-      .catch((error: any) => {
+      .catch((error) => {
         console.error('Failed to initiate call:', error);
         process.exit(1);
       });
@@ -162,4 +164,5 @@ if (require.main === module) {
 }
 
 export { initiateCall, getCallStatus, monitorCall };
+
 

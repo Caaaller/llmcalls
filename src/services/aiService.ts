@@ -5,6 +5,7 @@
 
 import OpenAI from 'openai';
 import { transferPrompt } from '../prompts/transfer-prompt';
+import promptConfig from '../config/prompts';
 
 export interface ConversationEntry {
   type: 'user' | 'ai' | 'system';
@@ -23,9 +24,13 @@ export interface TransferConfig {
   };
 }
 
+export interface UserData {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 export interface Scenario {
   promptTemplate?: string;
-  userData?: any;
+  userData?: UserData;
   aiSettings: {
     model: string;
     maxTokens: number;
@@ -100,16 +105,10 @@ class AIService {
    */
   buildTransferContext(speechResult: string, isFirstCall: boolean, conversationHistory: ConversationEntry[] = []): string {
     if (isFirstCall) {
-      return `The automated system said: "${speechResult}". 
-      You are navigating their IVR system to reach a live representative.
-      IMPORTANT: Only respond when necessary for navigation. Remain silent during menu prompts.`;
+      return promptConfig.firstCallContext(speechResult);
     } else {
-      const history = conversationHistory.length > 0 
-        ? `\nPrevious conversation:\n${conversationHistory.map((h, i) => `${i + 1}. ${h.text || h}`).join('\n')}\n`
-        : '';
-      
-      return `Continuing navigation. The automated system said: "${speechResult}".${history}
-      Focus on navigation and reaching a live representative.`;
+      const history = promptConfig.formatConversationHistory(conversationHistory);
+      return promptConfig.continuingCallContext(speechResult, history);
     }
   }
 }
@@ -118,4 +117,5 @@ class AIService {
 const aiService = new AIService();
 
 export default aiService;
+
 

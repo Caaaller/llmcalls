@@ -5,6 +5,7 @@
 
 import 'dotenv/config';
 import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import path from 'path';
 import { connect, disconnect } from './services/database';
 import voiceRoutes from './routes/voiceRoutes';
 import apiRoutes from './routes/apiRoutes';
@@ -22,10 +23,23 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 // CORS for React frontend
+const allowedOrigins = [
+  'http://localhost:3001',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+  process.env.BASE_URL
+].filter(Boolean) as string[];
+
 app.use((req: Request, res: Response, next: NextFunction) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:3001');
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'production' && process.env.BASE_URL) {
+    res.header('Access-Control-Allow-Origin', process.env.BASE_URL);
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
     return;
@@ -42,11 +56,11 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-// Serve static files
+// Serve static files from public directory
 app.use(express.static('public'));
 
-// Routes
-app.use('/', voiceRoutes);
+// Routes (API routes before static file serving)
+app.use('/voice', voiceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
 
@@ -55,18 +69,40 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root endpoint
-app.get('/', (_req: Request, res: Response) => {
-  res.json({
-    message: 'LLM Calls API Server',
-    version: '2.0.0',
-    endpoints: {
-      health: '/health',
-      scenarios: '/api/scenarios',
-      initiateCall: '/api/calls/initiate'
+// Serve React frontend in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
+  app.use(express.static(frontendBuildPath));
+  
+  // Catch-all handler: send back React's index.html file for client-side routing
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    // Don't serve React app for API routes or voice routes
+    if (req.path.startsWith('/api') || req.path.startsWith('/voice') || req.path.startsWith('/health')) {
+      return next();
+    }
+    // Only handle GET requests for the catch-all
+    if (req.method === 'GET') {
+      res.sendFile(path.join(frontendBuildPath, 'index.html'));
+    } else {
+      next();
     }
   });
-});
+} else {
+  // Development: API info endpoint
+  app.get('/', (_req: Request, res: Response) => {
+    res.json({
+      message: 'LLM Calls API Server',
+      version: '2.0.0',
+      mode: 'development',
+      endpoints: {
+        health: '/health',
+        api: '/api',
+        voice: '/voice'
+      },
+      note: 'Frontend runs separately on http://localhost:3001'
+    });
+  });
+}
 
 // Error handling middleware
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
@@ -95,20 +131,35 @@ app.use(errorHandler);
 // Connect to MongoDB and start server
 async function startServer(): Promise<void> {
   try {
-    connect().catch(_err => {
-      console.log('⚠️  Continuing without MongoDB connection...');
-    });
+    // Attempt to connect to MongoDB, but don't block server startup
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
+    if (mongoUri) {
+      // Try to connect, but don't block server startup
+      connect().catch((err) => {
+        console.error('⚠️  MongoDB connection failed:', err instanceof Error ? err.message : String(err));
+        console.log('⚠️  Server will continue, but database operations will fail.');
+        console.log('💡 Please check MongoDB connection in Railway.');
+        console.log('💡 Railway: Ensure MongoDB service is added and MONGO_URL is available.');
+      });
+    } else {
+      console.log('⚠️  MONGODB_URI or MONGO_URL not set. Database operations will fail.');
+      console.log('💡 Railway: Add MongoDB service to get MONGO_URL automatically');
+      console.log('💡 Or set MONGODB_URI in Railway environment variables.');
+    }
     
     app.listen(port, () => {
       console.log(`\n🚀 Server running on port ${port}`);
       console.log(`📡 Health check: http://localhost:${port}/health`);
       console.log(`📋 Scenarios: http://localhost:${port}/api/scenarios`);
-      console.log(`\n⚠️  For production, use ngrok or similar to expose this server:`);
-      console.log(`   ngrok http ${port}`);
-      console.log(`   Then update TWIML_URL in .env to: https://your-ngrok-url.ngrok.io/voice`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`\n⚠️  For production, use ngrok or similar to expose this server:`);
+        console.log(`   ngrok http ${port}`);
+        console.log(`   Then update TWIML_URL in .env to: https://your-ngrok-url.ngrok.io/voice`);
+      }
     });
-  } catch (error: any) {
-    console.error('❌ Failed to start server:', error.message);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Failed to start server:', errorMessage);
     process.exit(1);
   }
 }

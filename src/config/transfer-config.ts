@@ -37,6 +37,7 @@ const transferConfig = {
     transferNumber: process.env.TRANSFER_PHONE_NUMBER || '720-584-6358',
     userPhone: process.env.USER_PHONE_NUMBER || '720-584-6358',
     userEmail: process.env.USER_EMAIL || 'oliverullman@gmail.com',
+    callPurpose: process.env.CALL_PURPOSE || 'speak with a representative',
     aiSettings: {
       model: 'gpt-4o',
       maxTokens: 150,
@@ -55,7 +56,7 @@ const transferConfig = {
       userPhone: userInput.userPhone || this.defaults.userPhone,
       userEmail: userInput.userEmail || this.defaults.userEmail,
       customInstructions: userInput.customInstructions || '',
-      callPurpose: userInput.callPurpose || 'speak with a representative',
+      callPurpose: userInput.callPurpose || this.defaults.callPurpose,
       aiSettings: {
         ...this.defaults.aiSettings,
         ...(userInput.aiSettings || {})
@@ -65,4 +66,5 @@ const transferConfig = {
 };
 
 export default transferConfig;
+
 

@@ -45,10 +45,11 @@ router.get('/prompt', authenticate, (_req: Request, res: Response) => {
       success: true,
       prompt: prompt
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
-      error: `Failed to load prompt: ${error.message}. Path attempted: ${path.join(process.cwd(), 'src/prompts/transfer-prompt.ts')}`
+      error: `Failed to load prompt: ${errorMessage}. Path attempted: ${path.join(process.cwd(), 'src/prompts/transfer-prompt.ts')}`
     });
   }
 });
@@ -63,7 +64,7 @@ router.get('/calls/history', authenticate, async (req: Request, res: Response) =
     
     res.json({
       success: true,
-      calls: calls.map((call: any) => ({
+      calls: calls.map((call) => ({
         callSid: call.callSid,
         startTime: call.startTime,
         endTime: call.endTime,
@@ -76,11 +77,12 @@ router.get('/calls/history', authenticate, async (req: Request, res: Response) =
       })),
       mongoConnected: isDbConnected()
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error fetching call history:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: errorMessage,
       mongoConnected: false
     });
   }
@@ -115,10 +117,11 @@ router.get('/calls/:callSid', authenticate, async (req: Request, res: Response) 
         events: call.events || []
       }
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: errorMessage
     });
     return;
   }
@@ -139,9 +142,13 @@ router.post('/settings', authenticate, (_req: Request, res: Response): void => {
  */
 router.post('/calls/initiate', authenticate, async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log('📞 POST /api/calls/initiate');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const { to, from, transferNumber, callPurpose, customInstructions } = req.body;
     
     if (!to) {
+      console.log('❌ Missing required field: to');
       res.status(400).json({
         success: false,
         error: 'Missing required field: to'
@@ -151,22 +158,44 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
     
     const config = transferConfig.createConfig({
       transferNumber: transferNumber || process.env.TRANSFER_PHONE_NUMBER,
-      callPurpose: callPurpose || 'speak with a representative',
+      callPurpose: callPurpose || process.env.CALL_PURPOSE || 'speak with a representative',
       customInstructions: customInstructions || ''
+    });
+    
+    console.log('📋 Call configuration:', {
+      transferNumber: config.transferNumber,
+      callPurpose: config.callPurpose,
+      hasCustomInstructions: !!config.customInstructions
     });
     
     let baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
     
     if (!baseUrl) {
+      // Try to detect ngrok URL from request headers
       const host = req.get('host');
-      if (host && host.includes('localhost')) {
+      const protocol = req.protocol || 'https';
+      const forwardedHost = req.get('x-forwarded-host');
+      const forwardedProto = req.get('x-forwarded-proto');
+      
+      // Use forwarded headers if available (ngrok sets these)
+      const detectedHost = forwardedHost || host;
+      const detectedProtocol = forwardedProto || protocol;
+      
+      if (detectedHost && detectedHost.includes('localhost')) {
+        console.log('❌ Cannot use localhost URL');
+        console.log('💡 Tip: Set TWIML_URL or BASE_URL in .env, or access the app through ngrok');
         res.status(500).json({
           success: false,
-          error: 'Cannot use localhost URL. Please set TWIML_URL or BASE_URL in .env to your ngrok URL (e.g., https://abc123.ngrok-free.app)'
+          error: 'Cannot use localhost URL. Please set TWIML_URL or BASE_URL in .env to your ngrok URL (e.g., https://abc123.ngrok-free.app), or access the app through ngrok.'
         });
         return;
       }
-      baseUrl = `https://${host}`;
+      
+      baseUrl = `${detectedProtocol}://${detectedHost}`;
+      console.log('🔍 Auto-detected base URL from request:', baseUrl);
+      console.log('💡 Tip: Set TWIML_URL or BASE_URL in .env for more reliable URL detection');
+    } else {
+      console.log('✅ Using configured base URL from environment:', baseUrl);
     }
     
     if (baseUrl.endsWith('/voice')) {
@@ -182,11 +211,18 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
     }
     const twimlUrl = `${baseUrl}/voice?${params.toString()}`;
     
+    console.log('🔗 TwiML URL:', twimlUrl);
+    console.log('📞 Initiating call to:', to, 'from:', from || process.env.TWILIO_PHONE_NUMBER || 'default');
+    
     const call = await twilioService.initiateCall(
       to,
       from || process.env.TWILIO_PHONE_NUMBER || '',
       twimlUrl
     );
+    
+    console.log('✅ Call initiated successfully');
+    console.log('Call SID:', call.sid);
+    console.log('Call status:', call.status);
     
     await callHistoryService.startCall(call.sid, {
       to: call.to,
@@ -195,6 +231,8 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
       callPurpose: config.callPurpose,
       customInstructions: config.customInstructions
     });
+    
+    console.log('📝 Call history started for:', call.sid);
     
     res.json({
       success: true,
@@ -206,10 +244,11 @@ router.post('/calls/initiate', authenticate, async (req: Request, res: Response)
       }
     });
     return;
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       success: false,
-      error: error.message
+      error: errorMessage
     });
     return;
   }

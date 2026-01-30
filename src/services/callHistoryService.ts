@@ -5,6 +5,8 @@
 
 import CallHistory, { MenuOption } from '../models/CallHistory';
 import { isDbConnected } from './database';
+import { isDuplicateKeyError } from '../utils/mongoErrorCodes';
+import { getErrorMessage, getMongoErrorCode } from '../utils/errorUtils';
 
 function isMongoAvailable(): boolean {
   return isDbConnected();
@@ -47,8 +49,8 @@ class CallHistoryService {
       
       await callHistory.save();
       console.log(`📞 Started tracking call: ${callSid}`);
-    } catch (error: any) {
-      if (error.code === 11000) {
+    } catch (error: unknown) {
+      if (isDuplicateKeyError(getMongoErrorCode(error))) {
         console.log(`📞 Call ${callSid} already exists, updating...`);
         await CallHistory.findOneAndUpdate(
           { callSid },
@@ -67,7 +69,7 @@ class CallHistoryService {
           }
         );
       } else {
-        console.error('❌ Error starting call tracking:', error.message);
+        console.error('❌ Error starting call tracking:', getErrorMessage(error));
         throw error;
       }
     }
@@ -103,8 +105,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error: any) {
-      console.error('❌ Error adding conversation:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error adding conversation:', getErrorMessage(error));
     }
   }
 
@@ -138,8 +140,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error: any) {
-      console.error('❌ Error adding DTMF:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error adding DTMF:', getErrorMessage(error));
     }
   }
 
@@ -166,8 +168,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error: any) {
-      console.error('❌ Error adding IVR menu:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error adding IVR menu:', getErrorMessage(error));
     }
   }
 
@@ -196,8 +198,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error: any) {
-      console.error('❌ Error adding transfer:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error adding transfer:', getErrorMessage(error));
     }
   }
 
@@ -224,8 +226,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error: any) {
-      console.error('❌ Error adding termination:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error adding termination:', getErrorMessage(error));
     }
   }
 
@@ -252,8 +254,8 @@ class CallHistoryService {
           }
         }
       );
-    } catch (error: any) {
-      console.error('❌ Error ending call:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error ending call:', getErrorMessage(error));
     }
   }
 
@@ -266,8 +268,8 @@ class CallHistoryService {
     try {
       const call = await CallHistory.findOne({ callSid }).lean();
       return call;
-    } catch (error: any) {
-      console.error('❌ Error getting call:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error getting call:', getErrorMessage(error));
       return null;
     }
   }
@@ -284,8 +286,8 @@ class CallHistoryService {
         .limit(limit)
         .lean();
       return calls;
-    } catch (error: any) {
-      console.error('❌ Error getting all calls:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error getting all calls:', getErrorMessage(error));
       return [];
     }
   }
@@ -312,8 +314,8 @@ class CallHistoryService {
       if (result.deletedCount && result.deletedCount > 0) {
         console.log(`🧹 Cleaned up ${result.deletedCount} old calls`);
       }
-    } catch (error: any) {
-      console.error('❌ Error cleaning up calls:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error cleaning up calls:', getErrorMessage(error));
     }
   }
 
@@ -335,8 +337,8 @@ class CallHistoryService {
         failed,
         terminated
       };
-    } catch (error: any) {
-      console.error('❌ Error getting statistics:', error.message);
+    } catch (error: unknown) {
+      console.error('❌ Error getting statistics:', getErrorMessage(error));
       return null;
     }
   }
@@ -351,4 +353,5 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 export default callHistoryService;
+
 

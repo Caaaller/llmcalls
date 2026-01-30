@@ -4,6 +4,7 @@
  */
 
 import express, { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import User from '../models/User';
 import { generateToken, authenticate, AuthRequest } from '../middleware/auth';
 
@@ -29,6 +30,15 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({
         success: false,
         error: 'Password must be at least 6 characters long'
+      });
+      return;
+    }
+    
+    // Check MongoDB connection before querying
+    if (mongoose.connection.readyState !== 1) {
+      res.status(503).json({
+        success: false,
+        error: 'Database connection unavailable. Please try again later.'
       });
       return;
     }
@@ -62,11 +72,12 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
         name: user.name
       }
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error creating user';
     console.error('Signup error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error creating user'
+      error: errorMessage
     });
   }
 });
@@ -83,6 +94,15 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({
         success: false,
         error: 'Please provide email and password'
+      });
+      return;
+    }
+    
+    // Check MongoDB connection before querying
+    if (mongoose.connection.readyState !== 1) {
+      res.status(503).json({
+        success: false,
+        error: 'Database connection unavailable. Please try again later.'
       });
       return;
     }
@@ -117,11 +137,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         name: user.name
       }
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error logging in';
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error logging in'
+      error: errorMessage
     });
   }
 });
@@ -148,11 +169,12 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise
         name: req.user.name
       }
     });
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Error fetching user';
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Error fetching user'
+      error: errorMessage
     });
   }
 });

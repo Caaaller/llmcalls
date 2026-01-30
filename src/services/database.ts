@@ -4,6 +4,7 @@
  */
 
 import mongoose from 'mongoose';
+import { toError } from '../utils/errorUtils';
 
 let isConnected = false;
 
@@ -17,16 +18,22 @@ export async function connect(): Promise<void> {
   }
 
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/llmcalls';
+    // Railway provides MONGO_URL, but we also support MONGODB_URI for flexibility
+    const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
     
-    if (!mongoUri || mongoUri === 'mongodb://localhost:27017/llmcalls') {
-      console.log('⚠️  MongoDB URI not set. Using default: mongodb://localhost:27017/llmcalls');
-      console.log('💡 To use MongoDB Atlas (cloud), set MONGODB_URI in .env');
-      console.log('💡 Example: MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/llmcalls');
+    if (!mongoUri) {
+      const errorMessage = 'MongoDB connection string is required. Please set MONGODB_URI or MONGO_URL environment variable.';
+      console.error('❌', errorMessage);
+      console.error('💡 Railway: Add MongoDB service to get MONGO_URL automatically');
+      console.error('💡 Or set MONGODB_URI in Railway environment variables');
+      console.error('💡 Example: MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/llmcalls');
+      throw new Error(errorMessage);
     }
     
     await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000, // 30 seconds
+      socketTimeoutMS: 45000, // 45 seconds
+      connectTimeoutMS: 30000, // 30 seconds
     });
     
     isConnected = true;
@@ -47,8 +54,8 @@ export async function connect(): Promise<void> {
       isConnected = true;
     });
     
-  } catch (error) {
-    const err = error as Error;
+  } catch (error: unknown) {
+    const err = toError(error);
     console.error('❌ MongoDB connection failed:', err.message);
     console.error('\n💡 Options to fix this:');
     console.error('   1. Start local MongoDB: brew services start mongodb-community');
@@ -68,8 +75,8 @@ export async function disconnect(): Promise<void> {
     await mongoose.disconnect();
     isConnected = false;
     console.log('✅ Disconnected from MongoDB');
-  } catch (error) {
-    const err = error as Error;
+  } catch (error: unknown) {
+    const err = toError(error);
     console.error('❌ Error disconnecting from MongoDB:', err.message);
   }
 }
@@ -80,4 +87,5 @@ export async function disconnect(): Promise<void> {
 export function isDbConnected(): boolean {
   return isConnected && mongoose.connection.readyState === 1;
 }
+
 
