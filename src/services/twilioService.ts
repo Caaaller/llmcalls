@@ -5,6 +5,7 @@
 
 import twilio from 'twilio';
 import { TwilioCallUpdateOptions } from '../types/twilio-twiml';
+import { toError } from '../utils/errorUtils';
 
 export interface CallOptions {
   statusCallback?: string;
@@ -36,8 +37,8 @@ class TwilioService {
       const updateOptions: TwilioCallUpdateOptions = { sendDigits: digits };
       await this.client.calls(callSid).update(updateOptions as Parameters<ReturnType<typeof this.client.calls>['update']>[0]);
       return true;
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+    } catch (error: unknown) {
+      const err = toError(error);
       console.error('Error sending DTMF:', err.message);
       return false;
     }
@@ -69,8 +70,8 @@ class TwilioService {
       console.log('  Direction:', call.direction);
       
       return call;
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+    } catch (error: unknown) {
+      const err = toError(error);
       console.error('❌ TwilioService: Failed to initiate call:', err.message);
       console.error('  Error details:', error);
       throw new Error(`Failed to initiate call: ${err.message}`);
@@ -84,8 +85,8 @@ class TwilioService {
     try {
       const call = await this.client.calls(callSid).fetch();
       return call;
-    } catch (error) {
-      const err = error as Error;
+    } catch (error: unknown) {
+      const err = toError(error);
       throw new Error(`Failed to get call status: ${err.message}`);
     }
   }

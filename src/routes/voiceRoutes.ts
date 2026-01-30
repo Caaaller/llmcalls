@@ -18,6 +18,7 @@ import aiDTMFService from '../services/aiDTMFService';
 import twilioService from '../services/twilioService';
 import { TransferConfig } from '../services/aiService';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
+import { toError } from '../utils/errorUtils';
 
 const router = express.Router();
 
@@ -518,8 +519,8 @@ router.post('/process-speech', async (req: Request, res: Response): Promise<void
       
       aiResponse = await Promise.race([aiPromise, timeoutPromise]);
       console.log('✅ OpenAI response received:', aiResponse);
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
+    } catch (error: unknown) {
+      const err = toError(error);
       console.error('❌ AI service error:', err.message);
       console.error('  Error stack:', err.stack);
       // Fallback: remain silent on AI error
