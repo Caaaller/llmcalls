@@ -135,4 +135,3 @@ function Signup({ onSignup, onSwitchToLogin }: SignupProps) {
 
 export default Signup;
 
-
