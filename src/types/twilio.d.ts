@@ -39,6 +39,7 @@ declare module 'twilio' {
       say(attributes: SayAttributes, text: string): Say;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface Say {
       // Say methods
     }
@@ -50,6 +51,7 @@ declare module 'twilio' {
       ): void;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface Hangup {
       // Hangup methods
     }

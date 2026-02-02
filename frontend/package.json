@@ -32,8 +32,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint": "eslint src/**/*.{ts,tsx}",
-    "lint:fix": "eslint src/**/*.{ts,tsx} --fix",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.{ts,tsx}",
+    "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.{ts,tsx} --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\" \"*.{js,json}\" \"public/**/*.json\" \"!package-lock.json\" \"!node_modules/**\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\" \"*.{js,json}\" \"public/**/*.json\" \"!package-lock.json\" \"!node_modules/**\""
   },

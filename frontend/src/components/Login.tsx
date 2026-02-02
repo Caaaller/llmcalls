@@ -101,7 +101,7 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
 
         <div className="login-footer">
           <p>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <button
               type="button"
               className="link-button"

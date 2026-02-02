@@ -105,7 +105,7 @@ export function isIncompleteMenu(
   if (!speech) return false;
 
   const pressMatches = speech.match(/press\s*\d/gi) || [];
-  const forMatches = speech.match(/\d\s+for\s+[^,\.]+/gi) || [];
+  const forMatches = speech.match(/\d\s+for\s+[^,.]+/gi) || [];
   const totalPatterns = pressMatches.length + forMatches.length;
 
   if (menuOptions.length === 0 && totalPatterns > 0) return true;

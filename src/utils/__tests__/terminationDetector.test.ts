@@ -163,5 +163,38 @@ describe('terminationDetector', () => {
       expect(result.shouldTerminate).toBe(true);
       expect(result.reason).toBe('voicemail');
     });
+
+    it('should terminate immediately for voicemail without delay', () => {
+      const result = shouldTerminate('Please leave a message after the beep');
+      expect(result.shouldTerminate).toBe(true);
+      expect(result.reason).toBe('voicemail');
+      expect(result.message).toContain('Voicemail');
+    });
+
+    it('should terminate for all voicemail patterns immediately', () => {
+      const voicemailPhrases = [
+        'Please leave a message after the beep',
+        'Please leave your message after the tone',
+        'Record your message now',
+        'Please speak at the tone',
+        'You have reached voicemail',
+        'This is a voicemail box',
+        'Please leave a message',
+      ];
+
+      voicemailPhrases.forEach(phrase => {
+        const result = shouldTerminate(phrase);
+        expect(result.shouldTerminate).toBe(true);
+        expect(result.reason).toBe('voicemail');
+      });
+    });
+
+    it('should not terminate for voicemail with menu options', () => {
+      const result = shouldTerminate(
+        'You have reached voicemail. Press 1 to leave a message, press 2 for options'
+      );
+      // Should not terminate if menu options are present
+      expect(result.shouldTerminate).toBe(false);
+    });
   });
 });

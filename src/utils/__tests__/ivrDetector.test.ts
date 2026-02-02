@@ -191,6 +191,62 @@ describe('ivrDetector', () => {
 
       expect(isIncompleteMenu(speech, menuOptions)).toBe(false);
     });
+
+    it('should return true when patterns exceed extracted options', () => {
+      const speech =
+        'Press 1 for sales, press 2 for support, press 3 for billing, press 4 for technical support.';
+      const menuOptions: MenuOption[] = [
+        { digit: '1', option: 'sales' },
+        { digit: '2', option: 'support' },
+      ];
+
+      expect(isIncompleteMenu(speech, menuOptions)).toBe(true);
+    });
+
+    it('should return false when extracted options match patterns exactly', () => {
+      const speech =
+        'Press 1 for sales. Press 2 for support. Press 3 for billing.';
+      const menuOptions: MenuOption[] = [
+        { digit: '1', option: 'sales' },
+        { digit: '2', option: 'support' },
+        { digit: '3', option: 'billing' },
+      ];
+
+      expect(isIncompleteMenu(speech, menuOptions)).toBe(false);
+    });
+
+    it('should return false when no patterns exist', () => {
+      const speech = 'Hello, how can I help you?';
+      const menuOptions: MenuOption[] = [];
+
+      expect(isIncompleteMenu(speech, menuOptions)).toBe(false);
+    });
+
+    it('should handle empty speech string', () => {
+      const speech = '';
+      const menuOptions: MenuOption[] = [];
+
+      expect(isIncompleteMenu(speech, menuOptions)).toBe(false);
+    });
+
+    it('should detect incomplete menu with "for X" pattern', () => {
+      const speech = '1 for sales, 2 for support, 3 for billing';
+      const menuOptions: MenuOption[] = [{ digit: '1', option: 'sales' }];
+
+      expect(isIncompleteMenu(speech, menuOptions)).toBe(true);
+    });
+
+    it('should handle menu with many options correctly', () => {
+      const speech =
+        'Press 1 for option one, press 2 for option two, press 3 for option three, press 4 for option four, press 5 for option five.';
+      const menuOptions: MenuOption[] = [
+        { digit: '1', option: 'option one' },
+        { digit: '2', option: 'option two' },
+        { digit: '3', option: 'option three' },
+      ];
+
+      expect(isIncompleteMenu(speech, menuOptions)).toBe(true);
+    });
   });
 
   describe('isIVRMenu', () => {

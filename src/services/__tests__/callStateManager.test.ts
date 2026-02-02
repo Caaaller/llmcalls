@@ -162,5 +162,126 @@ describe('callStateManager', () => {
       expect(timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime());
       expect(timestamp.getTime()).toBeLessThanOrEqual(after.getTime());
     });
+
+    it('should maintain conversation history with mixed entry types', () => {
+      callStateManager.addToHistory(testCallSid, {
+        type: 'user',
+        text: 'Hello',
+      });
+      callStateManager.addToHistory(testCallSid, {
+        type: 'ai',
+        text: 'Hi there!',
+      });
+      callStateManager.addToHistory(testCallSid, {
+        type: 'system',
+        text: 'IVR menu detected',
+      });
+      callStateManager.addToHistory(testCallSid, {
+        type: 'user',
+        text: 'I need help',
+      });
+
+      const state = callStateManager.getCallState(testCallSid);
+      expect(state.conversationHistory).toHaveLength(4);
+      expect(state.conversationHistory[0].type).toBe('user');
+      expect(state.conversationHistory[1].type).toBe('ai');
+      expect(state.conversationHistory[2].type).toBe('system');
+      expect(state.conversationHistory[3].type).toBe('user');
+    });
+
+    it('should maintain conversation history across multiple conversation turns', () => {
+      // Simulate a multi-turn conversation
+      const turns = [
+        { type: 'user' as const, text: 'Hello' },
+        { type: 'ai' as const, text: 'Hi, how can I help?' },
+        { type: 'user' as const, text: 'I need to speak with someone' },
+        { type: 'ai' as const, text: 'I can help with that' },
+        { type: 'system' as const, text: 'Menu detected' },
+        { type: 'user' as const, text: 'Press 1' },
+        { type: 'ai' as const, text: 'Processing...' },
+      ];
+
+      turns.forEach(turn => {
+        callStateManager.addToHistory(testCallSid, turn);
+      });
+
+      const state = callStateManager.getCallState(testCallSid);
+      expect(state.conversationHistory).toHaveLength(7);
+      expect(state.conversationHistory.map(e => e.type)).toEqual([
+        'user',
+        'ai',
+        'user',
+        'ai',
+        'system',
+        'user',
+        'ai',
+      ]);
+    });
+
+    it('should maintain conversation history order correctly', () => {
+      for (let i = 0; i < 5; i++) {
+        callStateManager.addToHistory(testCallSid, {
+          type: i % 2 === 0 ? 'user' : 'ai',
+          text: `Message ${i}`,
+        });
+      }
+
+      const state = callStateManager.getCallState(testCallSid);
+      expect(state.conversationHistory).toHaveLength(5);
+      for (let i = 0; i < 5; i++) {
+        expect(state.conversationHistory[i].text).toBe(`Message ${i}`);
+      }
+    });
+
+    it('should handle conversation history with empty text', () => {
+      callStateManager.addToHistory(testCallSid, {
+        type: 'system',
+        text: '',
+      });
+
+      const state = callStateManager.getCallState(testCallSid);
+      expect(state.conversationHistory).toHaveLength(1);
+      expect(state.conversationHistory[0].text).toBe('');
+    });
+  });
+
+  describe('awaitingCompleteMenu state', () => {
+    it('should track awaitingCompleteMenu flag', () => {
+      callStateManager.updateCallState(testCallSid, {
+        awaitingCompleteMenu: true,
+      });
+
+      const state = callStateManager.getCallState(testCallSid);
+      expect(state.awaitingCompleteMenu).toBe(true);
+    });
+
+    it('should track partialMenuOptions', () => {
+      const partialOptions: MenuOption[] = [{ digit: '1', option: 'sales' }];
+
+      callStateManager.updateCallState(testCallSid, {
+        partialMenuOptions: partialOptions,
+        awaitingCompleteMenu: true,
+      });
+
+      const state = callStateManager.getCallState(testCallSid);
+      expect(state.partialMenuOptions).toEqual(partialOptions);
+      expect(state.awaitingCompleteMenu).toBe(true);
+    });
+
+    it('should clear awaitingCompleteMenu when menu is complete', () => {
+      callStateManager.updateCallState(testCallSid, {
+        awaitingCompleteMenu: true,
+        partialMenuOptions: [{ digit: '1', option: 'sales' }],
+      });
+
+      callStateManager.updateCallState(testCallSid, {
+        awaitingCompleteMenu: false,
+        partialMenuOptions: [],
+      });
+
+      const state = callStateManager.getCallState(testCallSid);
+      expect(state.awaitingCompleteMenu).toBe(false);
+      expect(state.partialMenuOptions).toEqual([]);
+    });
   });
 });

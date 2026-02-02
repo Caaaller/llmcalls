@@ -60,6 +60,36 @@ describe('transferDetector', () => {
     it('should return false for empty string', () => {
       expect(wantsTransfer('')).toBe(false);
     });
+
+    it('should detect "talk to someone" pattern', () => {
+      expect(wantsTransfer('I need to talk to someone')).toBe(true);
+      expect(wantsTransfer('Can I talk to a person?')).toBe(true);
+    });
+
+    it('should detect "representative please" pattern', () => {
+      expect(wantsTransfer('Representative please')).toBe(true);
+      expect(wantsTransfer('I need a representative please')).toBe(true);
+    });
+
+    it('should detect transfer confirmation from system', () => {
+      expect(wantsTransfer("I'm transferring you now")).toBe(true);
+      expect(wantsTransfer('I will transfer you')).toBe(true);
+      expect(wantsTransfer('I am transferring you')).toBe(true);
+    });
+
+    it('should detect variations of transfer phrases', () => {
+      expect(wantsTransfer('Can you connect me to customer service?')).toBe(
+        true
+      );
+      expect(wantsTransfer('I want to speak with an agent')).toBe(true);
+      expect(wantsTransfer('Please transfer me to an operator')).toBe(true);
+    });
+
+    it('should not detect false positives', () => {
+      expect(wantsTransfer('I do not want to transfer')).toBe(false);
+      expect(wantsTransfer('Press 1 to transfer funds')).toBe(false);
+      expect(wantsTransfer('Transfer your account balance')).toBe(false);
+    });
   });
 
   describe('isIncompleteSpeech', () => {

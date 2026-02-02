@@ -149,6 +149,73 @@ describe('loopDetector', () => {
 
       expect(result.isLoop).toBe(true);
     });
+
+    it('should detect loop with single option menu', () => {
+      const menu: MenuOption[] = [{ digit: '0', option: 'operator' }];
+
+      detector.detectLoop(menu);
+      const result = detector.detectLoop(menu);
+
+      expect(result.isLoop).toBe(true);
+    });
+
+    it('should detect loop with three or more options', () => {
+      const menu: MenuOption[] = [
+        { digit: '1', option: 'sales' },
+        { digit: '2', option: 'support' },
+        { digit: '3', option: 'billing' },
+        { digit: '4', option: 'other' },
+      ];
+
+      detector.detectLoop(menu);
+      const result = detector.detectLoop(menu);
+
+      expect(result.isLoop).toBe(true);
+    });
+
+    it('should detect loop after multiple different menus', () => {
+      const menu1: MenuOption[] = [{ digit: '1', option: 'sales' }];
+      const menu2: MenuOption[] = [{ digit: '1', option: 'support' }];
+      const menu3: MenuOption[] = [{ digit: '1', option: 'billing' }];
+      const menu4: MenuOption[] = [{ digit: '1', option: 'sales' }];
+
+      detector.detectLoop(menu1);
+      detector.detectLoop(menu2);
+      detector.detectLoop(menu3);
+      const result = detector.detectLoop(menu4);
+
+      expect(result.isLoop).toBe(true);
+    });
+
+    it('should not detect loop when order differs', () => {
+      const menu1: MenuOption[] = [
+        { digit: '1', option: 'sales' },
+        { digit: '2', option: 'support' },
+      ];
+      const menu2: MenuOption[] = [
+        { digit: '2', option: 'support' },
+        { digit: '1', option: 'sales' },
+      ];
+
+      detector.detectLoop(menu1);
+      const result = detector.detectLoop(menu2);
+
+      expect(result.isLoop).toBe(false);
+    });
+
+    it('should provide loop detection message', () => {
+      const menu: MenuOption[] = [
+        { digit: '1', option: 'sales' },
+        { digit: '2', option: 'support' },
+      ];
+
+      detector.detectLoop(menu);
+      const result = detector.detectLoop(menu);
+
+      expect(result.isLoop).toBe(true);
+      expect(result.message).toBeDefined();
+      expect(result.message).toContain('repeating');
+    });
   });
 
   describe('reset', () => {
