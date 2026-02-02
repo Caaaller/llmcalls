@@ -19,14 +19,21 @@ function Signup({ onSignup, onSwitchToLogin }: SignupProps) {
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
-    name: ''
+    name: '',
   });
   const [error, setError] = useState<string>('');
 
   const signupMutation = useMutation({
-    mutationFn: ({ email, password, name }: { email: string; password: string; name: string }) =>
-      api.auth.signup(email, password, name),
-    onSuccess: (data) => {
+    mutationFn: ({
+      email,
+      password,
+      name,
+    }: {
+      email: string;
+      password: string;
+      name: string;
+    }) => api.auth.signup(email, password, name),
+    onSuccess: data => {
       if (data.success) {
         setAuth(data.user, data.token);
         onSignup(data.user, data.token);
@@ -40,7 +47,7 @@ function Signup({ onSignup, onSwitchToLogin }: SignupProps) {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
     setError('');
   };
@@ -52,7 +59,7 @@ function Signup({ onSignup, onSwitchToLogin }: SignupProps) {
     signupMutation.mutate({
       email: formData.email,
       password: formData.password,
-      name: formData.name
+      name: formData.name,
     });
   };
 
@@ -107,7 +114,11 @@ function Signup({ onSignup, onSwitchToLogin }: SignupProps) {
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="btn-primary" disabled={signupMutation.isPending}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={signupMutation.isPending}
+          >
             {signupMutation.isPending ? 'Please wait...' : 'Sign Up'}
           </button>
         </form>
@@ -134,4 +145,3 @@ function Signup({ onSignup, onSwitchToLogin }: SignupProps) {
 }
 
 export default Signup;
-

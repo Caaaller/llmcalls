@@ -56,96 +56,110 @@ export interface ICallHistory extends Document {
   updatedAt?: Date;
 }
 
-const conversationSchema = new Schema<ConversationEntry>({
-  type: {
-    type: String,
-    enum: ['user', 'ai', 'system'],
-    required: true
+const conversationSchema = new Schema<ConversationEntry>(
+  {
+    type: {
+      type: String,
+      enum: ['user', 'ai', 'system'],
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  text: {
-    type: String,
-    required: true
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
-}, { _id: false });
+  { _id: false }
+);
 
-const dtmfPressSchema = new Schema<DTMFPress>({
-  digit: {
-    type: String,
-    required: true
+const dtmfPressSchema = new Schema<DTMFPress>(
+  {
+    digit: {
+      type: String,
+      required: true,
+    },
+    reason: String,
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  reason: String,
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
-}, { _id: false });
+  { _id: false }
+);
 
-const eventSchema = new Schema<CallEvent>({
-  eventType: {
+const eventSchema = new Schema<CallEvent>(
+  {
+    eventType: {
+      type: String,
+      enum: ['conversation', 'dtmf', 'ivr_menu', 'transfer', 'termination'],
+      required: true,
+    },
     type: String,
-    enum: ['conversation', 'dtmf', 'ivr_menu', 'transfer', 'termination'],
-    required: true
-  },
-  type: String,
-  text: String,
-  digit: String,
-  reason: String,
-  menuOptions: [{
+    text: String,
     digit: String,
-    option: String
-  }],
-  transferNumber: String,
-  success: Boolean,
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
-}, { _id: false });
-
-const callHistorySchema = new Schema<ICallHistory>({
-  callSid: {
-    type: String,
-    required: true,
-    unique: true,
-    index: true
-  },
-  startTime: {
-    type: Date,
-    required: true,
-    index: true
-  },
-  endTime: Date,
-  duration: Number,
-  status: {
-    type: String,
-    enum: ['in-progress', 'completed', 'failed', 'terminated'],
-    default: 'in-progress',
-    index: true
-  },
-  metadata: {
-    to: String,
-    from: String,
+    reason: String,
+    menuOptions: [
+      {
+        digit: String,
+        option: String,
+      },
+    ],
     transferNumber: String,
-    callPurpose: String,
-    customInstructions: String
+    success: Boolean,
+    timestamp: {
+      type: Date,
+      default: Date.now,
+    },
   },
-  conversation: [conversationSchema],
-  dtmfPresses: [dtmfPressSchema],
-  events: [eventSchema]
-}, {
-  timestamps: true
-});
+  { _id: false }
+);
+
+const callHistorySchema = new Schema<ICallHistory>(
+  {
+    callSid: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+    startTime: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    endTime: Date,
+    duration: Number,
+    status: {
+      type: String,
+      enum: ['in-progress', 'completed', 'failed', 'terminated'],
+      default: 'in-progress',
+      index: true,
+    },
+    metadata: {
+      to: String,
+      from: String,
+      transferNumber: String,
+      callPurpose: String,
+      customInstructions: String,
+    },
+    conversation: [conversationSchema],
+    dtmfPresses: [dtmfPressSchema],
+    events: [eventSchema],
+  },
+  {
+    timestamps: true,
+  }
+);
 
 callHistorySchema.index({ startTime: -1 });
 callHistorySchema.index({ status: 1, startTime: -1 });
 
-const CallHistory: Model<ICallHistory> = mongoose.model<ICallHistory>('CallHistory', callHistorySchema);
+const CallHistory: Model<ICallHistory> = mongoose.model<ICallHistory>(
+  'CallHistory',
+  callHistorySchema
+);
 
 export default CallHistory;
-
-
-

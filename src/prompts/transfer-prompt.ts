@@ -144,10 +144,9 @@ ${conversationContext}`;
 
     return {
       system: systemPrompt,
-      user: conversationContext.includes('said:') 
+      user: conversationContext.includes('said:')
         ? conversationContext.split('said:')[1].trim().replace(/"/g, '')
-        : ''
+        : '',
     };
-  }
+  },
 };
-

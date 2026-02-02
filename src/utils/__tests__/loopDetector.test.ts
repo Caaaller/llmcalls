@@ -13,7 +13,10 @@ class TestLoopDetector {
     }
 
     // Check if current options exactly match previous options
-    if (this.previousOptions.length > 0 && this.previousOptions.length === options.length) {
+    if (
+      this.previousOptions.length > 0 &&
+      this.previousOptions.length === options.length
+    ) {
       const isExactMatch = this.previousOptions.every((prev, index) => {
         const current = options[index];
         return prev.digit === current.digit && prev.option === current.option;
@@ -50,7 +53,7 @@ describe('loopDetector', () => {
         { digit: '1', option: 'sales' },
         { digit: '2', option: 'support' },
       ];
-      
+
       const options2: MenuOption[] = [
         { digit: '1', option: 'sales' },
         { digit: '2', option: 'support' },
@@ -68,7 +71,7 @@ describe('loopDetector', () => {
         { digit: '1', option: 'sales' },
         { digit: '2', option: 'support' },
       ];
-      
+
       const options2: MenuOption[] = [
         { digit: '1', option: 'billing' },
         { digit: '2', option: 'support' },
@@ -81,13 +84,9 @@ describe('loopDetector', () => {
     });
 
     it('should not detect loop when same digit has different option', () => {
-      const options1: MenuOption[] = [
-        { digit: '1', option: 'pharmacy' },
-      ];
-      
-      const options2: MenuOption[] = [
-        { digit: '1', option: 'deli' },
-      ];
+      const options1: MenuOption[] = [{ digit: '1', option: 'pharmacy' }];
+
+      const options2: MenuOption[] = [{ digit: '1', option: 'deli' }];
 
       detector.detectLoop(options1);
       const result = detector.detectLoop(options2);
@@ -96,10 +95,8 @@ describe('loopDetector', () => {
     });
 
     it('should not detect loop when number of options differs', () => {
-      const options1: MenuOption[] = [
-        { digit: '1', option: 'sales' },
-      ];
-      
+      const options1: MenuOption[] = [{ digit: '1', option: 'sales' }];
+
       const options2: MenuOption[] = [
         { digit: '1', option: 'sales' },
         { digit: '2', option: 'support' },
@@ -117,24 +114,16 @@ describe('loopDetector', () => {
     });
 
     it('should not detect loop on first call', () => {
-      const options: MenuOption[] = [
-        { digit: '1', option: 'sales' },
-      ];
+      const options: MenuOption[] = [{ digit: '1', option: 'sales' }];
 
       const result = detector.detectLoop(options);
       expect(result.isLoop).toBe(false);
     });
 
     it('should detect loop after multiple different menus', () => {
-      const menu1: MenuOption[] = [
-        { digit: '1', option: 'sales' },
-      ];
-      const menu2: MenuOption[] = [
-        { digit: '1', option: 'support' },
-      ];
-      const menu3: MenuOption[] = [
-        { digit: '1', option: 'sales' },
-      ];
+      const menu1: MenuOption[] = [{ digit: '1', option: 'sales' }];
+      const menu2: MenuOption[] = [{ digit: '1', option: 'support' }];
+      const menu3: MenuOption[] = [{ digit: '1', option: 'sales' }];
 
       detector.detectLoop(menu1);
       detector.detectLoop(menu2);
@@ -148,9 +137,7 @@ describe('loopDetector', () => {
         { digit: '1', option: 'sales' },
         { digit: '2', option: 'support' },
       ];
-      const menu2: MenuOption[] = [
-        { digit: '1', option: 'billing' },
-      ];
+      const menu2: MenuOption[] = [{ digit: '1', option: 'billing' }];
       const menu3: MenuOption[] = [
         { digit: '1', option: 'sales' },
         { digit: '2', option: 'support' },
@@ -166,16 +153,13 @@ describe('loopDetector', () => {
 
   describe('reset', () => {
     it('should clear previous options', () => {
-      const options: MenuOption[] = [
-        { digit: '1', option: 'sales' },
-      ];
+      const options: MenuOption[] = [{ digit: '1', option: 'sales' }];
 
       detector.detectLoop(options);
       detector.reset();
-      
+
       const result = detector.detectLoop(options);
       expect(result.isLoop).toBe(false);
     });
   });
 });
-

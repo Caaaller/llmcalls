@@ -44,7 +44,10 @@ declare module 'twilio' {
     }
 
     interface Dial {
-      number(phoneNumber: string, attributes?: Record<string, string | number | boolean | undefined>): void;
+      number(
+        phoneNumber: string,
+        attributes?: Record<string, string | number | boolean | undefined>
+      ): void;
     }
 
     interface Hangup {
@@ -54,4 +57,3 @@ declare module 'twilio' {
 }
 
 export {};
-

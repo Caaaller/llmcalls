@@ -20,7 +20,7 @@ class TwilioService {
   constructor() {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const authToken = process.env.TWILIO_AUTH_TOKEN;
-    
+
     if (!accountSid || !authToken) {
       throw new Error('TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN must be set');
     }
@@ -35,7 +35,13 @@ class TwilioService {
     try {
       // Twilio types don't include sendDigits in CallUpdateOptions, but it's valid
       const updateOptions: TwilioCallUpdateOptions = { sendDigits: digits };
-      await this.client.calls(callSid).update(updateOptions as Parameters<ReturnType<typeof this.client.calls>['update']>[0]);
+      await this.client
+        .calls(callSid)
+        .update(
+          updateOptions as Parameters<
+            ReturnType<typeof this.client.calls>['update']
+          >[0]
+        );
       return true;
     } catch (error: unknown) {
       const err = toError(error);
@@ -47,13 +53,18 @@ class TwilioService {
   /**
    * Initiate a call
    */
-  async initiateCall(to: string, from: string, url: string, options: CallOptions = {}) {
+  async initiateCall(
+    to: string,
+    from: string,
+    url: string,
+    options: CallOptions = {}
+  ) {
     try {
       console.log('📞 TwilioService: Creating call...');
       console.log('  To:', to);
       console.log('  From:', from);
       console.log('  URL:', url);
-      
+
       const call = await this.client.calls.create({
         to,
         from,
@@ -61,14 +72,14 @@ class TwilioService {
         method: 'POST',
         statusCallback: options.statusCallback,
         statusCallbackMethod: 'POST',
-        ...options
+        ...options,
       });
-      
+
       console.log('✅ TwilioService: Call created successfully');
       console.log('  Call SID:', call.sid);
       console.log('  Status:', call.status);
       console.log('  Direction:', call.direction);
-      
+
       return call;
     } catch (error: unknown) {
       const err = toError(error);
@@ -100,18 +111,16 @@ class TwilioService {
 
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
     const apiKeySid = process.env.TWILIO_API_KEY_SID || accountSid;
-    const apiKeySecret = process.env.TWILIO_API_KEY_SECRET || process.env.TWILIO_AUTH_TOKEN;
+    const apiKeySecret =
+      process.env.TWILIO_API_KEY_SECRET || process.env.TWILIO_AUTH_TOKEN;
 
     if (!accountSid || !apiKeySid || !apiKeySecret) {
       throw new Error('Twilio credentials not configured');
     }
 
-    const token = new AccessToken(
-      accountSid,
-      apiKeySid,
-      apiKeySecret,
-      { identity }
-    );
+    const token = new AccessToken(accountSid, apiKeySid, apiKeySecret, {
+      identity,
+    });
 
     const voiceGrant = new VoiceGrant({
       outgoingApplicationSid: process.env.TWILIO_APP_SID,
@@ -127,4 +136,3 @@ class TwilioService {
 const twilioService = new TwilioService();
 
 export default twilioService;
-

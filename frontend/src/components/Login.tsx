@@ -17,14 +17,14 @@ interface FormData {
 function Login({ onLogin, onSwitchToSignup }: LoginProps) {
   const [formData, setFormData] = useState<FormData>({
     email: '',
-    password: ''
+    password: '',
   });
   const [error, setError] = useState<string>('');
 
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
       api.auth.login(email, password),
-    onSuccess: (data) => {
+    onSuccess: data => {
       if (data.success) {
         setAuth(data.user, data.token);
         onLogin(data.user, data.token);
@@ -38,7 +38,7 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
     setError('');
   };
@@ -49,7 +49,7 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
 
     loginMutation.mutate({
       email: formData.email,
-      password: formData.password
+      password: formData.password,
     });
   };
 
@@ -90,7 +90,11 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="btn-primary" disabled={loginMutation.isPending}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loginMutation.isPending}
+          >
             {loginMutation.isPending ? 'Please wait...' : 'Login'}
           </button>
         </form>

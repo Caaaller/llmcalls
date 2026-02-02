@@ -42,12 +42,17 @@ class AIDTMFService {
     menuOptions: MenuOption[] = []
   ): Promise<DTMFDecision> {
     try {
-      const menuText = menuOptions.map(opt => `Press ${opt.digit} for ${opt.option}`).join(', ');
-      
+      const menuText = menuOptions
+        .map(opt => `Press ${opt.digit} for ${opt.option}`)
+        .join(', ');
+
       const config = configOrScenario as TransferConfig;
-      const callPurpose = config.callPurpose || config.description || 'speak with a representative';
+      const callPurpose =
+        config.callPurpose ||
+        config.description ||
+        'speak with a representative';
       const customInstructions = config.customInstructions || '';
-      
+
       const prompt = `You are analyzing a phone call IVR menu. Your task is to:
 1. Understand the PURPOSE of this call
 2. Match that purpose to the correct IVR menu option
@@ -80,12 +85,16 @@ Respond ONLY with JSON:
       const completion = await this.client.chat.completions.create({
         model: 'gpt-4o',
         messages: [
-          { role: 'system', content: 'You are an intelligent IVR navigation assistant. Analyze call purpose and match to menu options. Respond only with valid JSON.' },
-          { role: 'user', content: prompt }
+          {
+            role: 'system',
+            content:
+              'You are an intelligent IVR navigation assistant. Analyze call purpose and match to menu options. Respond only with valid JSON.',
+          },
+          { role: 'user', content: prompt },
         ],
         max_tokens: 200,
         temperature: 0.3,
-        response_format: { type: 'json_object' }
+        response_format: { type: 'json_object' },
       });
 
       const content = completion.choices[0].message.content;
@@ -102,12 +111,12 @@ Respond ONLY with JSON:
     } catch (error) {
       const err = error as Error;
       console.error('Error in AI DTMF decision:', err);
-      return { 
-        shouldPress: false, 
-        digit: null, 
-        reason: 'AI error', 
+      return {
+        shouldPress: false,
+        digit: null,
+        reason: 'AI error',
         callPurpose: 'unknown',
-        matchedOption: ''
+        matchedOption: '',
       };
     }
   }
@@ -115,7 +124,10 @@ Respond ONLY with JSON:
   /**
    * Legacy method for backward compatibility
    */
-  async shouldPressDTMF(speech: string, scenario: Scenario): Promise<DTMFDecision> {
+  async shouldPressDTMF(
+    speech: string,
+    scenario: Scenario
+  ): Promise<DTMFDecision> {
     return await this.understandCallPurposeAndPressDTMF(speech, scenario, []);
   }
 }
@@ -124,6 +136,3 @@ Respond ONLY with JSON:
 const aiDTMFService = new AIDTMFService();
 
 export default aiDTMFService;
-
-
-

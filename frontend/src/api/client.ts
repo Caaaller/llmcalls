@@ -2,7 +2,8 @@
 import { getToken } from '../utils/auth';
 
 // Get API URL from environment variable, default to relative URL in production or localhost for development
-const API_URL = process.env.REACT_APP_API_URL || 
+const API_URL =
+  process.env.REACT_APP_API_URL ||
   (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
 
 /**
@@ -147,7 +148,7 @@ export function getAuthHeaders(): HeadersInit {
  */
 export async function apiFetch<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: RequestInit = {}
 ): Promise<T> {
   const url = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
 
@@ -164,7 +165,10 @@ export async function apiFetch<T>(
     let errorMessage = `HTTP error! status: ${response.status}`;
     try {
       const error = await response.json();
-      errorMessage = (error as { error?: string; message?: string }).error || (error as { message?: string }).message || errorMessage;
+      errorMessage =
+        (error as { error?: string; message?: string }).error ||
+        (error as { message?: string }).message ||
+        errorMessage;
     } catch {
       // If response is not JSON, use status text
       errorMessage = response.statusText || errorMessage;
@@ -182,17 +186,24 @@ export const api = {
   // Auth endpoints
   auth: {
     me: () => apiFetch<{ user: ApiUser }>('/api/auth/me'),
-    logout: () => apiFetch<{ success: boolean }>('/api/auth/logout', { method: 'POST' }),
+    logout: () =>
+      apiFetch<{ success: boolean }>('/api/auth/logout', { method: 'POST' }),
     login: (email: string, password: string) =>
-      apiFetch<{ success: boolean; token: string; user: ApiUser }>('/api/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      }),
+      apiFetch<{ success: boolean; token: string; user: ApiUser }>(
+        '/api/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        }
+      ),
     signup: (email: string, password: string, name: string) =>
-      apiFetch<{ success: boolean; token: string; user: ApiUser }>('/api/auth/signup', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, name }),
-      }),
+      apiFetch<{ success: boolean; token: string; user: ApiUser }>(
+        '/api/auth/signup',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, password, name }),
+        }
+      ),
   },
 
   // Config endpoints
@@ -214,12 +225,15 @@ export const api = {
   calls: {
     history: (limit: number = 50) =>
       apiFetch<CallHistoryResponse>(`/api/calls/history?limit=${limit}`),
-    get: (callSid: string) => apiFetch<CallDetailsResponse>(`/api/calls/${callSid}`),
+    get: (callSid: string) =>
+      apiFetch<CallDetailsResponse>(`/api/calls/${callSid}`),
     initiate: (data: InitiateCallPayload) =>
-      apiFetch<{ success: boolean } & InitiateCallResponse>('/api/calls/initiate', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
+      apiFetch<{ success: boolean } & InitiateCallResponse>(
+        '/api/calls/initiate',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
   },
 };
-

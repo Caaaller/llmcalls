@@ -8,7 +8,9 @@ import { TRANSFER_PATTERNS } from './detectionPatterns';
 /**
  * Check if speech indicates a transfer request
  */
-export function wantsTransfer(speechResult: string | null | undefined): boolean {
+export function wantsTransfer(
+  speechResult: string | null | undefined
+): boolean {
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
@@ -18,7 +20,9 @@ export function wantsTransfer(speechResult: string | null | undefined): boolean 
 /**
  * Check if speech is incomplete (ends mid-sentence)
  */
-export function isIncompleteSpeech(speechResult: string | null | undefined): boolean {
+export function isIncompleteSpeech(
+  speechResult: string | null | undefined
+): boolean {
   if (!speechResult) return false;
   const trimmed = speechResult.trim();
   if (!trimmed) return false;

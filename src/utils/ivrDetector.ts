@@ -22,18 +22,20 @@ export function extractMenuOptions(speech: string): MenuOption[] {
 
   // Pattern 2: "Press X, to Y" or "Press X, for Y" - improved to handle long descriptions
   // Use a simpler approach: find "press X" and capture everything after "to/for" until next "press" or end
-  const pressMatches = [...speech.matchAll(/press\s*(\d+)\s*[,.]?\s*(?:to|for)\s+/gi)];
+  const pressMatches = [
+    ...speech.matchAll(/press\s*(\d+)\s*[,.]?\s*(?:to|for)\s+/gi),
+  ];
   for (const pressMatch of pressMatches) {
     if (!pressMatch.index) continue;
-    
+
     const digit = pressMatch[1];
     const matchStart = pressMatch.index + pressMatch[0].length;
     const textAfterPress = speech.substring(matchStart);
-    
+
     // Find the next "press X" pattern
     const nextPressMatch = textAfterPress.match(/press\s*\d/i);
     let option: string;
-    
+
     if (nextPressMatch && nextPressMatch.index !== undefined) {
       // Capture text up to the next "press"
       option = textAfterPress.substring(0, nextPressMatch.index).trim();
@@ -41,31 +43,51 @@ export function extractMenuOptions(speech: string): MenuOption[] {
       // No next "press" - capture all remaining text
       option = textAfterPress.trim();
     }
-    
+
     // Clean up the option text
-    option = option.replace(/^[,.\s]+|[,.\s]+$/g, '').replace(/[,.]+\s*$/, '').trim();
-    
-    if (digit && option && option.length > 0 && !options.some(opt => opt.digit === digit)) {
+    option = option
+      .replace(/^[,.\s]+|[,.\s]+$/g, '')
+      .replace(/[,.]+\s*$/, '')
+      .trim();
+
+    if (
+      digit &&
+      option &&
+      option.length > 0 &&
+      !options.some(opt => opt.digit === digit)
+    ) {
       options.push({ digit, option: option.toLowerCase() });
     }
   }
 
   // Pattern 3: "Press X for Y" (without comma)
-  const pressPattern2 = /press\s*(\d+)\s+for\s+([^,]+?)(?=\s*(?:press|and|or|,|\.|$))/gi;
+  const pressPattern2 =
+    /press\s*(\d+)\s+for\s+([^,]+?)(?=\s*(?:press|and|or|,|\.|$))/gi;
   while ((match = pressPattern2.exec(speech)) !== null) {
     const digit = match[1];
     const option = match[2].trim().replace(/^[,.\s]+|[,.\s]+$/g, '');
-    if (digit && option && option.length > 0 && !options.some(opt => opt.digit === digit)) {
+    if (
+      digit &&
+      option &&
+      option.length > 0 &&
+      !options.some(opt => opt.digit === digit)
+    ) {
       options.push({ digit, option: option.toLowerCase() });
     }
   }
 
   // Pattern 4: "X for Y" (without "press")
-  const simplePattern = /(?:^|\s)(\d+)\s+for\s+([^,]+?)(?=\s*(?:press|and|or|,|\.|$))/gi;
+  const simplePattern =
+    /(?:^|\s)(\d+)\s+for\s+([^,]+?)(?=\s*(?:press|and|or|,|\.|$))/gi;
   while ((match = simplePattern.exec(speech)) !== null) {
     const digit = match[1];
     const option = match[2].trim().replace(/^[,.\s]+|[,.\s]+$/g, '');
-    if (digit && option && option.length > 0 && !options.some(opt => opt.digit === digit)) {
+    if (
+      digit &&
+      option &&
+      option.length > 0 &&
+      !options.some(opt => opt.digit === digit)
+    ) {
       options.push({ digit, option: option.toLowerCase() });
     }
   }
@@ -76,7 +98,10 @@ export function extractMenuOptions(speech: string): MenuOption[] {
 /**
  * Check if IVR menu appears incomplete
  */
-export function isIncompleteMenu(speech: string, menuOptions: MenuOption[]): boolean {
+export function isIncompleteMenu(
+  speech: string,
+  menuOptions: MenuOption[]
+): boolean {
   if (!speech) return false;
 
   const pressMatches = speech.match(/press\s*\d/gi) || [];

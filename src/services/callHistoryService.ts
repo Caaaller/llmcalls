@@ -29,7 +29,7 @@ class CallHistoryService {
       console.log('⚠️  MongoDB not connected. Call history will not be saved.');
       return;
     }
-    
+
     try {
       const callHistory = new CallHistory({
         callSid,
@@ -40,13 +40,13 @@ class CallHistoryService {
           from: metadata.from || undefined,
           transferNumber: metadata.transferNumber || undefined,
           callPurpose: metadata.callPurpose || undefined,
-          customInstructions: metadata.customInstructions || undefined
+          customInstructions: metadata.customInstructions || undefined,
         },
         conversation: [],
         dtmfPresses: [],
-        events: []
+        events: [],
       });
-      
+
       await callHistory.save();
       console.log(`📞 Started tracking call: ${callSid}`);
     } catch (error: unknown) {
@@ -63,13 +63,16 @@ class CallHistoryService {
                 from: metadata.from || undefined,
                 transferNumber: metadata.transferNumber || undefined,
                 callPurpose: metadata.callPurpose || undefined,
-                customInstructions: metadata.customInstructions || undefined
-              }
-            }
+                customInstructions: metadata.customInstructions || undefined,
+              },
+            },
           }
         );
       } else {
-        console.error('❌ Error starting call tracking:', getErrorMessage(error));
+        console.error(
+          '❌ Error starting call tracking:',
+          getErrorMessage(error)
+        );
         throw error;
       }
     }
@@ -85,12 +88,12 @@ class CallHistoryService {
     timestamp: Date | null = null
   ): Promise<void> {
     if (!isMongoAvailable()) return;
-    
+
     try {
       const conversationEntry = {
         type,
         text,
-        timestamp: timestamp || new Date()
+        timestamp: timestamp || new Date(),
       };
 
       await CallHistory.findOneAndUpdate(
@@ -100,9 +103,9 @@ class CallHistoryService {
             conversation: conversationEntry,
             events: {
               ...conversationEntry,
-              eventType: 'conversation' as const
-            }
-          }
+              eventType: 'conversation' as const,
+            },
+          },
         }
       );
     } catch (error: unknown) {
@@ -120,12 +123,12 @@ class CallHistoryService {
     timestamp: Date | null = null
   ): Promise<void> {
     if (!isMongoAvailable()) return;
-    
+
     try {
       const dtmfEvent = {
         digit,
         reason: reason || undefined,
-        timestamp: timestamp || new Date()
+        timestamp: timestamp || new Date(),
       };
 
       await CallHistory.findOneAndUpdate(
@@ -135,9 +138,9 @@ class CallHistoryService {
             dtmfPresses: dtmfEvent,
             events: {
               ...dtmfEvent,
-              eventType: 'dtmf' as const
-            }
-          }
+              eventType: 'dtmf' as const,
+            },
+          },
         }
       );
     } catch (error: unknown) {
@@ -154,7 +157,7 @@ class CallHistoryService {
     timestamp: Date | null = null
   ): Promise<void> {
     if (!isMongoAvailable()) return;
-    
+
     try {
       await CallHistory.findOneAndUpdate(
         { callSid },
@@ -163,9 +166,9 @@ class CallHistoryService {
             events: {
               eventType: 'ivr_menu' as const,
               menuOptions,
-              timestamp: timestamp || new Date()
-            }
-          }
+              timestamp: timestamp || new Date(),
+            },
+          },
         }
       );
     } catch (error: unknown) {
@@ -183,7 +186,7 @@ class CallHistoryService {
     timestamp: Date | null = null
   ): Promise<void> {
     if (!isMongoAvailable()) return;
-    
+
     try {
       await CallHistory.findOneAndUpdate(
         { callSid },
@@ -193,9 +196,9 @@ class CallHistoryService {
               eventType: 'transfer' as const,
               transferNumber,
               success,
-              timestamp: timestamp || new Date()
-            }
-          }
+              timestamp: timestamp || new Date(),
+            },
+          },
         }
       );
     } catch (error: unknown) {
@@ -212,7 +215,7 @@ class CallHistoryService {
     timestamp: Date | null = null
   ): Promise<void> {
     if (!isMongoAvailable()) return;
-    
+
     try {
       await CallHistory.findOneAndUpdate(
         { callSid },
@@ -221,9 +224,9 @@ class CallHistoryService {
             events: {
               eventType: 'termination' as const,
               reason,
-              timestamp: timestamp || new Date()
-            }
-          }
+              timestamp: timestamp || new Date(),
+            },
+          },
         }
       );
     } catch (error: unknown) {
@@ -234,9 +237,12 @@ class CallHistoryService {
   /**
    * End a call
    */
-  async endCall(callSid: string, status: 'completed' | 'failed' | 'terminated' = 'completed'): Promise<void> {
+  async endCall(
+    callSid: string,
+    status: 'completed' | 'failed' | 'terminated' = 'completed'
+  ): Promise<void> {
     if (!isMongoAvailable()) return;
-    
+
     try {
       const call = await CallHistory.findOne({ callSid });
       if (!call) return;
@@ -250,8 +256,8 @@ class CallHistoryService {
           $set: {
             endTime,
             duration,
-            status
-          }
+            status,
+          },
         }
       );
     } catch (error: unknown) {
@@ -264,7 +270,7 @@ class CallHistoryService {
    */
   async getCall(callSid: string) {
     if (!isMongoAvailable()) return null;
-    
+
     try {
       const call = await CallHistory.findOne({ callSid }).lean();
       return call;
@@ -279,7 +285,7 @@ class CallHistoryService {
    */
   async getAllCalls(limit: number = 100) {
     if (!isMongoAvailable()) return [];
-    
+
     try {
       const calls = await CallHistory.find()
         .sort({ startTime: -1 })
@@ -304,13 +310,13 @@ class CallHistoryService {
    */
   async cleanup(daysOld: number = 7): Promise<void> {
     if (!isMongoAvailable()) return;
-    
+
     try {
       const cutoffDate = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000);
       const result = await CallHistory.deleteMany({
-        startTime: { $lt: cutoffDate }
+        startTime: { $lt: cutoffDate },
       });
-      
+
       if (result.deletedCount && result.deletedCount > 0) {
         console.log(`🧹 Cleaned up ${result.deletedCount} old calls`);
       }
@@ -325,17 +331,23 @@ class CallHistoryService {
   async getStatistics() {
     try {
       const totalCalls = await CallHistory.countDocuments();
-      const inProgress = await CallHistory.countDocuments({ status: 'in-progress' });
-      const completed = await CallHistory.countDocuments({ status: 'completed' });
+      const inProgress = await CallHistory.countDocuments({
+        status: 'in-progress',
+      });
+      const completed = await CallHistory.countDocuments({
+        status: 'completed',
+      });
       const failed = await CallHistory.countDocuments({ status: 'failed' });
-      const terminated = await CallHistory.countDocuments({ status: 'terminated' });
-      
+      const terminated = await CallHistory.countDocuments({
+        status: 'terminated',
+      });
+
       return {
         totalCalls,
         inProgress,
         completed,
         failed,
-        terminated
+        terminated,
       };
     } catch (error: unknown) {
       console.error('❌ Error getting statistics:', getErrorMessage(error));
@@ -348,10 +360,11 @@ class CallHistoryService {
 const callHistoryService = new CallHistoryService();
 
 // Cleanup old calls every hour
-setInterval(() => {
-  callHistoryService.cleanup(7).catch(console.error);
-}, 60 * 60 * 1000);
+setInterval(
+  () => {
+    callHistoryService.cleanup(7).catch(console.error);
+  },
+  60 * 60 * 1000
+);
 
 export default callHistoryService;
-
-

@@ -41,4 +41,3 @@ export function toError(error: unknown): Error {
   }
   return new Error(getErrorMessage(error));
 }
-

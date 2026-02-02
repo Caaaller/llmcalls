@@ -3,7 +3,9 @@ import { wantsTransfer, isIncompleteSpeech } from '../transferDetector';
 describe('transferDetector', () => {
   describe('wantsTransfer', () => {
     it('should detect "transfer me" pattern', () => {
-      expect(wantsTransfer('Can you transfer me to a representative?')).toBe(true);
+      expect(wantsTransfer('Can you transfer me to a representative?')).toBe(
+        true
+      );
       expect(wantsTransfer('Transfer me please')).toBe(true);
     });
 
@@ -72,7 +74,11 @@ describe('transferDetector', () => {
     });
 
     it('should return false for longer sentences without punctuation', () => {
-      expect(isIncompleteSpeech('This is a longer sentence that should not be considered incomplete')).toBe(false);
+      expect(
+        isIncompleteSpeech(
+          'This is a longer sentence that should not be considered incomplete'
+        )
+      ).toBe(false);
     });
 
     it('should return false for null or undefined', () => {
@@ -86,4 +92,3 @@ describe('transferDetector', () => {
     });
   });
 });
-

@@ -4,7 +4,12 @@
  */
 
 import 'dotenv/config';
-import express, { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import express, {
+  Request,
+  Response,
+  NextFunction,
+  ErrorRequestHandler,
+} from 'express';
 import path from 'path';
 import { connect, disconnect } from './services/database';
 import voiceRoutes from './routes/voiceRoutes';
@@ -27,7 +32,7 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:3000',
   process.env.FRONTEND_URL,
-  process.env.BASE_URL
+  process.env.BASE_URL,
 ].filter(Boolean) as string[];
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -38,7 +43,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     res.header('Access-Control-Allow-Origin', process.env.BASE_URL);
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+  );
   res.header('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
@@ -50,7 +58,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Logging middleware
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`\n[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+  if (
+    req.body &&
+    typeof req.body === 'object' &&
+    Object.keys(req.body).length > 0
+  ) {
     console.log('Body:', JSON.stringify(req.body, null, 2));
   }
   next();
@@ -73,11 +85,15 @@ app.get('/health', (_req: Request, res: Response) => {
 if (process.env.NODE_ENV === 'production') {
   const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
   app.use(express.static(frontendBuildPath));
-  
+
   // Catch-all handler: send back React's index.html file for client-side routing
   app.use((req: Request, res: Response, next: NextFunction) => {
     // Don't serve React app for API routes or voice routes
-    if (req.path.startsWith('/api') || req.path.startsWith('/voice') || req.path.startsWith('/health')) {
+    if (
+      req.path.startsWith('/api') ||
+      req.path.startsWith('/voice') ||
+      req.path.startsWith('/health')
+    ) {
       return next();
     }
     // Only handle GET requests for the catch-all
@@ -97,9 +113,9 @@ if (process.env.NODE_ENV === 'production') {
       endpoints: {
         health: '/health',
         api: '/api',
-        voice: '/voice'
+        voice: '/voice',
       },
-      note: 'Frontend runs separately on http://localhost:3001'
+      note: 'Frontend runs separately on http://localhost:3001',
     });
   });
 }
@@ -110,19 +126,26 @@ const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   console.error('Error stack:', err.stack);
   console.error('Request path:', req.path);
   console.error('Request method:', req.method);
-  
-  if (req.path.includes('voice') || req.path.includes('process-speech') || req.path.includes('process-dtmf')) {
+
+  if (
+    req.path.includes('voice') ||
+    req.path.includes('process-speech') ||
+    req.path.includes('process-dtmf')
+  ) {
     const response = new twilio.twiml.VoiceResponse();
-    response.say({ voice: 'alice', language: 'en-US' }, 'I apologize, but there was an error. Please try again later.');
+    response.say(
+      { voice: 'alice', language: 'en-US' },
+      'I apologize, but there was an error. Please try again later.'
+    );
     response.hangup();
     res.type('text/xml');
     res.send(response.toString());
     return;
   }
-  
+
   res.status(500).json({
     success: false,
-    error: err.message || 'Internal server error'
+    error: err.message || 'Internal server error',
   });
 };
 
@@ -135,26 +158,41 @@ async function startServer(): Promise<void> {
     const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
     if (mongoUri) {
       // Try to connect, but don't block server startup
-      connect().catch((err) => {
-        console.error('⚠️  MongoDB connection failed:', err instanceof Error ? err.message : String(err));
-        console.log('⚠️  Server will continue, but database operations will fail.');
+      connect().catch(err => {
+        console.error(
+          '⚠️  MongoDB connection failed:',
+          err instanceof Error ? err.message : String(err)
+        );
+        console.log(
+          '⚠️  Server will continue, but database operations will fail.'
+        );
         console.log('💡 Please check MongoDB connection in Railway.');
-        console.log('💡 Railway: Ensure MongoDB service is added and MONGO_URL is available.');
+        console.log(
+          '💡 Railway: Ensure MongoDB service is added and MONGO_URL is available.'
+        );
       });
     } else {
-      console.log('⚠️  MONGODB_URI or MONGO_URL not set. Database operations will fail.');
-      console.log('💡 Railway: Add MongoDB service to get MONGO_URL automatically');
+      console.log(
+        '⚠️  MONGODB_URI or MONGO_URL not set. Database operations will fail.'
+      );
+      console.log(
+        '💡 Railway: Add MongoDB service to get MONGO_URL automatically'
+      );
       console.log('💡 Or set MONGODB_URI in Railway environment variables.');
     }
-    
+
     app.listen(port, () => {
       console.log(`\n🚀 Server running on port ${port}`);
       console.log(`📡 Health check: http://localhost:${port}/health`);
       console.log(`📋 Scenarios: http://localhost:${port}/api/scenarios`);
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`\n⚠️  For production, use ngrok or similar to expose this server:`);
+        console.log(
+          `\n⚠️  For production, use ngrok or similar to expose this server:`
+        );
         console.log(`   ngrok http ${port}`);
-        console.log(`   Then update TWIML_URL in .env to: https://your-ngrok-url.ngrok.io/voice`);
+        console.log(
+          `   Then update TWIML_URL in .env to: https://your-ngrok-url.ngrok.io/voice`
+        );
       }
     });
   } catch (error) {
@@ -180,4 +218,3 @@ process.on('SIGINT', async () => {
 });
 
 export default app;
-

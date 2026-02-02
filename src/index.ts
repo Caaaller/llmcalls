@@ -35,7 +35,11 @@ async function initiateCall(to: string, from: string, url: string) {
     console.log('Status:', call.status);
     return call;
   } catch (error: unknown) {
-    const twilioError = error as { message?: string; code?: number; moreInfo?: string };
+    const twilioError = error as {
+      message?: string;
+      code?: number;
+      moreInfo?: string;
+    };
     console.error('Error initiating call:', getErrorMessage(error));
     if (twilioError.code) {
       console.error('Error code:', twilioError.code);
@@ -63,22 +67,38 @@ async function getCallStatus(callSid: string) {
 /**
  * Monitors a call and checks its status periodically
  */
-async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks: number = 10) {
+async function monitorCall(
+  callSid: string,
+  intervalMs: number = 2000,
+  maxChecks: number = 10
+) {
   console.log(`\nMonitoring call ${callSid}...`);
-  
+
   for (let i = 0; i < maxChecks; i++) {
     try {
       const call = await getCallStatus(callSid);
       console.log(`\n[Check ${i + 1}/${maxChecks}] Status: ${call.status}`);
-      
-      if (call.status === 'completed' || call.status === 'failed' || call.status === 'busy' || call.status === 'no-answer' || call.status === 'canceled') {
+
+      if (
+        call.status === 'completed' ||
+        call.status === 'failed' ||
+        call.status === 'busy' ||
+        call.status === 'no-answer' ||
+        call.status === 'canceled'
+      ) {
         console.log('\n=== Final Call Details ===');
         console.log('Status:', call.status);
-        console.log('Duration:', call.duration ? `${call.duration} seconds` : 'N/A');
-        console.log('Price:', call.price ? `$${call.price} ${call.priceUnit}` : 'N/A');
+        console.log(
+          'Duration:',
+          call.duration ? `${call.duration} seconds` : 'N/A'
+        );
+        console.log(
+          'Price:',
+          call.price ? `$${call.price} ${call.priceUnit}` : 'N/A'
+        );
         return call;
       }
-      
+
       if (i < maxChecks - 1) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
       }
@@ -87,7 +107,7 @@ async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks
       throw error;
     }
   }
-  
+
   console.log('\n⚠️  Max checks reached. Call may still be in progress.');
   return await getCallStatus(callSid);
 }
@@ -96,23 +116,29 @@ async function monitorCall(callSid: string, intervalMs: number = 2000, maxChecks
 if (require.main === module) {
   const args = process.argv.slice(2);
   let callSidToCheck: string | null = args[0] || null;
-  
+
   if (callSidToCheck && callSidToCheck.trim() === '') {
     callSidToCheck = null;
   }
-  
+
   if (callSidToCheck) {
     console.log(`Checking status of call: ${callSidToCheck}`);
     getCallStatus(callSidToCheck)
-      .then((call) => {
+      .then(call => {
         console.log('\n=== Call Details ===');
         console.log('Status:', call.status);
         console.log('To:', call.to);
         console.log('From:', call.from);
-        console.log('Duration:', call.duration ? `${call.duration} seconds` : 'N/A');
-        console.log('Price:', call.price ? `$${call.price} ${call.priceUnit}` : 'N/A');
+        console.log(
+          'Duration:',
+          call.duration ? `${call.duration} seconds` : 'N/A'
+        );
+        console.log(
+          'Price:',
+          call.price ? `$${call.price} ${call.priceUnit}` : 'N/A'
+        );
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('Failed to check call status:', error);
         process.exit(1);
       });
@@ -120,27 +146,35 @@ if (require.main === module) {
     const to = process.env.TO_PHONE_NUMBER || '+1234567890';
     const from = process.env.TWILIO_PHONE_NUMBER || '+1234567890';
     let url = process.env.TWIML_URL || 'http://demo.twilio.com/docs/voice.xml';
-    
+
     const config = transferConfig.createConfig({
       transferNumber: process.env.TRANSFER_PHONE_NUMBER,
       userPhone: process.env.USER_PHONE_NUMBER,
       userEmail: process.env.USER_EMAIL,
-      callPurpose: args[1] || process.env.CALL_PURPOSE || 'speak with a representative',
-      customInstructions: args[2] || ''
+      callPurpose:
+        args[1] || process.env.CALL_PURPOSE || 'speak with a representative',
+      customInstructions: args[2] || '',
     });
-    
-    if (url.includes('ngrok') || url.includes('localhost') || url.includes('http')) {
+
+    if (
+      url.includes('ngrok') ||
+      url.includes('localhost') ||
+      url.includes('http')
+    ) {
       url = url.endsWith('/') ? url + 'voice' : url + '/voice';
       const params = new URLSearchParams({
         transferNumber: config.transferNumber,
-        callPurpose: config.callPurpose || process.env.CALL_PURPOSE || 'speak with a representative'
+        callPurpose:
+          config.callPurpose ||
+          process.env.CALL_PURPOSE ||
+          'speak with a representative',
       });
       if (config.customInstructions) {
         params.append('customInstructions', config.customInstructions);
       }
       url += '?' + params.toString();
     }
-    
+
     console.log('\n📋 Transfer-Only Call Configuration:');
     console.log('  To:', to);
     console.log('  From:', from);
@@ -150,13 +184,13 @@ if (require.main === module) {
     console.log('  Account SID:', accountSid.substring(0, 10) + '...');
 
     initiateCall(to, from, url)
-      .then(async (call) => {
+      .then(async call => {
         console.log('\nCall details:', call);
         console.log('\nWaiting a moment, then checking call status...');
         await new Promise(resolve => setTimeout(resolve, 3000));
         await monitorCall(call.sid);
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('Failed to initiate call:', error);
         process.exit(1);
       });
@@ -164,5 +198,3 @@ if (require.main === module) {
 }
 
 export { initiateCall, getCallStatus, monitorCall };
-
-

@@ -50,7 +50,7 @@ class CallStateManager {
         partialSpeech: '',
         conversationHistory: [],
         scenarioId: null,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     }
     return this.callStates.get(callSid)!;
@@ -68,14 +68,17 @@ class CallStateManager {
   /**
    * Add to conversation history
    */
-  addToHistory(callSid: string, entry: Omit<ConversationEntry, 'timestamp'>): void {
+  addToHistory(
+    callSid: string,
+    entry: Omit<ConversationEntry, 'timestamp'>
+  ): void {
     const state = this.getCallState(callSid);
     if (!state.conversationHistory) {
       state.conversationHistory = [];
     }
     state.conversationHistory.push({
       timestamp: new Date(),
-      ...entry
+      ...entry,
     });
     // Keep only last 20 entries
     if (state.conversationHistory.length > 20) {
@@ -107,9 +110,11 @@ class CallStateManager {
 const callStateManager = new CallStateManager();
 
 // Cleanup every 30 minutes
-setInterval(() => {
-  callStateManager.cleanup();
-}, 30 * 60 * 1000);
+setInterval(
+  () => {
+    callStateManager.cleanup();
+  },
+  30 * 60 * 1000
+);
 
 export default callStateManager;
-

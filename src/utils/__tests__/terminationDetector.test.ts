@@ -8,11 +8,15 @@ import {
 describe('terminationDetector', () => {
   describe('isVoicemailRecording', () => {
     it('should detect "please leave a message after the beep"', () => {
-      expect(isVoicemailRecording('Please leave a message after the beep')).toBe(true);
+      expect(
+        isVoicemailRecording('Please leave a message after the beep')
+      ).toBe(true);
     });
 
     it('should detect "please leave your message after the tone"', () => {
-      expect(isVoicemailRecording('Please leave your message after the tone')).toBe(true);
+      expect(
+        isVoicemailRecording('Please leave your message after the tone')
+      ).toBe(true);
     });
 
     it('should detect "record your message"', () => {
@@ -50,7 +54,9 @@ describe('terminationDetector', () => {
 
   describe('isClosedNoMenu', () => {
     it('should detect "we are currently closed" without menu', () => {
-      expect(isClosedNoMenu('We are currently closed. Please call back tomorrow.')).toBe(true);
+      expect(
+        isClosedNoMenu('We are currently closed. Please call back tomorrow.')
+      ).toBe(true);
     });
 
     it('should detect "our office is currently closed" without menu', () => {
@@ -58,7 +64,11 @@ describe('terminationDetector', () => {
     });
 
     it('should detect "outside of our normal business hours"', () => {
-      expect(isClosedNoMenu('You have reached us outside of our normal business hours')).toBe(true);
+      expect(
+        isClosedNoMenu(
+          'You have reached us outside of our normal business hours'
+        )
+      ).toBe(true);
     });
 
     it('should detect "our hours are" pattern', () => {
@@ -66,7 +76,9 @@ describe('terminationDetector', () => {
     });
 
     it('should return false if closed message includes menu options', () => {
-      expect(isClosedNoMenu('We are closed. Press 1 for more info')).toBe(false);
+      expect(isClosedNoMenu('We are closed. Press 1 for more info')).toBe(
+        false
+      );
       expect(isClosedNoMenu('Closed. 1 for hours')).toBe(false);
     });
 
@@ -121,7 +133,9 @@ describe('terminationDetector', () => {
     });
 
     it('should terminate for closed with no menu', () => {
-      const result = shouldTerminate('We are currently closed. Please call back tomorrow.');
+      const result = shouldTerminate(
+        'We are currently closed. Please call back tomorrow.'
+      );
       expect(result.shouldTerminate).toBe(true);
       expect(result.reason).toBe('closed_no_menu');
       expect(result.message).toContain('closed');
@@ -143,10 +157,11 @@ describe('terminationDetector', () => {
     });
 
     it('should prioritize voicemail over closed', () => {
-      const result = shouldTerminate('We are closed. Please leave a message after the beep');
+      const result = shouldTerminate(
+        'We are closed. Please leave a message after the beep'
+      );
       expect(result.shouldTerminate).toBe(true);
       expect(result.reason).toBe('voicemail');
     });
   });
 });
-
