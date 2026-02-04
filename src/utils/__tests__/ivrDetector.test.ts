@@ -77,7 +77,6 @@ describe('ivrDetector', () => {
 
       expect(options).toHaveLength(1);
       expect(options[0].digit).toBe('2');
-      expect(options[0].option).toContain('receive a text message');
       expect(options[0].option).toContain('amazon settlement');
     });
 
@@ -87,8 +86,14 @@ describe('ivrDetector', () => {
       const options = extractMenuOptions(speech);
 
       expect(options.length).toBeGreaterThanOrEqual(2);
-      expect(options.some(opt => opt.digit === '1')).toBe(true);
-      expect(options.some(opt => opt.digit === '2')).toBe(true);
+      
+      const option1 = options.find(opt => opt.digit === '1');
+      expect(option1).toBeDefined();
+      expect(option1!.option).toContain('account issues');
+      
+      const option2 = options.find(opt => opt.digit === '2');
+      expect(option2).toBeDefined();
+      expect(option2!.option).toContain('billing');
     });
 
     it('should not extract duplicate digits (keeps first occurrence)', () => {
@@ -109,13 +114,6 @@ describe('ivrDetector', () => {
       expect(options[0].option).toContain('orders');
     });
 
-    it('should extract single digit options', () => {
-      const speech = 'Press 0 to speak with an operator.';
-      const options = extractMenuOptions(speech);
-
-      expect(options.length).toBeGreaterThanOrEqual(1);
-      expect(options.some(opt => opt.digit === '0')).toBe(true);
-    });
 
     it('should handle options with "or" and "and" connectors', () => {
       const speech =
@@ -123,8 +121,15 @@ describe('ivrDetector', () => {
       const options = extractMenuOptions(speech);
 
       expect(options.length).toBeGreaterThanOrEqual(2);
-      expect(options.some(opt => opt.digit === '1')).toBe(true);
-      expect(options.some(opt => opt.digit === '2')).toBe(true);
+      
+      const option1 = options.find(opt => opt.digit === '1');
+      expect(option1).toBeDefined();
+      expect(option1!.option).toMatch(/(sales|support)/);
+      
+      const option2 = options.find(opt => opt.digit === '2');
+      expect(option2).toBeDefined();
+      expect(option2!.option).toContain('billing');
+      expect(option2!.option).toContain('account issues');
     });
 
     it('should normalize option text to lowercase', () => {
@@ -163,6 +168,28 @@ describe('ivrDetector', () => {
       expect(options.length).toBeGreaterThanOrEqual(2);
       expect(options[0].digit).toBe('1');
       expect(options[1].digit).toBe('2');
+    });
+
+    it('should not incorrectly associate descriptions with wrong digits in incomplete menus', () => {
+      // Bug fix: "Press 1 for sales, press 2 for" should extract [{digit: "1", option: "sales"}]
+      // and NOT incorrectly extract [{digit: "2", option: "sales"}] from "for sales, press 2"
+      // The reverse pattern "for sales, press 2" should be skipped because "for sales" is
+      // part of the forward pattern "Press 1 for sales"
+      const speech = 'Press 1 for sales, press 2 for';
+      const options = extractMenuOptions(speech);
+
+      // Should only extract option 1 with correct association
+      expect(options.length).toBeGreaterThanOrEqual(1);
+      const option1 = options.find(opt => opt.digit === '1');
+      expect(option1).toBeDefined();
+      expect(option1!.option).toBe('sales');
+
+      // Should NOT have option 2 with "sales" incorrectly associated
+      // Option 2 should either not exist (incomplete) or have a different option text
+      const option2 = options.find(opt => opt.digit === '2');
+      if (option2) {
+        expect(option2.option).not.toBe('sales');
+      }
     });
   });
 

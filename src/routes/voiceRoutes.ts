@@ -12,6 +12,7 @@ import callHistoryService from '../services/callHistoryService';
 import * as ivrDetector from '../utils/ivrDetector';
 import * as transferDetector from '../utils/transferDetector';
 import * as terminationDetector from '../utils/terminationDetector';
+import { createLoopDetector } from '../utils/loopDetector';
 import { LoopDetector } from '../services/callStateManager';
 import aiService from '../services/aiService';
 import aiDTMFService from '../services/aiDTMFService';
@@ -21,6 +22,27 @@ import { TransferConfig as TransferConfigType } from '../config/transfer-config'
 import { toError } from '../utils/errorUtils';
 
 const router = express.Router();
+
+// Helper function to build process-speech action URL with all parameters
+function buildProcessSpeechUrl(
+  baseUrl: string,
+  config: TransferConfigType,
+  additionalParams: Record<string, string> = {}
+): string {
+  const params = new URLSearchParams();
+  params.append('transferNumber', config.transferNumber);
+  if (config.callPurpose) {
+    params.append('callPurpose', config.callPurpose);
+  }
+  if (config.customInstructions) {
+    params.append('customInstructions', config.customInstructions);
+  }
+  // Add any additional params
+  Object.entries(additionalParams).forEach(([key, value]) => {
+    params.append(key, value);
+  });
+  return `${baseUrl}/voice/process-speech?${params.toString()}`;
+}
 
 // Helper functions for properly typed Twilio TwiML calls
 function createGatherAttributes(
@@ -43,24 +65,6 @@ function createSayAttributes(
     voice: config.aiSettings.voice || 'Polly.Matthew',
     language: config.aiSettings.language || 'en-US',
     ...overrides,
-  };
-}
-
-// Helper to create a LoopDetector instance
-function createLoopDetector(): LoopDetector {
-  const seenOptions: string[] = [];
-  return {
-    detectLoop: (options: { digit: string; option: string }[]) => {
-      const optionKey = options.map(o => `${o.digit}:${o.option}`).join('|');
-      if (seenOptions.includes(optionKey)) {
-        return { isLoop: true, message: 'Detected repeating menu options' };
-      }
-      seenOptions.push(optionKey);
-      return { isLoop: false };
-    },
-    reset: () => {
-      seenOptions.length = 0;
-    },
   };
 }
 
@@ -111,6 +115,7 @@ router.post('/', (req: Request, res: Response): void => {
       transferConfig: config as TransferConfigType,
       loopDetector: createLoopDetector(),
       holdStartTime: null,
+      customInstructions: config.customInstructions, // Store for persistence
     });
 
     callHistoryService
@@ -125,7 +130,7 @@ router.post('/', (req: Request, res: Response): void => {
 
     const response = new twilio.twiml.VoiceResponse();
     const gatherAttributes = createGatherAttributes(config, {
-      action: `${baseUrl}/voice/process-speech?firstCall=true&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}${config.customInstructions ? '&customInstructions=' + encodeURIComponent(config.customInstructions) : ''}`,
+      action: buildProcessSpeechUrl(baseUrl, config, { firstCall: 'true' }),
       method: 'POST',
       enhanced: true,
       timeout: 10,
@@ -176,6 +181,12 @@ router.post(
       console.log('📥 Base URL:', baseUrl);
 
       console.log('📥 Creating config...');
+      const callState = callStateManager.getCallState(callSid);
+      // Use stored customInstructions from call state if available, otherwise from query params
+      const customInstructionsFromState = callState.customInstructions;
+      const customInstructionsFromQuery = (req.query.customInstructions as string) || '';
+      const finalCustomInstructions = customInstructionsFromQuery || customInstructionsFromState || '';
+      
       const config = transferConfig.createConfig({
         transferNumber:
           (req.query.transferNumber as string) ||
@@ -187,9 +198,16 @@ router.post(
           (req.query.callPurpose as string) ||
           process.env.CALL_PURPOSE ||
           'speak with a representative',
-        customInstructions: (req.query.customInstructions as string) || '',
+        customInstructions: finalCustomInstructions,
       });
+      // Store customInstructions in call state for persistence
+      if (finalCustomInstructions) {
+        callStateManager.updateCallState(callSid, {
+          customInstructions: finalCustomInstructions,
+        });
+      }
       console.log('📥 Config created');
+      console.log('📥 Custom instructions:', config.customInstructions || '(none)');
 
       console.log('🎤 Received speech:', speechResult);
       console.log('Call SID:', callSid);
@@ -199,7 +217,7 @@ router.post(
         throw new Error('Call SID is missing');
       }
 
-      const callState = callStateManager.getCallState(callSid);
+      // callState already retrieved above for config creation
       if (!callState.loopDetector) {
         callStateManager.updateCallState(callSid, {
           loopDetector: createLoopDetector(),
@@ -242,6 +260,62 @@ router.post(
       callHistoryService
         .addConversation(callSid, 'user', speechResult)
         .catch(err => console.error('Error adding conversation:', err));
+
+      // Check for transfer requests FIRST (before IVR menu processing)
+      // This ensures we catch transfer phrases even if they contain menu-like words
+      if (transferDetector.wantsTransfer(speechResult)) {
+        console.log('🔄 Transfer request detected');
+
+        const needsConfirmation = !callState.humanConfirmed;
+        if (needsConfirmation) {
+          console.log('❓ Confirming human before transfer...');
+          const sayAttributes = createSayAttributes(config);
+          response.say(
+            sayAttributes as Parameters<typeof response.say>[0],
+            'Am I speaking with a real person or is this the automated system?'
+          );
+          callStateManager.updateCallState(callSid, {
+            awaitingHumanConfirmation: true,
+          });
+          const gatherAttributes = createGatherAttributes(config, {
+            action: buildProcessSpeechUrl(baseUrl, config),
+            method: 'POST',
+            enhanced: true,
+            timeout: 10,
+          });
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
+          );
+          res.type('text/xml');
+          res.send(response.toString());
+          return;
+        }
+
+        console.log(`🔄 Transferring to ${config.transferNumber}`);
+
+        callHistoryService
+          .addTransfer(callSid, config.transferNumber, true)
+          .catch(err => console.error('Error adding transfer:', err));
+
+        const sayAttributes = createSayAttributes(config);
+        response.say(
+          sayAttributes as Parameters<typeof response.say>[0],
+          'Hold on, please.'
+        );
+        response.pause({ length: 1 });
+
+        const dial = response.dial({
+          action: `${baseUrl}/voice/transfer-status`,
+          method: 'POST',
+          timeout: 30,
+        });
+        (dial as TwiMLDialAttributes).answerOnMedia = true;
+        dial.number(config.transferNumber);
+
+        res.type('text/xml');
+        res.send(response.toString());
+        return;
+      }
 
       if (callState.awaitingCompleteMenu) {
         console.log('📋 Checking if speech continues incomplete menu...');
@@ -304,7 +378,7 @@ router.post(
             .catch(err => console.error('Error adding conversation:', err));
 
           const gatherAttributes = createGatherAttributes(config, {
-            action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
+            action: buildProcessSpeechUrl(baseUrl, config),
             method: 'POST',
             enhanced: true,
             timeout: 10,
@@ -491,7 +565,7 @@ router.post(
             )
             .catch(err => console.error('Error adding conversation:', err));
           const gatherAttributes = createGatherAttributes(config, {
-            action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
+            action: buildProcessSpeechUrl(baseUrl, config),
             method: 'POST',
             enhanced: true,
             timeout: 10,
@@ -503,60 +577,6 @@ router.post(
           res.send(response.toString());
           return;
         }
-      }
-
-      if (transferDetector.wantsTransfer(speechResult)) {
-        console.log('🔄 Transfer request detected');
-
-        const needsConfirmation = !callState.humanConfirmed;
-        if (needsConfirmation) {
-          console.log('❓ Confirming human before transfer...');
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Am I speaking with a real person or is this the automated system?'
-          );
-          callStateManager.updateCallState(callSid, {
-            awaitingHumanConfirmation: true,
-          });
-          const gatherAttributes = createGatherAttributes(config, {
-            action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
-            method: 'POST',
-            enhanced: true,
-            timeout: 10,
-          });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
-          res.type('text/xml');
-          res.send(response.toString());
-          return;
-        }
-
-        console.log(`🔄 Transferring to ${config.transferNumber}`);
-
-        callHistoryService
-          .addTransfer(callSid, config.transferNumber, true)
-          .catch(err => console.error('Error adding transfer:', err));
-
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          'Hold on, please.'
-        );
-        response.pause({ length: 1 });
-
-        const dial = response.dial({
-          action: `${baseUrl}/voice/transfer-status`,
-          method: 'POST',
-          timeout: 30,
-        });
-        (dial as TwiMLDialAttributes).answerOnMedia = true;
-        dial.number(config.transferNumber);
-
-        res.type('text/xml');
-        res.send(response.toString());
-        return;
       }
 
       const isHumanConfirmation =
@@ -597,38 +617,6 @@ router.post(
         }
       }
 
-      if (
-        transferDetector.wantsTransfer(speechResult) &&
-        callState.humanConfirmed
-      ) {
-        console.log(
-          '🔄 Transfer phrase detected and human already confirmed - transferring immediately'
-        );
-
-        callHistoryService
-          .addTransfer(callSid, config.transferNumber, true)
-          .catch(err => console.error('Error adding transfer:', err));
-
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          'Hold on, please.'
-        );
-        response.pause({ length: 1 });
-
-        const dial = response.dial({
-          action: `${baseUrl}/voice/transfer-status`,
-          method: 'POST',
-          timeout: 30,
-        });
-        (dial as TwiMLDialAttributes).answerOnMedia = true;
-        dial.number(config.transferNumber);
-
-        res.type('text/xml');
-        res.send(response.toString());
-        return;
-      }
-
       if (callState.awaitingCompleteMenu) {
         console.log(
           '⚠️ Still awaiting complete menu - remaining silent, waiting for more options'
@@ -641,7 +629,7 @@ router.post(
           )
           .catch(err => console.error('Error adding conversation:', err));
         const gatherAttributes = createGatherAttributes(config, {
-          action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
+          action: buildProcessSpeechUrl(baseUrl, config),
           method: 'POST',
           enhanced: true,
           timeout: 10,
@@ -659,6 +647,8 @@ router.post(
       console.log('  Speech:', speechResult);
       console.log('  Is first call:', isFirstCall);
       console.log('  Conversation history length:', conversationHistory.length);
+      console.log('  Custom instructions:', config.customInstructions || '(none)');
+      console.log('  Call purpose:', config.callPurpose || '(none)');
 
       let aiResponse: string;
       try {
@@ -771,6 +761,12 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   console.log('Base URL:', baseUrl);
 
+  const callSid = req.body.CallSid;
+  const callState = callStateManager.getCallState(callSid);
+  const customInstructionsFromState = callState.customInstructions;
+  const customInstructionsFromQuery = (req.query.customInstructions as string) || '';
+  const finalCustomInstructions = customInstructionsFromQuery || customInstructionsFromState || '';
+
   const config = transferConfig.createConfig({
     transferNumber:
       (req.query.transferNumber as string) || process.env.TRANSFER_PHONE_NUMBER,
@@ -778,14 +774,22 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
       (req.query.callPurpose as string) ||
       process.env.CALL_PURPOSE ||
       'speak with a representative',
+    customInstructions: finalCustomInstructions,
   });
+  
+  // Store customInstructions in call state for persistence
+  if (finalCustomInstructions) {
+    callStateManager.updateCallState(callSid, {
+      customInstructions: finalCustomInstructions,
+    });
+  }
 
   console.log('🔢 DTMF processed:', digits);
   console.log('Call SID:', req.body.CallSid);
 
   const response = new twilio.twiml.VoiceResponse();
   const gatherAttributes = createGatherAttributes(config, {
-    action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
+    action: buildProcessSpeechUrl(baseUrl, config),
     method: 'POST',
     enhanced: true,
     timeout: 10,

@@ -5,17 +5,68 @@ export interface MenuOption {
 
 /**
  * Extract DTMF options from IVR menu speech
+ *
+ * Handles various patterns:
+ * - "Press X for Y" (forward pattern)
+ * - "For Y, press X" (reverse pattern)
+ * - "X for Y" (simple pattern)
+ *
+ * Bug Fix: Reverse patterns are skipped if they're part of a forward pattern
+ * to prevent incorrect digit-description associations in incomplete menus.
+ *
+ * Example bug scenario:
+ * - Speech: "Press 1 for sales, press 2 for"
+ * - Without fix: Pattern 1 (reverse) matches "for sales, press 2" backwards,
+ *   incorrectly extracting [{digit: "2", option: "sales"}], while Pattern 2
+ *   correctly captures [{digit: "1", option: "sales"}], creating duplicates.
+ * - With fix: Reverse pattern detects "for sales" is part of "Press 1 for sales"
+ *   and skips the match, preventing incorrect association.
  */
 export function extractMenuOptions(speech: string): MenuOption[] {
   const options: MenuOption[] = [];
 
-  // Pattern 1: "for X, press Y" or "to X, press Y" (description BEFORE press)
+  // Pattern 1: "for X, press Y" or "to X, press Y" (description BEFORE press, with comma)
+  // Skip if this is part of a forward "Press X for Y" pattern to avoid incorrect associations
   const reversePattern = /(?:for|to)\s+([^,]+?),\s*press\s*(\d+)/gi;
   let match: RegExpExecArray | null = null;
   while ((match = reversePattern.exec(speech)) !== null) {
+    // Check if this match is part of a forward pattern (e.g., "Press 1 for sales, press 2")
+    // by checking if "for/to" is immediately preceded by "press" + digit
+    const matchStart = match.index;
+    const textBeforeMatch = speech.substring(Math.max(0, matchStart - 15), matchStart);
+    // If we see "press" + digit immediately before "for/to", skip it (it's part of a forward pattern)
+    if (/press\s*\d\s*$/i.test(textBeforeMatch)) {
+      continue;
+    }
+
     const option = match[1].trim().replace(/^[,.\s]+|[,.\s]+$/g, '');
     const digit = match[2];
     if (digit && option && option.length > 0) {
+      options.push({ digit, option: option.toLowerCase() });
+    }
+  }
+
+  // Pattern 1b: "to X press Y" or "for X press Y" (description BEFORE press, without comma)
+  // Skip if this is part of a forward "Press X for Y" pattern to avoid incorrect associations
+  const reversePatternNoComma =
+    /(?:for|to)\s+([^,]+?)\s+press\s*(\d+)(?=\s*(?:press|and|or|,|\.|$))/gi;
+  while ((match = reversePatternNoComma.exec(speech)) !== null) {
+    // Check if this match is part of a forward pattern
+    const matchStart = match.index;
+    const textBeforeMatch = speech.substring(Math.max(0, matchStart - 15), matchStart);
+    // If we see "press" + digit immediately before "for/to", skip it (it's part of a forward pattern)
+    if (/press\s*\d\s*$/i.test(textBeforeMatch)) {
+      continue;
+    }
+
+    const option = match[1].trim().replace(/^[,.\s]+|[,.\s]+$/g, '');
+    const digit = match[2];
+    if (
+      digit &&
+      option &&
+      option.length > 0 &&
+      !options.some(opt => opt.digit === digit)
+    ) {
       options.push({ digit, option: option.toLowerCase() });
     }
   }
@@ -96,7 +147,21 @@ export function extractMenuOptions(speech: string): MenuOption[] {
 }
 
 /**
- * Check if IVR menu appears incomplete
+ * Check if IVR menu appears incomplete by comparing the number of menu patterns
+ * in the speech with the number of successfully extracted options.
+ *
+ * @example
+ * // Incomplete: speech has 2 patterns but only 1 option extracted
+ * isIncompleteMenu('Press 1 for sales, press 2 for support', [{ digit: '1', option: 'sales' }])
+ * // returns true
+ *
+ * @example
+ * // Complete: all patterns were extracted
+ * isIncompleteMenu('Press 1 for sales, press 2 for support', [
+ *   { digit: '1', option: 'sales' },
+ *   { digit: '2', option: 'support' }
+ * ])
+ * // returns false
  */
 export function isIncompleteMenu(
   speech: string,
@@ -116,7 +181,14 @@ export function isIncompleteMenu(
 }
 
 /**
- * Check if speech contains IVR menu patterns
+ * Check if speech contains IVR menu patterns such as "press X", "for X", "to X",
+ * or common menu keywords.
+ *
+ * @example
+ * isIVRMenu('Press 1 for sales') // returns true
+ * isIVRMenu('For account issues, press 2') // returns true
+ * isIVRMenu('Main menu options are available') // returns true
+ * isIVRMenu('Hello, how can I help you?') // returns false
  */
 export function isIVRMenu(speech: string | null | undefined): boolean {
   if (!speech) return false;

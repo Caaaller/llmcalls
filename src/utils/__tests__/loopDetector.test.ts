@@ -1,50 +1,12 @@
 import { MenuOption } from '../ivrDetector';
-
-/**
- * Simple loop detector implementation for testing
- * Detects when the same menu options appear repeatedly
- */
-class TestLoopDetector {
-  private previousOptions: MenuOption[] = [];
-
-  detectLoop(options: MenuOption[]): { isLoop: boolean; message?: string } {
-    if (options.length === 0) {
-      return { isLoop: false };
-    }
-
-    // Check if current options exactly match previous options
-    if (
-      this.previousOptions.length > 0 &&
-      this.previousOptions.length === options.length
-    ) {
-      const isExactMatch = this.previousOptions.every((prev, index) => {
-        const current = options[index];
-        return prev.digit === current.digit && prev.option === current.option;
-      });
-
-      if (isExactMatch) {
-        return {
-          isLoop: true,
-          message: 'Detected repeating menu options',
-        };
-      }
-    }
-
-    // Update previous options
-    this.previousOptions = [...options];
-    return { isLoop: false };
-  }
-
-  reset(): void {
-    this.previousOptions = [];
-  }
-}
+import { createLoopDetector } from '../loopDetector';
+import { LoopDetector } from '../../services/callStateManager';
 
 describe('loopDetector', () => {
-  let detector: TestLoopDetector;
+  let detector: LoopDetector;
 
   beforeEach(() => {
-    detector = new TestLoopDetector();
+    detector = createLoopDetector();
   });
 
   describe('detectLoop', () => {
@@ -120,7 +82,7 @@ describe('loopDetector', () => {
       expect(result.isLoop).toBe(false);
     });
 
-    it('should detect loop after multiple different menus', () => {
+    it('should detect loop when same menu appears again after different menus', () => {
       const menu1: MenuOption[] = [{ digit: '1', option: 'sales' }];
       const menu2: MenuOption[] = [{ digit: '1', option: 'support' }];
       const menu3: MenuOption[] = [{ digit: '1', option: 'sales' }];
@@ -129,7 +91,7 @@ describe('loopDetector', () => {
       detector.detectLoop(menu2);
       const result = detector.detectLoop(menu3);
 
-      expect(result.isLoop).toBe(false); // Different from menu1
+      expect(result.isLoop).toBe(true); // menu3 is same as menu1, should detect loop
     });
 
     it('should detect loop when same menu appears again', () => {

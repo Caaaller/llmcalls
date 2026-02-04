@@ -1,6 +1,6 @@
 import {
   isVoicemailRecording,
-  isClosedNoMenu,
+  isClosed,
   isDeadEnd,
   shouldTerminate,
 } from '../terminationDetector';
@@ -52,43 +52,42 @@ describe('terminationDetector', () => {
     });
   });
 
-  describe('isClosedNoMenu', () => {
-    it('should detect "we are currently closed" without menu', () => {
+  describe('isClosed', () => {
+    it('should detect "we are currently closed"', () => {
       expect(
-        isClosedNoMenu('We are currently closed. Please call back tomorrow.')
+        isClosed('We are currently closed. Please call back tomorrow.')
       ).toBe(true);
     });
 
-    it('should detect "our office is currently closed" without menu', () => {
-      expect(isClosedNoMenu('Our office is currently closed.')).toBe(true);
+    it('should detect "our office is currently closed"', () => {
+      expect(isClosed('Our office is currently closed.')).toBe(true);
     });
 
     it('should detect "outside of our normal business hours"', () => {
       expect(
-        isClosedNoMenu(
-          'You have reached us outside of our normal business hours'
-        )
+        isClosed('You have reached us outside of our normal business hours')
       ).toBe(true);
     });
 
     it('should detect "our hours are" pattern', () => {
-      expect(isClosedNoMenu('Our hours are Monday through Friday')).toBe(true);
+      expect(isClosed('Our hours are Monday through Friday')).toBe(true);
     });
 
-    it('should return false if closed message includes menu options', () => {
-      expect(isClosedNoMenu('We are closed. Press 1 for more info')).toBe(
-        false
+    it('should detect closed even when menu options are present', () => {
+      expect(isClosed('We are currently closed, press 9 for emergencies')).toBe(
+        true
       );
-      expect(isClosedNoMenu('Closed. 1 for hours')).toBe(false);
+      expect(isClosed('We are closed. Press 1 for more info')).toBe(true);
+      expect(isClosed('Closed. 1 for hours')).toBe(true);
     });
 
     it('should return false for regular business hours messages', () => {
-      expect(isClosedNoMenu('We are open Monday through Friday')).toBe(false);
+      expect(isClosed('We are open Monday through Friday')).toBe(false);
     });
 
     it('should return false for null or undefined', () => {
-      expect(isClosedNoMenu(null)).toBe(false);
-      expect(isClosedNoMenu(undefined)).toBe(false);
+      expect(isClosed(null)).toBe(false);
+      expect(isClosed(undefined)).toBe(false);
     });
   });
 

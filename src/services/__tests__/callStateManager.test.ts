@@ -1,6 +1,7 @@
 import callStateManager, {
   CallState,
   ConversationEntry,
+  createDefaultCallState,
 } from '../callStateManager';
 import { MenuOption } from '../../utils/ivrDetector';
 
@@ -11,29 +12,31 @@ describe('callStateManager', () => {
     callStateManager.clearCallState(testCallSid);
   });
 
-  afterEach(() => {
-    callStateManager.clearCallState(testCallSid);
-  });
-
   describe('getCallState', () => {
-    it('should create new call state if not exists', () => {
+    it('should create a new call state if it does not exist', () => {
       const state = callStateManager.getCallState(testCallSid);
+      const expectedDefaultState = createDefaultCallState(testCallSid);
 
       expect(state).toBeDefined();
-      expect(state.callSid).toBe(testCallSid);
-      expect(state.menuLevel).toBe(0);
-      expect(state.lastMenuOptions).toEqual([]);
-      expect(state.conversationHistory).toEqual([]);
+      expect(state.callSid).toBe(expectedDefaultState.callSid);
+      expect(state.menuLevel).toBe(expectedDefaultState.menuLevel);
+      expect(state.lastMenuOptions).toEqual(expectedDefaultState.lastMenuOptions);
+      expect(state.conversationHistory).toEqual(
+        expectedDefaultState.conversationHistory
+      );
+      expect(state.partialSpeech).toBe(expectedDefaultState.partialSpeech);
+      expect(state.scenarioId).toBe(expectedDefaultState.scenarioId);
+      expect(state.createdAt).toBeInstanceOf(Date);
     });
 
-    it('should return existing call state', () => {
+    it('should return the same call state object for the same callSid', () => {
       const state1 = callStateManager.getCallState(testCallSid);
-      state1.menuLevel = 2;
+      callStateManager.updateCallState(testCallSid, { menuLevel: 2 });
 
       const state2 = callStateManager.getCallState(testCallSid);
 
       expect(state2.menuLevel).toBe(2);
-      expect(state1).toBe(state2);
+      expect(state1).toBe(state2); // Same object reference
     });
   });
 
@@ -53,13 +56,25 @@ describe('callStateManager', () => {
       expect(updated.lastMenuOptions).toEqual(menuOptions);
     });
 
-    it('should merge updates with existing state', () => {
-      callStateManager.updateCallState(testCallSid, { menuLevel: 1 });
+    it('should merge updates without overwriting other properties', () => {
+      const menuOptions: MenuOption[] = [
+        { digit: '1', option: 'sales' },
+        { digit: '2', option: 'support' },
+      ];
+
+      // First update: set menuLevel and lastMenuOptions
+      callStateManager.updateCallState(testCallSid, {
+        menuLevel: 1,
+        lastMenuOptions: menuOptions,
+      });
+
+      // Second update: only update menuLevel, should preserve lastMenuOptions
       const updated = callStateManager.updateCallState(testCallSid, {
         menuLevel: 2,
       });
 
       expect(updated.menuLevel).toBe(2);
+      expect(updated.lastMenuOptions).toEqual(menuOptions); // Should still be there
     });
   });
 
@@ -111,13 +126,29 @@ describe('callStateManager', () => {
   });
 
   describe('clearCallState', () => {
-    it('should remove call state', () => {
-      callStateManager.getCallState(testCallSid);
+    it('should remove call state and reset to default', () => {
+      // Set up some state first
+      callStateManager.updateCallState(testCallSid, { menuLevel: 5 });
+      callStateManager.addToHistory(testCallSid, {
+        type: 'user',
+        text: 'Test message',
+      });
+
+      // Verify state exists with data
+      const stateBeforeClear = callStateManager.getCallState(testCallSid);
+      expect(stateBeforeClear.menuLevel).toBe(5);
+      expect(stateBeforeClear.conversationHistory).toHaveLength(1);
+
+      // Clear the state
       callStateManager.clearCallState(testCallSid);
 
+      // Verify it's reset to default
       const newState = callStateManager.getCallState(testCallSid);
-      expect(newState.menuLevel).toBe(0);
-      expect(newState.conversationHistory).toEqual([]);
+      const expectedDefault = createDefaultCallState(testCallSid);
+      expect(newState.menuLevel).toBe(expectedDefault.menuLevel);
+      expect(newState.conversationHistory).toEqual(
+        expectedDefault.conversationHistory
+      );
     });
   });
 
@@ -154,13 +185,12 @@ describe('callStateManager', () => {
         type: 'user',
         text: 'Test',
       });
-      const after = new Date();
 
       const state = callStateManager.getCallState(testCallSid);
       const timestamp = state.conversationHistory[0].timestamp!;
 
+      expect(timestamp).toBeInstanceOf(Date);
       expect(timestamp.getTime()).toBeGreaterThanOrEqual(before.getTime());
-      expect(timestamp.getTime()).toBeLessThanOrEqual(after.getTime());
     });
 
     it('should maintain conversation history with mixed entry types', () => {

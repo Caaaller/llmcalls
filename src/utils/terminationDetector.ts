@@ -12,17 +12,21 @@ export interface TerminationResult {
 }
 
 /**
- * Check if speech indicates the business is closed with no menu options
+ * Check if speech indicates the business is closed.
+ * Detects closed status regardless of whether menu options are present.
+ *
+ * @example
+ * isClosed('We are currently closed') // returns true
+ * isClosed('We are currently closed, press 9 for emergencies') // returns true
+ * isClosed('We are open Monday through Friday') // returns false
  */
-export function isClosedNoMenu(
+export function isClosed(
   speechResult: string | null | undefined
 ): boolean {
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
-  const hasMenuPattern = /(press\s*\d|\d\s+for\s+)/.test(text);
-
-  return CLOSED_PATTERNS.some(p => text.includes(p)) && !hasMenuPattern;
+  return CLOSED_PATTERNS.some(p => text.includes(p));
 }
 
 /**
@@ -47,7 +51,7 @@ export function isDeadEnd(
 ): boolean {
   const currentEmpty = !speechResult || !speechResult.trim();
   const previousClosed = previousSpeech
-    ? isClosedNoMenu(previousSpeech)
+    ? isClosed(previousSpeech)
     : false;
 
   if (previousClosed && currentEmpty && silenceDuration >= 5) {
@@ -73,11 +77,11 @@ export function shouldTerminate(
     };
   }
 
-  if (isClosedNoMenu(speechResult)) {
+  if (isClosed(speechResult)) {
     return {
       shouldTerminate: true,
       reason: 'closed_no_menu',
-      message: 'Business appears closed with no menu options',
+      message: 'Business appears closed',
     };
   }
 

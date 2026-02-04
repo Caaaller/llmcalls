@@ -4,7 +4,7 @@
  */
 
 /**
- * Patterns indicating the business is closed with no menu options
+ * Patterns indicating the business is closed
  */
 export const CLOSED_PATTERNS = [
   'we are currently closed',
@@ -49,4 +49,14 @@ export const TRANSFER_PATTERNS = [
   'i will transfer you',
   'you will be transferred',
   "you'll be transferred",
+  'connect you',
+  'connect you with',
+  'connect you to',
+  'let me connect',
+  'connecting you',
+  'please hold',
+  'hold please',
+  'one moment',
+  'transferring you now',
+  'transferring your call',
 ] as const;
