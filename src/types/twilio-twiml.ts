@@ -30,4 +30,3 @@ export interface TwilioCallUpdateOptions {
   sendDigits?: string;
   [key: string]: string | number | boolean | undefined;
 }
-

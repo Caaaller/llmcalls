@@ -43,8 +43,8 @@ const transferConfig = {
       maxTokens: 150,
       temperature: 0.7,
       voice: 'Polly.Matthew',
-      language: 'en-US'
-    } as AISettings
+      language: 'en-US',
+    } as AISettings,
   },
 
   /**
@@ -59,12 +59,10 @@ const transferConfig = {
       callPurpose: userInput.callPurpose || this.defaults.callPurpose,
       aiSettings: {
         ...this.defaults.aiSettings,
-        ...(userInput.aiSettings || {})
-      }
+        ...(userInput.aiSettings || {}),
+      },
     };
-  }
+  },
 };
 
 export default transferConfig;
-
-

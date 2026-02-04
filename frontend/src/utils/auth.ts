@@ -48,4 +48,3 @@ export function clearAuth(): void {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 }
-

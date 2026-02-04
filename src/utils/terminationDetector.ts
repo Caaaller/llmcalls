@@ -12,21 +12,29 @@ export interface TerminationResult {
 }
 
 /**
- * Check if speech indicates the business is closed with no menu options
+ * Check if speech indicates the business is closed.
+ * Detects closed status regardless of whether menu options are present.
+ *
+ * @example
+ * isClosed('We are currently closed') // returns true
+ * isClosed('We are currently closed, press 9 for emergencies') // returns true
+ * isClosed('We are open Monday through Friday') // returns false
  */
-export function isClosedNoMenu(speechResult: string | null | undefined): boolean {
+export function isClosed(
+  speechResult: string | null | undefined
+): boolean {
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
-  const hasMenuPattern = /(press\s*\d|\d\s+for\s+)/.test(text);
-
-  return CLOSED_PATTERNS.some(p => text.includes(p)) && !hasMenuPattern;
+  return CLOSED_PATTERNS.some(p => text.includes(p));
 }
 
 /**
  * Check if speech indicates voicemail recording has started
  */
-export function isVoicemailRecording(speechResult: string | null | undefined): boolean {
+export function isVoicemailRecording(
+  speechResult: string | null | undefined
+): boolean {
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
@@ -42,7 +50,9 @@ export function isDeadEnd(
   silenceDuration: number = 0
 ): boolean {
   const currentEmpty = !speechResult || !speechResult.trim();
-  const previousClosed = previousSpeech ? isClosedNoMenu(previousSpeech) : false;
+  const previousClosed = previousSpeech
+    ? isClosed(previousSpeech)
+    : false;
 
   if (previousClosed && currentEmpty && silenceDuration >= 5) {
     return true;
@@ -63,15 +73,15 @@ export function shouldTerminate(
     return {
       shouldTerminate: true,
       reason: 'voicemail',
-      message: 'Voicemail recording detected'
+      message: 'Voicemail recording detected',
     };
   }
 
-  if (isClosedNoMenu(speechResult)) {
+  if (isClosed(speechResult)) {
     return {
       shouldTerminate: true,
       reason: 'closed_no_menu',
-      message: 'Business appears closed with no menu options'
+      message: 'Business appears closed',
     };
   }
 
@@ -79,13 +89,13 @@ export function shouldTerminate(
     return {
       shouldTerminate: true,
       reason: 'dead_end',
-      message: 'Call reached a dead end after closed announcement'
+      message: 'Call reached a dead end after closed announcement',
     };
   }
 
   return {
     shouldTerminate: false,
     reason: null,
-    message: null
+    message: null,
   };
 }

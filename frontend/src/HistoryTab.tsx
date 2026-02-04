@@ -24,14 +24,12 @@ function HistoryTab() {
   });
 
   // Fetch call details when a call is selected
-  const {
-    data: callDetailsData,
-    isLoading: isLoadingDetails,
-  } = useQuery<CallDetailsResponse>({
-    queryKey: ['calls', selectedCallSid],
-    queryFn: () => api.calls.get(selectedCallSid!),
-    enabled: !!selectedCallSid,
-  });
+  const { data: callDetailsData, isLoading: isLoadingDetails } =
+    useQuery<CallDetailsResponse>({
+      queryKey: ['calls', selectedCallSid],
+      queryFn: () => api.calls.get(selectedCallSid!),
+      enabled: !!selectedCallSid,
+    });
 
   const calls = historyData?.calls ?? [];
   const selectedCall: CallDetails | null = callDetailsData?.call ?? null;
@@ -52,40 +50,63 @@ function HistoryTab() {
 
   const getStatusColor = (status: string): string => {
     switch (status) {
-      case 'completed': return '#28a745';
-      case 'in-progress': return '#007bff';
-      case 'failed': return '#dc3545';
-      case 'terminated': return '#ffc107';
-      default: return '#6c757d';
+      case 'completed':
+        return '#28a745';
+      case 'in-progress':
+        return '#007bff';
+      case 'failed':
+        return '#dc3545';
+      case 'terminated':
+        return '#ffc107';
+      default:
+        return '#6c757d';
     }
   };
 
   const errorMessage = historyError
     ? 'Error loading call history. Make sure the backend server is running.'
     : !mongoConnected
-    ? '⚠️ MongoDB not connected. Call history will not be saved. Add MONGODB_URI to .env to enable call history.'
-    : null;
+      ? '⚠️ MongoDB not connected. Call history will not be saved. Add MONGODB_URI to .env to enable call history.'
+      : null;
 
   return (
     <div className="history-container">
       <div className="history-header">
         <h2>📞 Call History</h2>
-        <button onClick={() => refetch()} className="btn-refresh" disabled={isLoadingHistory}>
+        <button
+          onClick={() => refetch()}
+          className="btn-refresh"
+          disabled={isLoadingHistory}
+        >
           {isLoadingHistory ? '⏳ Loading...' : '🔄 Refresh'}
         </button>
       </div>
 
       {errorMessage && (
-        <div className={`error-message ${!mongoConnected ? 'warning-message' : ''}`}>
+        <div
+          className={`error-message ${!mongoConnected ? 'warning-message' : ''}`}
+        >
           {errorMessage}
           {!mongoConnected && (
             <div style={{ marginTop: '10px', fontSize: '0.9rem' }}>
               <strong>Quick Setup:</strong>
               <ol style={{ marginLeft: '20px', marginTop: '5px' }}>
-                <li>Go to <a href="https://www.mongodb.com/cloud/atlas" target="_blank" rel="noopener noreferrer">MongoDB Atlas</a> (free)</li>
+                <li>
+                  Go to{' '}
+                  <a
+                    href="https://www.mongodb.com/cloud/atlas"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    MongoDB Atlas
+                  </a>{' '}
+                  (free)
+                </li>
                 <li>Create a free cluster</li>
                 <li>Get your connection string</li>
-                <li>Add to .env: <code>MONGODB_URI=your_connection_string</code></li>
+                <li>
+                  Add to .env: <code>MONGODB_URI=your_connection_string</code>
+                </li>
                 <li>Restart the server</li>
               </ol>
             </div>
@@ -103,14 +124,16 @@ function HistoryTab() {
             <div className="empty-state">No calls yet</div>
           ) : (
             <div className="calls-list-items">
-              {calls.map((call) => (
+              {calls.map(call => (
                 <div
                   key={call.callSid}
                   className={`call-item ${selectedCallSid === call.callSid ? 'active' : ''}`}
                   onClick={() => setSelectedCallSid(call.callSid)}
                 >
                   <div className="call-item-header">
-                    <span className="call-sid">{call.callSid.substring(0, 20)}...</span>
+                    <span className="call-sid">
+                      {call.callSid.substring(0, 20)}...
+                    </span>
                     <span
                       className="call-status"
                       style={{ color: getStatusColor(call.status) }}
@@ -141,7 +164,12 @@ function HistoryTab() {
             <>
               <div className="call-details-header">
                 <h3>Call Details</h3>
-                <button onClick={() => setSelectedCallSid(null)} className="btn-close">✕</button>
+                <button
+                  onClick={() => setSelectedCallSid(null)}
+                  className="btn-close"
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="call-info">
@@ -155,13 +183,15 @@ function HistoryTab() {
                   </span>
                 </div>
                 <div className="info-row">
-                  <strong>Start Time:</strong> {formatTime(selectedCall.startTime)}
+                  <strong>Start Time:</strong>{' '}
+                  {formatTime(selectedCall.startTime)}
                 </div>
                 <div className="info-row">
                   <strong>End Time:</strong> {formatTime(selectedCall.endTime)}
                 </div>
                 <div className="info-row">
-                  <strong>Duration:</strong> {formatDuration(selectedCall.duration)}
+                  <strong>Duration:</strong>{' '}
+                  {formatDuration(selectedCall.duration)}
                 </div>
                 <div className="info-row">
                   <strong>To:</strong> {selectedCall.metadata?.to || 'N/A'}
@@ -170,67 +200,91 @@ function HistoryTab() {
                   <strong>From:</strong> {selectedCall.metadata?.from || 'N/A'}
                 </div>
                 <div className="info-row">
-                  <strong>Transfer Number:</strong> {selectedCall.metadata?.transferNumber || 'N/A'}
+                  <strong>Transfer Number:</strong>{' '}
+                  {selectedCall.metadata?.transferNumber || 'N/A'}
                 </div>
                 <div className="info-row">
-                  <strong>Call Purpose:</strong> {selectedCall.metadata?.callPurpose || 'N/A'}
+                  <strong>Call Purpose:</strong>{' '}
+                  {selectedCall.metadata?.callPurpose || 'N/A'}
                 </div>
               </div>
 
               {/* DTMF Presses */}
-              {selectedCall.dtmfPresses && selectedCall.dtmfPresses.length > 0 && (
-                <div className="section">
-                  <h4>🔢 DTMF Presses ({selectedCall.dtmfPresses.length})</h4>
-                  <div className="dtmf-list">
-                    {selectedCall.dtmfPresses.map((dtmf, idx) => (
-                      <div key={idx} className="dtmf-item">
-                        <span className="dtmf-digit">Press {dtmf.digit}</span>
-                        <span className="dtmf-time">{formatTime(dtmf.timestamp)}</span>
-                        {dtmf.reason && (
-                          <div className="dtmf-reason">{dtmf.reason}</div>
-                        )}
-                      </div>
-                    ))}
+              {selectedCall.dtmfPresses &&
+                selectedCall.dtmfPresses.length > 0 && (
+                  <div className="section">
+                    <h4>🔢 DTMF Presses ({selectedCall.dtmfPresses.length})</h4>
+                    <div className="dtmf-list">
+                      {selectedCall.dtmfPresses.map((dtmf, idx) => (
+                        <div key={idx} className="dtmf-item">
+                          <span className="dtmf-digit">Press {dtmf.digit}</span>
+                          <span className="dtmf-time">
+                            {formatTime(dtmf.timestamp)}
+                          </span>
+                          {dtmf.reason && (
+                            <div className="dtmf-reason">{dtmf.reason}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Conversation */}
-              {selectedCall.conversation && selectedCall.conversation.length > 0 && (
-                <div className="section">
-                  <h4>💬 Conversation ({selectedCall.conversation.length} messages)</h4>
-                  <div className="conversation-list">
-                    {selectedCall.conversation.map((msg, idx) => (
-                      <div
-                        key={idx}
-                        className={`conversation-item ${msg.type === 'user' ? 'user-message' : msg.type === 'ai' ? 'ai-message' : 'system-message'}`}
-                      >
-                        <div className="message-header">
-                          <span className="message-type">
-                            {msg.type === 'user' ? '👤 User' : msg.type === 'ai' ? '🤖 AI' : '⚙️ System'}
-                          </span>
-                          <span className="message-time">{formatTime(msg.timestamp)}</span>
+              {selectedCall.conversation &&
+                selectedCall.conversation.length > 0 && (
+                  <div className="section">
+                    <h4>
+                      💬 Conversation ({selectedCall.conversation.length}{' '}
+                      messages)
+                    </h4>
+                    <div className="conversation-list">
+                      {selectedCall.conversation.map((msg, idx) => (
+                        <div
+                          key={idx}
+                          className={`conversation-item ${msg.type === 'user' ? 'user-message' : msg.type === 'ai' ? 'ai-message' : 'system-message'}`}
+                        >
+                          <div className="message-header">
+                            <span className="message-type">
+                              {msg.type === 'user'
+                                ? '👤 User'
+                                : msg.type === 'ai'
+                                  ? '🤖 AI'
+                                  : '⚙️ System'}
+                            </span>
+                            <span className="message-time">
+                              {formatTime(msg.timestamp)}
+                            </span>
+                          </div>
+                          <div className="message-text">{msg.text}</div>
                         </div>
-                        <div className="message-text">{msg.text}</div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* All Events Timeline */}
               {selectedCall.events && selectedCall.events.length > 0 && (
                 <div className="section">
-                  <h4>📋 Event Timeline ({selectedCall.events.length} events)</h4>
+                  <h4>
+                    📋 Event Timeline ({selectedCall.events.length} events)
+                  </h4>
                   <div className="timeline">
                     {selectedCall.events.map((event, idx) => (
                       <div key={idx} className="timeline-item">
-                        <div className="timeline-time">{formatTime(event.timestamp)}</div>
+                        <div className="timeline-time">
+                          {formatTime(event.timestamp)}
+                        </div>
                         <div className="timeline-content">
                           {event.eventType === 'dtmf' && (
                             <div className="event-dtmf">
                               🔢 Pressed DTMF: <strong>{event.digit}</strong>
-                              {event.reason && <span className="event-reason"> - {event.reason}</span>}
+                              {event.reason && (
+                                <span className="event-reason">
+                                  {' '}
+                                  - {event.reason}
+                                </span>
+                              )}
                             </div>
                           )}
                           {event.eventType === 'ivr_menu' && (
@@ -239,7 +293,9 @@ function HistoryTab() {
                               {event.menuOptions && (
                                 <div className="menu-options">
                                   {event.menuOptions.map((opt, i) => (
-                                    <span key={i} className="menu-option">Press {opt.digit} for {opt.option}</span>
+                                    <span key={i} className="menu-option">
+                                      Press {opt.digit} for {opt.option}
+                                    </span>
                                   ))}
                                 </div>
                               )}
@@ -247,7 +303,9 @@ function HistoryTab() {
                           )}
                           {event.eventType === 'transfer' && (
                             <div className="event-transfer">
-                              🔄 Transfer {event.success ? 'Successful' : 'Attempted'} to {event.transferNumber}
+                              🔄 Transfer{' '}
+                              {event.success ? 'Successful' : 'Attempted'} to{' '}
+                              {event.transferNumber}
                             </div>
                           )}
                           {event.eventType === 'termination' && (
@@ -256,7 +314,9 @@ function HistoryTab() {
                             </div>
                           )}
                           {event.eventType === 'conversation' && (
-                            <div className={`event-conversation ${event.type === 'user' ? 'user' : 'ai'}`}>
+                            <div
+                              className={`event-conversation ${event.type === 'user' ? 'user' : 'ai'}`}
+                            >
                               {event.type === 'user' ? '👤' : '🤖'} {event.text}
                             </div>
                           )}

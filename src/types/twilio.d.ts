@@ -39,14 +39,19 @@ declare module 'twilio' {
       say(attributes: SayAttributes, text: string): Say;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface Say {
       // Say methods
     }
 
     interface Dial {
-      number(phoneNumber: string, attributes?: Record<string, string | number | boolean | undefined>): void;
+      number(
+        phoneNumber: string,
+        attributes?: Record<string, string | number | boolean | undefined>
+      ): void;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     interface Hangup {
       // Hangup methods
     }
@@ -54,4 +59,3 @@ declare module 'twilio' {
 }
 
 export {};
-

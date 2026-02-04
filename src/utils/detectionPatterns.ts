@@ -4,7 +4,7 @@
  */
 
 /**
- * Patterns indicating the business is closed with no menu options
+ * Patterns indicating the business is closed
  */
 export const CLOSED_PATTERNS = [
   'we are currently closed',
@@ -12,7 +12,7 @@ export const CLOSED_PATTERNS = [
   'outside of our normal business hours',
   'our hours are',
   'business hours are',
-  'please call back during business hours'
+  'please call back during business hours',
 ] as const;
 
 /**
@@ -24,7 +24,7 @@ export const VOICEMAIL_PATTERNS = [
   'record your message',
   'at the tone',
   'voicemail',
-  'leave a message'
+  'leave a message',
 ] as const;
 
 /**
@@ -48,6 +48,15 @@ export const TRANSFER_PATTERNS = [
   'i am transferring you',
   'i will transfer you',
   'you will be transferred',
-  "you'll be transferred"
+  "you'll be transferred",
+  'connect you',
+  'connect you with',
+  'connect you to',
+  'let me connect',
+  'connecting you',
+  'please hold',
+  'hold please',
+  'one moment',
+  'transferring you now',
+  'transferring your call',
 ] as const;
-

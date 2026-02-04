@@ -390,9 +390,8 @@
   .history-layout {
     grid-template-columns: 1fr;
   }
-  
+
   .calls-list {
     max-height: 300px;
   }
 }
-

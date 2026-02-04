@@ -17,51 +17,51 @@ const router = express.Router();
 router.post('/signup', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, name } = req.body;
-    
+
     if (!email || !password || !name) {
       res.status(400).json({
         success: false,
-        error: 'Please provide email, password, and name'
+        error: 'Please provide email, password, and name',
       });
       return;
     }
-    
+
     if (password.length < 6) {
       res.status(400).json({
         success: false,
-        error: 'Password must be at least 6 characters long'
+        error: 'Password must be at least 6 characters long',
       });
       return;
     }
-    
+
     // Check MongoDB connection before querying
     if (mongoose.connection.readyState !== 1) {
       res.status(503).json({
         success: false,
-        error: 'Database connection unavailable. Please try again later.'
+        error: 'Database connection unavailable. Please try again later.',
       });
       return;
     }
-    
+
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       res.status(400).json({
         success: false,
-        error: 'User with this email already exists'
+        error: 'User with this email already exists',
       });
       return;
     }
-    
+
     const user = new User({
       email: email.toLowerCase(),
       password,
-      name
+      name,
     });
-    
+
     await user.save();
-    
+
     const token = generateToken(user._id.toString());
-    
+
     res.status(201).json({
       success: true,
       message: 'User created successfully',
@@ -69,15 +69,16 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name
-      }
+        name: user.name,
+      },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error creating user';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Error creating user';
     console.error('Signup error:', error);
     res.status(500).json({
       success: false,
-      error: errorMessage
+      error: errorMessage,
     });
   }
 });
@@ -89,44 +90,44 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
 router.post('/login', async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       res.status(400).json({
         success: false,
-        error: 'Please provide email and password'
+        error: 'Please provide email and password',
       });
       return;
     }
-    
+
     // Check MongoDB connection before querying
     if (mongoose.connection.readyState !== 1) {
       res.status(503).json({
         success: false,
-        error: 'Database connection unavailable. Please try again later.'
+        error: 'Database connection unavailable. Please try again later.',
       });
       return;
     }
-    
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       res.status(401).json({
         success: false,
-        error: 'Invalid email or password'
+        error: 'Invalid email or password',
       });
       return;
     }
-    
+
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
       res.status(401).json({
         success: false,
-        error: 'Invalid email or password'
+        error: 'Invalid email or password',
       });
       return;
     }
-    
+
     const token = generateToken(user._id.toString());
-    
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -134,15 +135,16 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
       user: {
         id: user._id,
         email: user.email,
-        name: user.name
-      }
+        name: user.name,
+      },
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error logging in';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Error logging in';
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      error: errorMessage
+      error: errorMessage,
     });
   }
 });
@@ -151,44 +153,52 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
  * Get current user (requires authentication)
  * GET /api/auth/me
  */
-router.get('/me', authenticate, async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    if (!req.user) {
-      res.status(401).json({
-        success: false,
-        error: 'User not found'
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      user: {
-        id: req.user._id,
-        email: req.user.email,
-        name: req.user.name
+router.get(
+  '/me',
+  authenticate,
+  async (req: AuthRequest, res: Response): Promise<void> => {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: 'User not found',
+        });
+        return;
       }
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Error fetching user';
-    console.error('Get user error:', error);
-    res.status(500).json({
-      success: false,
-      error: errorMessage
-    });
+
+      res.json({
+        success: true,
+        user: {
+          id: req.user._id,
+          email: req.user.email,
+          name: req.user.name,
+        },
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error fetching user';
+      console.error('Get user error:', error);
+      res.status(500).json({
+        success: false,
+        error: errorMessage,
+      });
+    }
   }
-});
+);
 
 /**
  * Logout
  * POST /api/auth/logout
  */
-router.post('/logout', authenticate, async (_req: AuthRequest, res: Response) => {
-  res.json({
-    success: true,
-    message: 'Logout successful'
-  });
-});
+router.post(
+  '/logout',
+  authenticate,
+  async (_req: AuthRequest, res: Response) => {
+    res.json({
+      success: true,
+      message: 'Logout successful',
+    });
+  }
+);
 
 export default router;
-

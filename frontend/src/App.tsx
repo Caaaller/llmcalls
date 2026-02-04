@@ -5,7 +5,13 @@ import HistoryTab from './HistoryTab';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { api, type ApiConfigResponse } from './api/client';
-import { isAuthenticated, getStoredUser, clearAuth, setAuth, type User } from './utils/auth';
+import {
+  isAuthenticated,
+  getStoredUser,
+  clearAuth,
+  setAuth,
+  type User,
+} from './utils/auth';
 
 interface Settings {
   transferNumber: string;
@@ -24,7 +30,7 @@ interface VoiceOption {
 
 function App() {
   const [loading, setLoading] = useState<boolean>(true);
-  
+
   const [settings, setSettings] = useState<Settings>({
     transferNumber: '',
     toPhoneNumber: '',
@@ -32,19 +38,24 @@ function App() {
     customInstructions: '',
     voice: 'Polly.Matthew',
     userPhone: '',
-    userEmail: ''
+    userEmail: '',
   });
 
   const [prompt, setPrompt] = useState<string>('');
   const [saved, setSaved] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'settings' | 'history'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'history'>(
+    'settings'
+  );
   const [showSignup, setShowSignup] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
   // Initialize auth state from localStorage
   const hasStoredAuth = isAuthenticated();
-  const [isAuthenticatedState, setIsAuthenticatedState] = useState<boolean>(hasStoredAuth);
-  const [user, setUser] = useState<User | null>(hasStoredAuth ? getStoredUser() : null);
+  const [isAuthenticatedState, setIsAuthenticatedState] =
+    useState<boolean>(hasStoredAuth);
+  const [user, setUser] = useState<User | null>(
+    hasStoredAuth ? getStoredUser() : null
+  );
 
   // Verify token validity with react-query
   const {
@@ -160,24 +171,34 @@ function App() {
   });
 
   // Initiate call mutation
-  const initiateCallMutation = useMutation<{ call: { sid: string; status: string; to: string } }, Error, {
-    to: string;
-    transferNumber: string;
-    callPurpose: string;
-    customInstructions: string;
-  }>({
+  const initiateCallMutation = useMutation<
+    { call: { sid: string; status: string; to: string } },
+    Error,
+    {
+      to: string;
+      transferNumber: string;
+      callPurpose: string;
+      customInstructions: string;
+    }
+  >({
     mutationFn: (data: {
       to: string;
       transferNumber: string;
       callPurpose: string;
       customInstructions: string;
     }) => api.calls.initiate(data),
-    onSuccess: (data: { call: { sid: string; status: string; to: string } }) => {
-      alert(`✅ Call initiated successfully!\n\nCall SID: ${data.call.sid}\nStatus: ${data.call.status}\nTo: ${data.call.to}`);
+    onSuccess: (data: {
+      call: { sid: string; status: string; to: string };
+    }) => {
+      alert(
+        `✅ Call initiated successfully!\n\nCall SID: ${data.call.sid}\nStatus: ${data.call.status}\nTo: ${data.call.to}`
+      );
       queryClient.invalidateQueries({ queryKey: ['calls', 'history'] });
     },
     onError: (error: Error) => {
-      alert(`❌ Failed to initiate call:\n\n${error.message}\n\nMake sure:\n1. TWIML_URL is set in .env to your ngrok URL\n2. ngrok is running\n3. Server is running`);
+      alert(
+        `❌ Failed to initiate call:\n\n${error.message}\n\nMake sure:\n1. TWIML_URL is set in .env to your ngrok URL\n2. ngrok is running\n3. Server is running`
+      );
     },
   });
 
@@ -206,7 +227,7 @@ function App() {
       alert('Please enter a phone number to call');
       return;
     }
-    
+
     if (!settings.transferNumber) {
       alert('Please enter a transfer phone number');
       return;
@@ -220,7 +241,7 @@ function App() {
       alert('Please enter a phone number to call');
       return;
     }
-    
+
     if (!settings.transferNumber) {
       alert('Please enter a transfer phone number');
       return;
@@ -230,7 +251,7 @@ function App() {
       to: settings.toPhoneNumber,
       transferNumber: settings.transferNumber,
       callPurpose: settings.callPurpose,
-      customInstructions: settings.customInstructions
+      customInstructions: settings.customInstructions,
     });
   };
 
@@ -241,10 +262,14 @@ function App() {
     { value: 'Polly.Brian', label: 'Polly.Brian (Male, British)' },
     { value: 'alice', label: 'Alice (Basic Female)' },
     { value: 'man', label: 'Man (Basic Male)' },
-    { value: 'woman', label: 'Woman (Basic Female)' }
+    { value: 'woman', label: 'Woman (Basic Female)' },
   ];
 
-  const isLoading = loading || isAuthChecking || saveMutation.isPending || initiateCallMutation.isPending;
+  const isLoading =
+    loading ||
+    isAuthChecking ||
+    saveMutation.isPending ||
+    initiateCallMutation.isPending;
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -261,9 +286,19 @@ function App() {
   // Show login or signup if not authenticated
   if (!isAuthenticatedState) {
     if (showSignup) {
-      return <Signup onSignup={handleSignup} onSwitchToLogin={() => setShowSignup(false)} />;
+      return (
+        <Signup
+          onSignup={handleSignup}
+          onSwitchToLogin={() => setShowSignup(false)}
+        />
+      );
     }
-    return <Login onLogin={handleLogin} onSwitchToSignup={() => setShowSignup(true)} />;
+    return (
+      <Login
+        onLogin={handleLogin}
+        onSwitchToSignup={() => setShowSignup(true)}
+      />
+    );
   }
 
   return (
@@ -273,11 +308,17 @@ function App() {
           <div className="header-content">
             <div>
               <h1>📞 Transfer Call Manager</h1>
-              <p>Configure and manage your transfer-only phone navigation system</p>
+              <p>
+                Configure and manage your transfer-only phone navigation system
+              </p>
             </div>
             <div className="user-info">
               <span className="user-name">👤 {user?.name || user?.email}</span>
-              <button onClick={handleLogout} className="logout-btn" disabled={logoutMutation.isPending}>
+              <button
+                onClick={handleLogout}
+                className="logout-btn"
+                disabled={logoutMutation.isPending}
+              >
                 {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
               </button>
             </div>
@@ -308,7 +349,7 @@ function App() {
               {/* Phone Numbers Section */}
               <div className="settings-card">
                 <h2>Phone Numbers</h2>
-                
+
                 <div className="form-group">
                   <label htmlFor="toPhoneNumber">
                     To Phone Number <span className="required">*</span>
@@ -317,7 +358,12 @@ function App() {
                     type="tel"
                     id="toPhoneNumber"
                     value={settings.toPhoneNumber}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, toPhoneNumber: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setSettings({
+                        ...settings,
+                        toPhoneNumber: e.target.value,
+                      })
+                    }
                     placeholder="+1234567890"
                     className="input"
                   />
@@ -332,11 +378,18 @@ function App() {
                     type="tel"
                     id="transferNumber"
                     value={settings.transferNumber}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, transferNumber: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setSettings({
+                        ...settings,
+                        transferNumber: e.target.value,
+                      })
+                    }
                     placeholder="720-584-6358"
                     className="input"
                   />
-                  <small>Number to transfer calls to when human is reached</small>
+                  <small>
+                    Number to transfer calls to when human is reached
+                  </small>
                 </div>
 
                 <div className="form-group">
@@ -345,7 +398,9 @@ function App() {
                     type="tel"
                     id="userPhone"
                     value={settings.userPhone}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, userPhone: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setSettings({ ...settings, userPhone: e.target.value })
+                    }
                     placeholder="720-584-6358"
                     className="input"
                   />
@@ -358,7 +413,9 @@ function App() {
                     type="email"
                     id="userEmail"
                     value={settings.userEmail}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, userEmail: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setSettings({ ...settings, userEmail: e.target.value })
+                    }
                     placeholder="oliverullman@gmail.com"
                     className="input"
                   />
@@ -369,26 +426,37 @@ function App() {
               {/* Call Configuration Section */}
               <div className="settings-card">
                 <h2>Call Configuration</h2>
-                
+
                 <div className="form-group">
                   <label htmlFor="callPurpose">Call Purpose</label>
                   <input
                     type="text"
                     id="callPurpose"
                     value={settings.callPurpose}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, callPurpose: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                      setSettings({ ...settings, callPurpose: e.target.value })
+                    }
                     placeholder="speak with a representative"
                     className="input"
                   />
-                  <small>Purpose of the call (e.g., "check order status")</small>
+                  <small>
+                    Purpose of the call (e.g., "check order status")
+                  </small>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="customInstructions">Custom Instructions</label>
+                  <label htmlFor="customInstructions">
+                    Custom Instructions
+                  </label>
                   <textarea
                     id="customInstructions"
                     value={settings.customInstructions}
-                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setSettings({ ...settings, customInstructions: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                      setSettings({
+                        ...settings,
+                        customInstructions: e.target.value,
+                      })
+                    }
                     placeholder="Additional instructions for the AI..."
                     className="textarea"
                     rows={3}
@@ -401,7 +469,9 @@ function App() {
                   <select
                     id="voice"
                     value={settings.voice}
-                    onChange={(e: ChangeEvent<HTMLSelectElement>) => setSettings({ ...settings, voice: e.target.value })}
+                    onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                      setSettings({ ...settings, voice: e.target.value })
+                    }
                     className="select"
                   >
                     {voiceOptions.map(option => (
@@ -423,12 +493,17 @@ function App() {
                 <textarea
                   id="prompt"
                   value={prompt}
-                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                    setPrompt(e.target.value)
+                  }
                   className="textarea prompt-textarea"
                   rows={20}
                   placeholder="Loading prompt..."
                 />
-                <small>This is the main prompt used for transfer-only calls. Edit as needed.</small>
+                <small>
+                  This is the main prompt used for transfer-only calls. Edit as
+                  needed.
+                </small>
               </div>
             </div>
 
@@ -441,13 +516,15 @@ function App() {
               >
                 {saveMutation.isPending ? 'Saving...' : '💾 Save Settings'}
               </button>
-              
+
               <button
                 onClick={handleInitiateCall}
                 disabled={isLoading || !settings.toPhoneNumber}
                 className="btn btn-success"
               >
-                {initiateCallMutation.isPending ? 'Initiating...' : '📞 Initiate Call'}
+                {initiateCallMutation.isPending
+                  ? 'Initiating...'
+                  : '📞 Initiate Call'}
               </button>
             </div>
 

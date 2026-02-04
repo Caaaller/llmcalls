@@ -16,7 +16,10 @@ IMPORTANT: Only respond when necessary for navigation. Remain silent during menu
   /**
    * Continuing call context message
    */
-  continuingCallContext: (speechResult: string, conversationHistory: string): string => {
+  continuingCallContext: (
+    speechResult: string,
+    conversationHistory: string
+  ): string => {
     return `Continuing navigation. The automated system said: "${speechResult}".${conversationHistory}
 Focus on navigation and reaching a live representative.`;
   },
@@ -24,12 +27,13 @@ Focus on navigation and reaching a live representative.`;
   /**
    * Format conversation history for context
    */
-  formatConversationHistory: (conversationHistory: Array<{ text?: string }>): string => {
-    return conversationHistory.length > 0 
+  formatConversationHistory: (
+    conversationHistory: Array<{ text?: string }>
+  ): string => {
+    return conversationHistory.length > 0
       ? `\nPrevious conversation:\n${conversationHistory.map((h, i) => `${i + 1}. ${h.text || h}`).join('\n')}\n`
       : '';
   },
 };
 
 export default promptConfig;
-

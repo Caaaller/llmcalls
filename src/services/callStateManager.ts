@@ -33,6 +33,22 @@ export interface CallState {
   transferConfig?: TransferConfig;
   loopDetector?: LoopDetector;
   holdStartTime?: Date | null;
+  customInstructions?: string;
+}
+
+/**
+ * Create a default call state object
+ */
+export function createDefaultCallState(callSid: string): CallState {
+  return {
+    callSid,
+    menuLevel: 0,
+    lastMenuOptions: [],
+    partialSpeech: '',
+    conversationHistory: [],
+    scenarioId: null,
+    createdAt: new Date(),
+  };
 }
 
 class CallStateManager {
@@ -43,15 +59,7 @@ class CallStateManager {
    */
   getCallState(callSid: string): CallState {
     if (!this.callStates.has(callSid)) {
-      this.callStates.set(callSid, {
-        callSid,
-        menuLevel: 0,
-        lastMenuOptions: [],
-        partialSpeech: '',
-        conversationHistory: [],
-        scenarioId: null,
-        createdAt: new Date()
-      });
+      this.callStates.set(callSid, createDefaultCallState(callSid));
     }
     return this.callStates.get(callSid)!;
   }
@@ -68,14 +76,17 @@ class CallStateManager {
   /**
    * Add to conversation history
    */
-  addToHistory(callSid: string, entry: Omit<ConversationEntry, 'timestamp'>): void {
+  addToHistory(
+    callSid: string,
+    entry: Omit<ConversationEntry, 'timestamp'>
+  ): void {
     const state = this.getCallState(callSid);
     if (!state.conversationHistory) {
       state.conversationHistory = [];
     }
     state.conversationHistory.push({
       timestamp: new Date(),
-      ...entry
+      ...entry,
     });
     // Keep only last 20 entries
     if (state.conversationHistory.length > 20) {
@@ -107,9 +118,11 @@ class CallStateManager {
 const callStateManager = new CallStateManager();
 
 // Cleanup every 30 minutes
-setInterval(() => {
-  callStateManager.cleanup();
-}, 30 * 60 * 1000);
+setInterval(
+  () => {
+    callStateManager.cleanup();
+  },
+  30 * 60 * 1000
+);
 
 export default callStateManager;
-

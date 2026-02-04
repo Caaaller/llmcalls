@@ -17,6 +17,8 @@ export interface TransferConfig {
   transferNumber: string;
   callPurpose?: string;
   customInstructions?: string;
+  userPhone?: string;
+  userEmail?: string;
   aiSettings?: {
     model?: string;
     maxTokens?: number;
@@ -73,21 +75,43 @@ class AIService {
     // Check if this is a transfer-only config
     const config = scenarioOrConfig as TransferConfig;
     if (config.transferNumber || config.callPurpose) {
-      const conversationContext = this.buildTransferContext(speechResult, isFirstCall, conversationHistory);
-      const promptResult = transferPrompt['transfer-only'](config, conversationContext, isFirstCall);
+      console.log('📝 AI Service - Config received:');
+      console.log('  customInstructions:', config.customInstructions || '(none)');
+      console.log('  callPurpose:', config.callPurpose || '(none)');
+      
+      const conversationContext = this.buildTransferContext(
+        speechResult,
+        isFirstCall,
+        conversationHistory
+      );
+      const promptResult = transferPrompt['transfer-only'](
+        config,
+        conversationContext,
+        isFirstCall
+      );
+      
+      // Log a snippet of the prompt to verify customInstructions are included
+      if (config.customInstructions) {
+        const promptSnippet = promptResult.system
+          .substring(promptResult.system.indexOf('[Additional call-specific guidelines]'))
+          .substring(0, 200);
+        console.log('📝 Prompt snippet (custom instructions section):', promptSnippet);
+      }
       prompt = promptResult;
       model = config.aiSettings?.model || 'gpt-4o';
       maxTokens = config.aiSettings?.maxTokens || 150;
       temperature = config.aiSettings?.temperature || 0.7;
     } else {
-      throw new Error('Legacy scenario-based prompts are no longer supported. Use transfer config.');
+      throw new Error(
+        'Legacy scenario-based prompts are no longer supported. Use transfer config.'
+      );
     }
 
     const completion = await this.client.chat.completions.create({
       model: model,
       messages: [
         { role: 'system', content: prompt.system },
-        { role: 'user', content: prompt.user || speechResult }
+        { role: 'user', content: prompt.user || speechResult },
       ],
       max_tokens: maxTokens,
       temperature: temperature,
@@ -103,11 +127,16 @@ class AIService {
   /**
    * Build conversation context for transfer-only calls
    */
-  buildTransferContext(speechResult: string, isFirstCall: boolean, conversationHistory: ConversationEntry[] = []): string {
+  buildTransferContext(
+    speechResult: string,
+    isFirstCall: boolean,
+    conversationHistory: ConversationEntry[] = []
+  ): string {
     if (isFirstCall) {
       return promptConfig.firstCallContext(speechResult);
     } else {
-      const history = promptConfig.formatConversationHistory(conversationHistory);
+      const history =
+        promptConfig.formatConversationHistory(conversationHistory);
       return promptConfig.continuingCallContext(speechResult, history);
     }
   }
@@ -117,5 +146,3 @@ class AIService {
 const aiService = new AIService();
 
 export default aiService;
-
-

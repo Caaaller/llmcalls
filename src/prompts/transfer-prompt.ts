@@ -28,8 +28,13 @@ export const transferPrompt = {
     const transferNumber = config.transferNumber || '720-584-6358';
     const userPhone = config.userPhone || '720-584-6358';
     const userEmail = config.userEmail || 'oliverullman@gmail.com';
-    const customInstructions = config.customInstructions || '';
+    const customInstructions = config.customInstructions?.trim() || '';
     const callPurpose = config.callPurpose || 'speak with a representative';
+    
+    // Debug logging
+    console.log('📝 Transfer Prompt - Config received:');
+    console.log('  customInstructions:', customInstructions || '(empty)');
+    console.log('  callPurpose:', callPurpose);
 
     const systemPrompt = `[Identity]  
 You are an AI phone navigator whose sole purpose is to connect the user with a live human representative by navigating through a company's automated phone system.
@@ -144,10 +149,9 @@ ${conversationContext}`;
 
     return {
       system: systemPrompt,
-      user: conversationContext.includes('said:') 
+      user: conversationContext.includes('said:')
         ? conversationContext.split('said:')[1].trim().replace(/"/g, '')
-        : ''
+        : '',
     };
-  }
+  },
 };
-
