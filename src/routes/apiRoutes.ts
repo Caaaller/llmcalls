@@ -7,6 +7,7 @@ import express, { Request, Response } from 'express';
 import transferConfig from '../config/transfer-config';
 import twilioService from '../services/twilioService';
 import callHistoryService from '../services/callHistoryService';
+import evaluationService from '../services/evaluationService';
 import { isDbConnected } from '../services/database';
 import { authenticate } from '../middleware/auth';
 import fs from 'fs';
@@ -287,5 +288,90 @@ router.post(
     }
   }
 );
+
+/**
+ * Get evaluation metrics
+ * Query params:
+ * - days: number of days to look back (default: 30)
+ * - startDate: ISO date string for start date (optional)
+ * - endDate: ISO date string for end date (optional)
+ */
+router.get('/evaluations', authenticate, async (req: Request, res: Response) => {
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected',
+      });
+    }
+
+    const days = req.query.days
+      ? parseInt(req.query.days as string, 10)
+      : undefined;
+    const startDateParam = req.query.startDate as string | undefined;
+    const endDateParam = req.query.endDate as string | undefined;
+
+    let metrics;
+
+    if (startDateParam || endDateParam) {
+      const startDate = startDateParam ? new Date(startDateParam) : undefined;
+      const endDate = endDateParam ? new Date(endDateParam) : undefined;
+      metrics = await evaluationService.calculateMetrics(startDate, endDate);
+    } else if (days) {
+      metrics = await evaluationService.getMetricsForLastDays(days);
+    } else {
+      metrics = await evaluationService.getAllTimeMetrics();
+    }
+
+    return res.json({
+      success: true,
+      metrics,
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+    return res.status(500).json({
+      success: false,
+      error: errorMessage,
+    });
+  }
+});
+
+/**
+ * Get detailed breakdown of calls
+ */
+router.get('/evaluations/breakdown', authenticate, async (req: Request, res: Response) => {
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({
+        success: false,
+        error: 'Database not connected',
+      });
+    }
+
+    const startDateParam = req.query.startDate as string | undefined;
+    const endDateParam = req.query.endDate as string | undefined;
+
+    const startDate = startDateParam ? new Date(startDateParam) : undefined;
+    const endDate = endDateParam ? new Date(endDateParam) : undefined;
+
+    const breakdown = await evaluationService.getDetailedBreakdown(
+      startDate,
+      endDate
+    );
+
+    return res.json({
+      success: true,
+      breakdown,
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+    return res.status(500).json({
+      success: false,
+      error: errorMessage,
+    });
+  }
+});
 
 export default router;

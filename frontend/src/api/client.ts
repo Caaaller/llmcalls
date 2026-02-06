@@ -128,6 +128,46 @@ export interface InitiateCallResponse {
   };
 }
 
+export interface EvaluationMetrics {
+  totalCalls: number;
+  successfulAgentReach: {
+    count: number;
+    percentage: number;
+  };
+  transferAfterAgentJoin: {
+    count: number;
+    percentage: number;
+  };
+  droppedOrFailed: {
+    count: number;
+    percentage: number;
+  };
+  period?: {
+    startDate: string;
+    endDate: string;
+  };
+}
+
+export interface EvaluationResponse {
+  success: boolean;
+  metrics: EvaluationMetrics;
+}
+
+export interface BreakdownResponse {
+  success: boolean;
+  breakdown: {
+    byStatus: {
+      'in-progress': number;
+      completed: number;
+      failed: number;
+      terminated: number;
+    };
+    withTransfers: number;
+    withSuccessfulTransfers: number;
+    averageDuration: number;
+  };
+}
+
 /**
  * Get authorization headers
  */
@@ -235,5 +275,28 @@ export const api = {
           body: JSON.stringify(data),
         }
       ),
+  },
+
+  // Evaluation endpoints
+  evaluations: {
+    get: (params?: { days?: number; startDate?: string; endDate?: string }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.days) queryParams.append('days', params.days.toString());
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+      const queryString = queryParams.toString();
+      return apiFetch<EvaluationResponse>(
+        `/api/evaluations${queryString ? `?${queryString}` : ''}`
+      );
+    },
+    breakdown: (params?: { startDate?: string; endDate?: string }) => {
+      const queryParams = new URLSearchParams();
+      if (params?.startDate) queryParams.append('startDate', params.startDate);
+      if (params?.endDate) queryParams.append('endDate', params.endDate);
+      const queryString = queryParams.toString();
+      return apiFetch<BreakdownResponse>(
+        `/api/evaluations/breakdown${queryString ? `?${queryString}` : ''}`
+      );
+    },
   },
 };

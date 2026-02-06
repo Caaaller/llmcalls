@@ -13,7 +13,6 @@ import * as ivrDetector from '../utils/ivrDetector';
 import * as transferDetector from '../utils/transferDetector';
 import * as terminationDetector from '../utils/terminationDetector';
 import { createLoopDetector } from '../utils/loopDetector';
-import { LoopDetector } from '../services/callStateManager';
 import aiService from '../services/aiService';
 import aiDTMFService from '../services/aiDTMFService';
 import twilioService from '../services/twilioService';
@@ -813,10 +812,24 @@ router.post('/transfer-status', (req: Request, res: Response) => {
   const callStatus = req.body.CallStatus;
   console.log('🔄 Transfer status:', callStatus);
 
-  if ((callStatus === 'completed' || callStatus === 'failed') && callSid) {
-    callHistoryService
-      .endCall(callSid, callStatus as 'completed' | 'failed')
-      .catch(err => console.error('Error ending call:', err));
+  if (callSid) {
+    // Update transfer event success status based on call status
+    if (callStatus === 'completed') {
+      callHistoryService
+        .updateTransferStatus(callSid, true)
+        .catch(err => console.error('Error updating transfer status:', err));
+    } else if (callStatus === 'failed') {
+      callHistoryService
+        .updateTransferStatus(callSid, false)
+        .catch(err => console.error('Error updating transfer status:', err));
+    }
+
+    // End the call if transfer completed or failed
+    if (callStatus === 'completed' || callStatus === 'failed') {
+      callHistoryService
+        .endCall(callSid, callStatus as 'completed' | 'failed')
+        .catch(err => console.error('Error ending call:', err));
+    }
   }
 
   const response = new twilio.twiml.VoiceResponse();
