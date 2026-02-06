@@ -140,6 +140,59 @@ class AIService {
       return promptConfig.continuingCallContext(speechResult, history);
     }
   }
+
+  /**
+   * Confirm if a transfer request is legitimate
+   * Returns true if AI confirms this is a real transfer request, false otherwise
+   */
+  async confirmTransferRequest(
+    config: TransferConfig,
+    speechResult: string,
+    conversationHistory: ConversationEntry[] = []
+  ): Promise<boolean> {
+    if (!this.client) {
+      throw new Error('OpenAI client not initialized. Check OPENAI_API_KEY.');
+    }
+
+    const history = promptConfig.formatConversationHistory(conversationHistory);
+    const context = `Recent conversation:
+${history}
+
+Current speech: "${speechResult}"
+
+The system detected a potential transfer request. Analyze the speech and determine if this is:
+1. A REAL transfer request (e.g., system saying "I'm transferring you now", "Let me connect you", user explicitly asking to be transferred)
+2. A FALSE POSITIVE (e.g., IVR asking "Do you want to speak with a representative?" then offering to help itself, menu options mentioning "representative", automated system describing its own features or asking questions)
+
+IMPORTANT: If the speech is a QUESTION asking if the user wants to speak with a representative, but then offers to help itself (like "I can help with most things"), this is NOT a transfer request - it's a false positive.
+
+Respond with ONLY "YES" if this is a legitimate transfer request, or "NO" if it's a false positive.`;
+
+    const completion = await this.client.chat.completions.create({
+      model: config.aiSettings?.model || 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a call analysis assistant. Your job is to determine if a transfer request is legitimate or a false positive from an IVR menu. Be VERY conservative - only say YES if the system is ACTUALLY transferring or the user is EXPLICITLY requesting a transfer. If the IVR is asking questions or offering to help itself, say NO.',
+        },
+        { role: 'user', content: context },
+      ],
+      max_tokens: 10,
+      temperature: 0.3, // Lower temperature for more consistent yes/no answers
+    });
+
+    const response = completion.choices[0].message.content?.trim().toUpperCase();
+    const isConfirmed: boolean = (response === 'YES') || (response?.startsWith('YES') ?? false);
+    
+    console.log('🤖 AI Transfer Confirmation:', {
+      speech: speechResult.substring(0, 100),
+      aiResponse: response,
+      confirmed: isConfirmed,
+    });
+
+    return isConfirmed;
+  }
 }
 
 // Singleton instance

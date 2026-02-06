@@ -58,6 +58,15 @@ export function wantsTransfer(
     return false; // Likely a menu option
   }
 
+  // Exclude questions that are followed by the system offering to help
+  // (e.g., "So you want to speak with a representative? I can help...")
+  const isQuestionFollowedByHelp = /\b(so|do|would|can)\s+(you|i)\s+(want|need|speak|help)/i.test(
+    text
+  ) && /\b(i can|i'll|let me)\s+help/i.test(text);
+  if (isQuestionFollowedByHelp) {
+    return false; // This is a question, not a transfer
+  }
+
   // Check other transfer patterns
   return TRANSFER_PATTERNS.some(p => text.includes(p));
 }

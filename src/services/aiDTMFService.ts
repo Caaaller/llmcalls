@@ -59,7 +59,7 @@ class AIDTMFService {
 3. Decide which DTMF digit to press
 
 Call Purpose: ${callPurpose}
-${customInstructions ? `Additional Instructions: ${customInstructions}` : ''}
+${customInstructions ? `Custom Instructions (PRIORITY): ${customInstructions}` : ''}
 
 IVR Menu Speech: "${speech}"
 
@@ -67,15 +67,25 @@ Available Menu Options:
 ${menuText || 'No specific options extracted, but speech contains menu instructions'}
 
 Rules:
-1. FIRST understand: What is the user's purpose for calling? (e.g., order inquiry, delivery, appointment, etc.)
+1. FIRST understand: What is the user's purpose for calling?
+   - If "Custom Instructions" are provided, use THOSE as the primary purpose (e.g., "how to become a vendor" means find vendor-related options)
+   - Otherwise, use the "Call Purpose" (e.g., "speak with a representative" means find options that connect to a real human agent)
 2. THEN match: Which menu option best matches that purpose?
+   - For "speak with a representative": Look for options like "customer care", "customer service", "support", "agent", "representative", "operator", "help", "assistance", or any option that would connect to a real person
+   - For custom instructions: Look for semantic matches (e.g., "become a vendor" matches "how to become a vendor")
+   - Look for keyword matches and semantic similarity
+   - The "Call Purpose" is the END GOAL, but "Custom Instructions" tell you what to navigate to FIRST
 3. Press the digit for the matching option
 4. If no clear match, don't press anything
 5. If they explicitly say "press X" or "choose X", press that digit
 
+IMPORTANT: 
+- When custom instructions are provided, prioritize matching those over the generic call purpose.
+- When call purpose is "speak with a representative", be smart about recognizing options that lead to human agents (customer care, support, help, etc.) even if they don't explicitly say "representative".
+
 Respond ONLY with JSON:
 {
-  "callPurpose": "what the user wants (e.g., order inquiry, delivery status, appointment booking)",
+  "callPurpose": "what the user wants (e.g., order inquiry, delivery status, appointment booking, how to become a vendor)",
   "shouldPress": true/false,
   "digit": "1" or null,
   "matchedOption": "which menu option matched",

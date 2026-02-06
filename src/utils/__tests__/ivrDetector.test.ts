@@ -263,6 +263,17 @@ describe('ivrDetector', () => {
       expect(isIncompleteMenu(speech, menuOptions)).toBe(true);
     });
 
+    it('should detect incomplete menu when speech starts mid-menu with description', () => {
+      // Speech starts with "To..." description, suggesting "Press 1" was cut off
+      const speech =
+        'To our customer service homepage, where you can manage orders returns and account issues. Press 2, to receive a text message with a link to the Amazon settlement help page';
+      const menuOptions: MenuOption[] = [
+        { digit: '2', option: 'receive a text message' },
+      ];
+
+      expect(isIncompleteMenu(speech, menuOptions)).toBe(true);
+    });
+
     it('should handle menu with many options correctly', () => {
       const speech =
         'Press 1 for option one, press 2 for option two, press 3 for option three, press 4 for option four, press 5 for option five.';

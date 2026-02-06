@@ -246,10 +246,17 @@ router.post(
         from || process.env.TWILIO_PHONE_NUMBER || 'default'
       );
 
+      // Set up status callback URL to track call status changes
+      const statusCallbackUrl = `${baseUrl}/voice/call-status`;
+
       const call = await twilioService.initiateCall(
         to,
         from || process.env.TWILIO_PHONE_NUMBER || '',
-        twimlUrl
+        twimlUrl,
+        {
+          statusCallback: statusCallbackUrl,
+          statusCallbackMethod: 'POST',
+        }
       );
 
       console.log('✅ Call initiated successfully');
