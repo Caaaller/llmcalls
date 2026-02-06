@@ -334,58 +334,72 @@ router.post(
       if (transferDetector.wantsTransfer(speechResult)) {
         console.log('🔄 Potential transfer request detected');
 
-        let transferConfirmed = callState.transferConfirmed;
-
-        // First, ask AI to confirm if this is a legitimate transfer request
-        if (!transferConfirmed && !callState.awaitingTransferConfirmation) {
-          console.log('🤖 Asking AI to confirm transfer request...');
-          callStateManager.updateCallState(callSid, {
-            awaitingTransferConfirmation: true,
-          });
-
+        // If we're already awaiting human confirmation, the human confirmation check above handles it
+        if (callState.awaitingHumanConfirmation) {
+          // Already handled by human confirmation check above - continue with normal flow
+        } else if (!callState.humanConfirmed) {
+          // First, validate with AI that we are speaking with a real human (not automated system)
+          let isRealHuman = false;
+          
           try {
+            console.log('🤖 Validating with AI: Are we speaking with a real human?');
             const conversationHistory = callState.conversationHistory.map(h => ({
               type: h.type,
               text: h.text || '',
             }));
             
-            transferConfirmed = await aiService.confirmTransferRequest(
+            isRealHuman = await aiService.confirmTransferRequest(
               config as TransferConfig,
               speechResult,
               conversationHistory
             );
 
-            callStateManager.updateCallState(callSid, {
-              awaitingTransferConfirmation: false,
-              transferConfirmed,
-            });
-
-            if (!transferConfirmed) {
-              console.log('❌ AI confirmed this is NOT a transfer request - false positive');
+            if (!isRealHuman) {
+              console.log('❌ AI confirmed this is NOT a real human - likely automated system');
               console.log('   Speech was:', speechResult.substring(0, 100));
               // Continue with normal flow, don't transfer
               // Fall through to IVR menu processing
             } else {
-              console.log('✅ AI confirmed this IS a legitimate transfer request');
-              // Continue to human confirmation or transfer
+              console.log('✅ AI confirmed we ARE speaking with a real human');
+              // Proceed to ask if we're speaking with a human
             }
           } catch (error: unknown) {
-            const err = toError(error);
-            console.error('❌ Error confirming transfer with AI:', err.message);
+            const err = error as Error;
+            console.error('❌ Error validating with AI:', err.message);
             // On error, be conservative and don't transfer
-            transferConfirmed = false;
-            callStateManager.updateCallState(callSid, {
-              awaitingTransferConfirmation: false,
-              transferConfirmed: false,
-            });
+            isRealHuman = false;
             // Continue with normal flow
           }
-        }
 
-        // Only proceed with transfer if AI confirmed it's legitimate
-        if (transferConfirmed) {
-          // AI has confirmed it's a legitimate transfer - transfer immediately
-          console.log(`🔄 AI confirmed transfer - transferring to ${config.transferNumber}`);
+          // Only ask about human if AI confirmed we're speaking with a real human
+          if (isRealHuman) {
+            console.log('❓ Asking: Am I speaking with a human?');
+            callStateManager.updateCallState(callSid, {
+              awaitingHumanConfirmation: true,
+            });
+
+            const sayAttributes = createSayAttributes(config);
+            response.say(
+              sayAttributes as Parameters<typeof response.say>[0],
+              'Am I speaking with a real person or is this the automated system?'
+            );
+            const gatherAttributes = createGatherAttributes(config, {
+              action: buildProcessSpeechUrl(baseUrl, config),
+              method: 'POST',
+              enhanced: true,
+              timeout: 15,
+            });
+            response.gather(
+              gatherAttributes as Parameters<typeof response.gather>[0]
+            );
+            res.type('text/xml');
+            res.send(response.toString());
+            return;
+          }
+          // If AI didn't validate, continue with normal flow (IVR menu processing)
+        } else {
+          // Human already confirmed - transfer immediately
+          console.log(`🔄 Human confirmed - transferring to ${config.transferNumber}`);
 
           callHistoryService
             .addTransfer(callSid, config.transferNumber, true)
@@ -410,7 +424,6 @@ router.post(
           res.send(response.toString());
           return;
         }
-        // If transfer not confirmed, continue with normal flow (IVR menu processing)
       }
 
       if (callState.awaitingCompleteMenu) {
