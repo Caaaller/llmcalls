@@ -9,12 +9,13 @@ import { TwilioGatherInput, TwilioSayAttributes } from '../types/twilio-twiml';
 import transferConfig from '../config/transfer-config';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
-import * as ivrDetector from '../utils/ivrDetector';
-import * as transferDetector from '../utils/transferDetector';
-import * as terminationDetector from '../utils/terminationDetector';
-import { createLoopDetector } from '../utils/loopDetector';
+import * as ivrDetector from '../utils/ivrDetector'; // Keep for backward compatibility
+import * as transferDetector from '../utils/transferDetector'; // Keep for backward compatibility
+import * as terminationDetector from '../utils/terminationDetector'; // Keep for backward compatibility
+import { createLoopDetector } from '../utils/loopDetector'; // Keep for backward compatibility
 import aiService from '../services/aiService';
 import aiDTMFService from '../services/aiDTMFService';
+import aiDetectionService from '../services/aiDetectionService';
 import twilioService from '../services/twilioService';
 import { TransferConfig } from '../services/aiService';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
@@ -112,7 +113,8 @@ router.post('/', (req: Request, res: Response): void => {
 
     callStateManager.updateCallState(callSid, {
       transferConfig: config as TransferConfigType,
-      loopDetector: createLoopDetector(),
+      loopDetector: createLoopDetector(), // Keep for backward compatibility
+      previousMenus: [], // Initialize for AI loop detection
       holdStartTime: null,
       customInstructions: config.customInstructions, // Store for persistence
     });
@@ -217,21 +219,22 @@ router.post(
       }
 
       // callState already retrieved above for config creation
-      if (!callState.loopDetector) {
+      // Initialize previousMenus if not present (for AI loop detection)
+      if (!callState.previousMenus) {
         callStateManager.updateCallState(callSid, {
-          loopDetector: createLoopDetector(),
+          previousMenus: [],
         });
       }
-      const loopDetector = callState.loopDetector!;
 
       const previousSpeech = callState.lastSpeech || '';
-      const termination = terminationDetector.shouldTerminate(
+      // Use AI-powered termination detection
+      const termination = await aiDetectionService.detectTermination(
         speechResult,
         previousSpeech,
         0
       );
       if (termination.shouldTerminate) {
-        console.log(`🛑 ${termination.message}`);
+        console.log(`🛑 ${termination.message} (confidence: ${termination.confidence})`);
 
         callHistoryService
           .addTermination(
@@ -261,9 +264,10 @@ router.post(
         .catch(err => console.error('Error adding conversation:', err));
 
       // Check for transfer requests FIRST (before IVR menu processing)
-      // This ensures we catch transfer phrases even if they contain menu-like words
-      if (transferDetector.wantsTransfer(speechResult)) {
-        console.log('🔄 Transfer request detected');
+      // Use AI-powered transfer detection
+      const transferDetection = await aiDetectionService.detectTransferRequest(speechResult);
+      if (transferDetection.wantsTransfer) {
+        console.log(`🔄 Transfer request detected (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`);
 
         const needsConfirmation = !callState.humanConfirmed;
         if (needsConfirmation) {
@@ -318,10 +322,9 @@ router.post(
 
       if (callState.awaitingCompleteMenu) {
         console.log('📋 Checking if speech continues incomplete menu...');
-        const isContinuingMenu =
-          ivrDetector.isIVRMenu(speechResult) ||
-          /\b(for|press|select|choose)\s*\d+/i.test(speechResult) ||
-          /\b\d+\s+(for|to|press)/i.test(speechResult);
+        // Use AI to detect if speech continues menu
+        const menuDetection = await aiDetectionService.detectIVRMenu(speechResult);
+        const isContinuingMenu = menuDetection.isIVRMenu;
 
         if (isContinuingMenu) {
           console.log('✅ Speech continues menu - merging options...');
@@ -336,23 +339,25 @@ router.post(
         }
       }
 
-      const isIVRMenu = ivrDetector.isIVRMenu(speechResult);
+      // Use AI-powered IVR menu detection
+      const menuDetection = await aiDetectionService.detectIVRMenu(speechResult);
+      const isIVRMenu = menuDetection.isIVRMenu;
       console.log('📋 Checking for IVR menu...');
-      console.log('  isIVRMenu:', isIVRMenu);
+      console.log(`  isIVRMenu: ${isIVRMenu} (confidence: ${menuDetection.confidence})`);
       console.log('  awaitingCompleteMenu:', callState.awaitingCompleteMenu);
 
       if (isIVRMenu || callState.awaitingCompleteMenu) {
         console.log('📋 IVR Menu detected - processing menu options');
-        const menuOptions = ivrDetector.extractMenuOptions(speechResult);
+        // Use AI-powered menu extraction
+        const extractionResult = await aiDetectionService.extractMenuOptions(speechResult);
+        const menuOptions = extractionResult.menuOptions;
         console.log(
           '📋 Extracted menu options:',
           JSON.stringify(menuOptions, null, 2)
         );
+        console.log(`  Confidence: ${extractionResult.confidence}, Complete: ${extractionResult.isComplete}`);
 
-        const isIncomplete = ivrDetector.isIncompleteMenu(
-          speechResult,
-          menuOptions
-        );
+        const isIncomplete = !extractionResult.isComplete;
         console.log('📋 Is incomplete menu:', isIncomplete);
 
         if (isIncomplete) {
@@ -414,17 +419,27 @@ router.post(
 
         callHistoryService.addIVRMenu(callSid, allMenuOptions);
 
-        const loopCheck = loopDetector.detectLoop(allMenuOptions);
-        if (loopCheck && loopCheck.isLoop) {
-          console.log(`🔄 ${loopCheck.message} - Acting immediately`);
-          const bestOption =
-            allMenuOptions.find(
-              (opt: { digit: string; option: string }) =>
-                opt.option.includes('representative') ||
-                opt.option.includes('agent') ||
-                opt.option.includes('other') ||
-                opt.option.includes('operator')
-            ) || allMenuOptions[0];
+        // Use AI-powered loop detection (semantic matching)
+        const previousMenus = callState.previousMenus || [];
+        const loopCheck = await aiDetectionService.detectLoop(allMenuOptions, previousMenus);
+        if (loopCheck.isLoop && loopCheck.confidence > 0.7) {
+          console.log(`🔄 ${loopCheck.reason} - Acting immediately (confidence: ${loopCheck.confidence})`);
+          // Use AI DTMF service to select best option when loop detected
+          const aiDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
+            speechResult,
+            { callPurpose: config.callPurpose },
+            allMenuOptions
+          );
+          
+          const bestOption = aiDecision.shouldPress && aiDecision.digit
+            ? allMenuOptions.find((opt: { digit: string; option: string }) => opt.digit === aiDecision.digit)
+            : allMenuOptions.find(
+                (opt: { digit: string; option: string }) =>
+                  opt.option.includes('representative') ||
+                  opt.option.includes('agent') ||
+                  opt.option.includes('other') ||
+                  opt.option.includes('operator')
+              ) || allMenuOptions[0];
 
           if (bestOption) {
             const digitToPress = bestOption.digit;
@@ -449,10 +464,11 @@ router.post(
           }
         }
 
-        // Track options for loop detection (handled internally by detectLoop)
-
+        // Track previous menus for AI loop detection
+        const updatedPreviousMenus = [...previousMenus, allMenuOptions];
         callStateManager.updateCallState(callSid, {
           lastMenuOptions: allMenuOptions,
+          previousMenus: updatedPreviousMenus,
           menuLevel: (callState.menuLevel || 0) + 1,
         });
 
@@ -464,71 +480,25 @@ router.post(
             allMenuOptions
           );
 
+        // Use AI DTMF decision - no static fallback, rely entirely on AI
         let digitToPress: string | null = null;
         if (aiDecision.shouldPress && aiDecision.digit) {
           digitToPress = aiDecision.digit;
           console.log(
-            `✅ AI selected: Press ${digitToPress} (${aiDecision.matchedOption})`
+            `✅ AI selected: Press ${digitToPress} (${aiDecision.matchedOption}) - ${aiDecision.reason}`
           );
         } else {
-          const repOption = allMenuOptions.find(
-            (opt: { digit: string; option: string }) =>
-              opt.option.includes('representative') ||
-              opt.option.includes('agent') ||
-              opt.option.includes('operator') ||
-              opt.option.includes('customer service') ||
-              opt.option.includes('speak to')
+          console.log(
+            `⚠️ AI determined no suitable option found - ${aiDecision.reason}`
           );
-
-          if (repOption) {
-            digitToPress = repOption.digit;
-            console.log(
-              `✅ Selected representative option: Press ${digitToPress} (${repOption.option})`
-            );
-          } else {
-            const supportOption = allMenuOptions.find(
-              (opt: { digit: string; option: string }) =>
-                opt.option.includes('technical support') ||
-                opt.option.includes('support') ||
-                opt.option.includes('help') ||
-                opt.option.includes('assistance')
-            );
-
-            if (supportOption) {
-              digitToPress = supportOption.digit;
-              console.log(
-                `✅ Selected support option: Press ${digitToPress} (${supportOption.option})`
-              );
-            } else {
-              const otherOption = allMenuOptions.find(
-                (opt: { digit: string; option: string }) =>
-                  opt.option.includes('other') ||
-                  opt.option.includes('all other') ||
-                  opt.option.includes('additional')
-              );
-
-              if (otherOption) {
-                digitToPress = otherOption.digit;
-                console.log(
-                  `✅ Selected "other" option: Press ${digitToPress} (${otherOption.option})`
-                );
-              } else {
-                console.log(
-                  '⚠️ No suitable option found for "speak with a representative" - waiting silently'
-                );
-                callHistoryService
-                  .addConversation(
-                    callSid,
-                    'system',
-                    '[No suitable option found - waiting silently]'
-                  )
-                  .catch(err =>
-                    console.error('Error adding conversation:', err)
-                  );
-                digitToPress = null;
-              }
-            }
-          }
+          callHistoryService
+            .addConversation(
+              callSid,
+              'system',
+              `[AI: No suitable option - ${aiDecision.reason}]`
+            )
+            .catch(err => console.error('Error adding conversation:', err));
+          digitToPress = null;
         }
 
         if (digitToPress) {
@@ -578,14 +548,13 @@ router.post(
         }
       }
 
-      const isHumanConfirmation =
-        /(?:yes|yeah|correct|right|real person|human|yes i am|yes this is|yes you are|talking to a real person|speaking with a real person)/i.test(
-          speechResult
-        );
+      // Use AI-powered human confirmation detection
+      const humanConfirmation = await aiDetectionService.detectHumanConfirmation(speechResult);
+      const isHumanConfirmation = humanConfirmation.isHuman && humanConfirmation.confidence > 0.7;
 
       if (callState.awaitingHumanConfirmation || isHumanConfirmation) {
         if (isHumanConfirmation) {
-          console.log('✅ Human confirmed - transferring');
+          console.log(`✅ Human confirmed - transferring (confidence: ${humanConfirmation.confidence}) - ${humanConfirmation.reason}`);
           callStateManager.updateCallState(callSid, {
             humanConfirmed: true,
             awaitingHumanConfirmation: false,

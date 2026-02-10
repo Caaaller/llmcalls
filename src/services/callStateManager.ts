@@ -31,7 +31,8 @@ export interface CallState {
   humanConfirmed?: boolean;
   awaitingHumanConfirmation?: boolean;
   transferConfig?: TransferConfig;
-  loopDetector?: LoopDetector;
+  loopDetector?: LoopDetector; // Keep for backward compatibility, but we'll use AI
+  previousMenus?: MenuOption[][]; // Track previous menus for AI loop detection
   holdStartTime?: Date | null;
   customInstructions?: string;
 }
@@ -48,6 +49,7 @@ export function createDefaultCallState(callSid: string): CallState {
     conversationHistory: [],
     scenarioId: null,
     createdAt: new Date(),
+    previousMenus: [], // Initialize for AI loop detection
   };
 }
 
