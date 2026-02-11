@@ -45,6 +45,13 @@ export interface TerminationDetectionResult {
   message: string;
 }
 
+export interface IncompleteSpeechResult {
+  isIncomplete: boolean;
+  confidence: number;
+  reason: string;
+  suggestedWaitTime?: number; // seconds to wait for more speech
+}
+
 class AIDetectionService {
   private client: OpenAI;
 
@@ -479,6 +486,90 @@ Respond with JSON:
         reason: null,
         confidence: 0.0,
         message: 'AI error',
+      };
+    }
+  }
+
+  /**
+   * Detects if speech appears incomplete or cut off mid-sentence.
+   * This helps determine if we should wait for more speech before processing.
+   */
+  async detectIncompleteSpeech(
+    speech: string
+  ): Promise<IncompleteSpeechResult> {
+    try {
+      const prompt = `Analyze this phone call speech transcript to determine if it appears incomplete or cut off mid-sentence.
+
+Speech: "${speech}"
+
+IMPORTANT: IVR menus and phone system announcements are often COMPLETE even if they don't end with punctuation or seem to continue. Only mark as incomplete if the speech is clearly cut off mid-word or mid-phrase.
+
+An incomplete speech typically:
+- Ends mid-word (e.g., "this call may be rec" instead of "this call may be recorded")
+- Ends with incomplete phrases where the thought is clearly unfinished (e.g., "press 1 for" without any option mentioned)
+- Ends abruptly mid-sentence without completing a thought
+- Sounds like it was interrupted or cut off mid-word
+
+Examples of INCOMPLETE speech:
+- "to Bank of America, this call may be" (cut off before "recorded")
+- "press 1 for" (no option mentioned)
+- "thank you for calling, please" (incomplete thought)
+
+Examples of COMPLETE speech (even if they seem to continue):
+- "For calling the Home Depot. This call may be recorded or used by Home Depot and its authorized vendors." (complete sentence)
+- "press 1 for sales, press 2 for support" (complete menu)
+- "So, I can connect you to the right agent for help, please select from the following options on your keypad." (complete instruction)
+- "For existing orders product questions or help with our website press 2." (complete menu option)
+- "Press 5 for customer care, press 6." (complete menu options)
+- "Today." (complete single word response)
+- Any speech that ends with proper punctuation (. ! ?)
+- Any speech that contains complete menu options (press X for Y)
+
+CRITICAL: If the speech contains complete menu options (like "press 2" or "press 4"), it is COMPLETE even if more options might follow. IVR systems often list options across multiple speech segments.
+
+Respond with JSON:
+{
+  "isIncomplete": true/false,
+  "confidence": 0.0-1.0,
+  "reason": "brief explanation",
+  "suggestedWaitTime": 5-10 (seconds to wait if incomplete, optional)
+}`;
+
+      const completion = await this.client.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are an expert at detecting incomplete speech in phone call transcripts. Respond only with valid JSON.',
+          },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 150,
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      });
+
+      const content = completion.choices[0].message.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      return JSON.parse(content) as IncompleteSpeechResult;
+    } catch (error) {
+      console.error('Error in AI incomplete speech detection:', error);
+      // Fallback: check for common incomplete patterns
+      const lower = speech.toLowerCase().trim();
+      const endsWithIncomplete =
+        /(may be|for|please|press|select|choose|dial)$/i.test(lower);
+      const hasNoEndingPunctuation = !/[.!?]$/.test(speech.trim());
+      const isShort = speech.trim().split(/\s+/).length < 5;
+
+      return {
+        isIncomplete: endsWithIncomplete || (hasNoEndingPunctuation && isShort),
+        confidence: 0.6,
+        reason: 'Fallback detection',
+        suggestedWaitTime: 5,
       };
     }
   }

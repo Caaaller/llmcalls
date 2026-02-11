@@ -221,6 +221,7 @@ router.post(
 
       console.log('🎤 Received speech:', speechResult);
       console.log('  Speech length:', speechResult?.length || 0, 'characters');
+      // Note: finalSpeech will be set below after merge logic
       console.log('  Call SID:', callSid);
       console.log('  Is first call:', isFirstCall);
 
@@ -236,10 +237,24 @@ router.post(
         });
       }
 
+      // If we were awaiting complete speech, merge with previous partial speech
+      let finalSpeech = speechResult;
+      if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
+        console.log('📝 Merging partial speech with continuation...');
+        console.log(`  Previous: "${callState.lastSpeech}"`);
+        console.log(`  New: "${speechResult}"`);
+        // Merge: combine previous partial speech with new speech
+        finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
+        console.log(`  Merged: "${finalSpeech}"`);
+        callStateManager.updateCallState(callSid, {
+          awaitingCompleteSpeech: false,
+        });
+      }
+
       const previousSpeech = callState.lastSpeech || '';
-      // Use AI-powered termination detection
+      // Use AI-powered termination detection with finalSpeech
       const termination = await aiDetectionService.detectTermination(
-        speechResult,
+        finalSpeech,
         previousSpeech,
         0
       );
@@ -270,64 +285,51 @@ router.post(
         return;
       }
 
-      callStateManager.updateCallState(callSid, { lastSpeech: speechResult });
-      callHistoryService
-        .addConversation(callSid, 'user', speechResult)
-        .catch(err => console.error('Error adding conversation:', err));
+      // Check if speech is incomplete before processing
+      // But first check if we've already waited too many times or if this is an IVR menu
+      const incompleteSpeechWaitCount =
+        callState.incompleteSpeechWaitCount || 0;
+      const maxIncompleteWaits = 2; // Maximum number of times to wait for incomplete speech
 
-      // Check for transfer requests FIRST (before IVR menu processing)
-      // Use AI-powered transfer detection
-      const transferDetection =
-        await aiDetectionService.detectTransferRequest(speechResult);
-      if (transferDetection.wantsTransfer) {
-        console.log(
-          `🔄 Transfer request detected (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`
-        );
+      // Check if this is an IVR menu - if so, don't mark as incomplete
+      const incompleteCheckMenuDetection =
+        await aiDetectionService.detectIVRMenu(finalSpeech);
+      const isIncompleteCheckIVRMenu = incompleteCheckMenuDetection.isIVRMenu;
 
-      if (callState.awaitingHumanConfirmation) {
-        if (isHumanConfirmation) {
-          console.log('✅ Human confirmed - transferring');
+      // Only check for incomplete speech if:
+      // 1. We haven't waited too many times already
+      // 2. This doesn't appear to be an IVR menu (IVR menus can be complete even if more options follow)
+      // 3. The speech isn't extremely long (already merged multiple times)
+      const shouldCheckIncomplete =
+        incompleteSpeechWaitCount < maxIncompleteWaits &&
+        !isIncompleteCheckIVRMenu &&
+        finalSpeech.length < 500; // Prevent extremely long merged texts
+
+      if (shouldCheckIncomplete) {
+        const incompleteCheck =
+          await aiDetectionService.detectIncompleteSpeech(finalSpeech);
+        if (incompleteCheck.isIncomplete && incompleteCheck.confidence > 0.7) {
+          console.log(
+            `⚠️ Incomplete speech detected (confidence: ${incompleteCheck.confidence}) - ${incompleteCheck.reason}`
+          );
+          console.log(
+            `⏳ Waiting for more speech (attempt ${incompleteSpeechWaitCount + 1}/${maxIncompleteWaits}, suggested wait: ${incompleteCheck.suggestedWaitTime || 5}s)`
+          );
+
+          // Store partial speech and wait for more
           callStateManager.updateCallState(callSid, {
-            humanConfirmed: true,
-            awaitingHumanConfirmation: false,
+            lastSpeech: finalSpeech,
+            awaitingCompleteSpeech: true,
+            incompleteSpeechWaitCount: incompleteSpeechWaitCount + 1,
           });
 
-          callHistoryService
-            .addTransfer(callSid, config.transferNumber, true)
-            .catch(err => console.error('Error adding transfer:', err));
-
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Thank you. Hold on, please.'
-          );
-          response.pause({ length: 1 });
-
-          const dial = response.dial({
-            action: `${baseUrl}/voice/transfer-status`,
-            method: 'POST',
-            timeout: 30,
-          });
-          (dial as TwiMLDialAttributes).answerOnMedia = true;
-          dial.number(config.transferNumber);
-
-          res.type('text/xml');
-          res.send(response.toString());
-          return;
-        } else {
-          // Not a human confirmation, but we're still awaiting it
-          // Ask again or continue waiting
-          console.log('⚠️ Still awaiting human confirmation, but response was not a clear confirmation');
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Am I speaking with a real person or is this the automated system?'
-          );
+          // Set up gather with shorter timeout to capture continuation
+          const waitTime = incompleteCheck.suggestedWaitTime || 5;
           const gatherAttributes = createGatherAttributes(config, {
             action: buildProcessSpeechUrl(baseUrl, config),
             method: 'POST',
             enhanced: true,
-            timeout: 15,
+            timeout: waitTime,
           });
           response.gather(
             gatherAttributes as Parameters<typeof response.gather>[0]
@@ -336,97 +338,96 @@ router.post(
           res.send(response.toString());
           return;
         }
+      } else if (incompleteSpeechWaitCount >= maxIncompleteWaits) {
+        console.log(
+          `⚠️ Reached maximum incomplete speech waits (${maxIncompleteWaits}), processing speech as-is`
+        );
+      } else if (isIncompleteCheckIVRMenu) {
+        console.log(
+          `📋 Detected IVR menu, treating speech as complete (IVR menus can span multiple segments)`
+        );
+      } else if (finalSpeech.length >= 500) {
+        console.log(
+          `⚠️ Speech already very long (${finalSpeech.length} chars), processing as-is to prevent infinite merging`
+        );
       }
 
-      // Check for transfer requests (before IVR menu processing)
-      // This ensures we catch transfer phrases even if they contain menu-like words
-      if (transferDetector.wantsTransfer(speechResult)) {
-        console.log('🔄 Potential transfer request detected');
+      // Use finalSpeech (merged if needed) for all subsequent processing
+      // Reset incomplete speech wait count when we process speech
+      callStateManager.updateCallState(callSid, {
+        lastSpeech: finalSpeech,
+        awaitingCompleteSpeech: false,
+        incompleteSpeechWaitCount: 0, // Reset when processing
+      });
+      callHistoryService
+        .addConversation(callSid, 'user', finalSpeech)
+        .catch(err => console.error('Error adding conversation:', err));
 
-        let transferConfirmed = callState.transferConfirmed;
+      // Check for transfer requests FIRST (before IVR menu processing)
+      // Use AI-powered transfer detection with finalSpeech
+      const transferDetection =
+        await aiDetectionService.detectTransferRequest(finalSpeech);
+      if (transferDetection.wantsTransfer) {
+        console.log(
+          `🔄 Transfer request detected (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`
+        );
 
-        // First, ask AI to confirm if this is a legitimate transfer request
-        if (!transferConfirmed && !callState.awaitingTransferConfirmation) {
-          console.log('🤖 Asking AI to confirm transfer request...');
-          callStateManager.updateCallState(callSid, {
-            awaitingTransferConfirmation: true,
-          });
-
-          try {
-            const conversationHistory = callState.conversationHistory.map(h => ({
-              type: h.type,
-              text: h.text || '',
-            }));
-            
-            transferConfirmed = await aiService.confirmTransferRequest(
-              config as TransferConfig,
-              speechResult,
-              conversationHistory
-            );
-
-            callStateManager.updateCallState(callSid, {
-              awaitingTransferConfirmation: false,
-              transferConfirmed,
-            });
-
-            if (!transferConfirmed) {
-              console.log('❌ AI confirmed this is NOT a transfer request - false positive');
-              console.log('   Speech was:', speechResult.substring(0, 100));
-              // Continue with normal flow, don't transfer
-              // Fall through to IVR menu processing
-            } else {
-              console.log('✅ AI confirmed this IS a legitimate transfer request');
-              // Continue to human confirmation or transfer
-            }
-          } catch (error: unknown) {
-            const err = toError(error);
-            console.error('❌ Error confirming transfer with AI:', err.message);
-            // On error, be conservative and don't transfer
-            transferConfirmed = false;
-            callStateManager.updateCallState(callSid, {
-              awaitingTransferConfirmation: false,
-              transferConfirmed: false,
-            });
-            // Continue with normal flow
-          }
-        }
-
-        // Only proceed with transfer if AI confirmed it's legitimate
-        if (transferConfirmed) {
-          // AI has confirmed it's a legitimate transfer - transfer immediately
-          console.log(`🔄 AI confirmed transfer - transferring to ${config.transferNumber}`);
-
-          callHistoryService
-            .addTransfer(callSid, config.transferNumber, true)
-            .catch(err => console.error('Error adding transfer:', err));
-
+        const needsConfirmation = !callState.humanConfirmed;
+        if (needsConfirmation) {
+          console.log('❓ Confirming human before transfer...');
           const sayAttributes = createSayAttributes(config);
           response.say(
             sayAttributes as Parameters<typeof response.say>[0],
-            'Hold on, please.'
+            'Am I speaking with a real person or is this the automated system?'
           );
-          response.pause({ length: 1 });
-
-          const dial = response.dial({
-            action: `${baseUrl}/voice/transfer-status`,
-            method: 'POST',
-            timeout: 30,
+          callStateManager.updateCallState(callSid, {
+            awaitingHumanConfirmation: true,
           });
-          (dial as TwiMLDialAttributes).answerOnMedia = true;
-          dial.number(config.transferNumber);
-
+          const gatherAttributes = createGatherAttributes(config, {
+            action: buildProcessSpeechUrl(baseUrl, config),
+            method: 'POST',
+            enhanced: true,
+            timeout: 10,
+          });
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
+          );
           res.type('text/xml');
           res.send(response.toString());
           return;
         }
-        // If transfer not confirmed, continue with normal flow (IVR menu processing)
+
+        console.log(`🔄 Transferring to ${config.transferNumber}`);
+
+        callHistoryService
+          .addTransfer(callSid, config.transferNumber, true)
+          .catch(err => console.error('Error adding transfer:', err));
+
+        const sayAttributes = createSayAttributes(config);
+        response.say(
+          sayAttributes as Parameters<typeof response.say>[0],
+          'Hold on, please.'
+        );
+        response.pause({ length: 1 });
+
+        const dial = response.dial({
+          action: `${baseUrl}/voice/transfer-status`,
+          method: 'POST',
+          timeout: 30,
+        });
+        (dial as TwiMLDialAttributes).answerOnMedia = true;
+        dial.number(config.transferNumber);
+
+        res.type('text/xml');
+        res.send(response.toString());
+        return;
       }
 
       if (callState.awaitingCompleteMenu) {
         console.log('📋 Checking if speech continues incomplete menu...');
         // Use AI to detect if speech continues menu
         const menuDetection =
-          await aiDetectionService.detectIVRMenu(speechResult);
+          await aiDetectionService.detectIVRMenu(finalSpeech);
         const isContinuingMenu = menuDetection.isIVRMenu;
 
         if (isContinuingMenu) {
@@ -443,8 +444,7 @@ router.post(
       }
 
       // Use AI-powered IVR menu detection
-      const menuDetection =
-        await aiDetectionService.detectIVRMenu(speechResult);
+      const menuDetection = await aiDetectionService.detectIVRMenu(finalSpeech);
       const isIVRMenu = menuDetection.isIVRMenu;
       console.log('📋 Checking for IVR menu...');
       console.log(
@@ -456,7 +456,7 @@ router.post(
         console.log('📋 IVR Menu detected - processing menu options');
         // Use AI-powered menu extraction
         const extractionResult =
-          await aiDetectionService.extractMenuOptions(speechResult);
+          await aiDetectionService.extractMenuOptions(finalSpeech);
         const menuOptions = extractionResult.menuOptions;
         console.log(
           '📋 Extracted menu options:',
@@ -483,7 +483,10 @@ router.post(
                 callState.partialMenuOptions &&
                 callState.partialMenuOptions.length > 0
               ) {
-                allMenuOptions = [...callState.partialMenuOptions, ...menuOptions];
+                allMenuOptions = [
+                  ...callState.partialMenuOptions,
+                  ...menuOptions,
+                ];
                 const seen = new Set<string>();
                 allMenuOptions = allMenuOptions.filter(
                   (opt: { digit: string; option: string }) => {
@@ -497,7 +500,7 @@ router.post(
 
               const aiDecision =
                 await aiDTMFService.understandCallPurposeAndPressDTMF(
-                  speechResult,
+                  finalSpeech,
                   {
                     callPurpose: config.callPurpose,
                     customInstructions: config.customInstructions,
@@ -763,7 +766,7 @@ router.post(
 
       // Use AI-powered human confirmation detection
       const humanConfirmation =
-        await aiDetectionService.detectHumanConfirmation(speechResult);
+        await aiDetectionService.detectHumanConfirmation(finalSpeech);
       const isHumanConfirmation =
         humanConfirmation.isHuman && humanConfirmation.confidence > 0.7;
 
@@ -829,7 +832,7 @@ router.post(
 
       const conversationHistory = callState.conversationHistory || [];
       console.log('🤖 Calling AI service...');
-      console.log('  Speech:', speechResult);
+      console.log('  Speech:', finalSpeech);
       console.log('  Is first call:', isFirstCall);
       console.log('  Conversation history length:', conversationHistory.length);
       console.log(
@@ -843,7 +846,7 @@ router.post(
         // Add timeout to prevent hanging (15 seconds max)
         const aiPromise = aiService.generateResponse(
           config as TransferConfig,
-          speechResult,
+          finalSpeech,
           isFirstCall,
           conversationHistory.map(h => ({ type: h.type, text: h.text || '' }))
         );

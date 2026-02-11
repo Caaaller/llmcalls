@@ -190,9 +190,12 @@ Respond with ONLY "YES" if this is a legitimate transfer request, or "NO" if it'
       temperature: 0.3, // Lower temperature for more consistent yes/no answers
     });
 
-    const response = completion.choices[0].message.content?.trim().toUpperCase();
-    const isConfirmed: boolean = (response === 'YES') || (response?.startsWith('YES') ?? false);
-    
+    const response = completion.choices[0].message.content
+      ?.trim()
+      .toUpperCase();
+    const isConfirmed: boolean =
+      response === 'YES' || (response?.startsWith('YES') ?? false);
+
     console.log('🤖 AI Transfer Confirmation:', {
       speech: speechResult.substring(0, 100),
       aiResponse: response,

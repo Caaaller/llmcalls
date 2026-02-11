@@ -37,6 +37,8 @@ export interface CallState {
   previousMenus?: MenuOption[][]; // Track previous menus for AI loop detection
   holdStartTime?: Date | null;
   customInstructions?: string;
+  awaitingCompleteSpeech?: boolean; // Track if we're waiting for more speech
+  incompleteSpeechWaitCount?: number; // Track how many times we've waited for incomplete speech
 }
 
 /**
