@@ -153,7 +153,3 @@ describe('Transfer Detection in Various Contexts', () => {
     });
   });
 });
-
-
-
-

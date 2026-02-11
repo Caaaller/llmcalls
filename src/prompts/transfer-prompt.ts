@@ -30,7 +30,7 @@ export const transferPrompt = {
     const userEmail = config.userEmail || 'oliverullman@gmail.com';
     const customInstructions = config.customInstructions?.trim() || '';
     const callPurpose = config.callPurpose || 'speak with a representative';
-    
+
     // Debug logging
     console.log('📝 Transfer Prompt - Config received:');
     console.log('  customInstructions:', customInstructions || '(empty)');

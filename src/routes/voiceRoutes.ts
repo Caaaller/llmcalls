@@ -9,9 +9,6 @@ import { TwilioGatherInput, TwilioSayAttributes } from '../types/twilio-twiml';
 import transferConfig from '../config/transfer-config';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
-import * as ivrDetector from '../utils/ivrDetector'; // Keep for backward compatibility
-import * as transferDetector from '../utils/transferDetector'; // Keep for backward compatibility
-import * as terminationDetector from '../utils/terminationDetector'; // Keep for backward compatibility
 import { createLoopDetector } from '../utils/loopDetector'; // Keep for backward compatibility
 import aiService from '../services/aiService';
 import aiDTMFService from '../services/aiDTMFService';
@@ -185,9 +182,11 @@ router.post(
       const callState = callStateManager.getCallState(callSid);
       // Use stored customInstructions from call state if available, otherwise from query params
       const customInstructionsFromState = callState.customInstructions;
-      const customInstructionsFromQuery = (req.query.customInstructions as string) || '';
-      const finalCustomInstructions = customInstructionsFromQuery || customInstructionsFromState || '';
-      
+      const customInstructionsFromQuery =
+        (req.query.customInstructions as string) || '';
+      const finalCustomInstructions =
+        customInstructionsFromQuery || customInstructionsFromState || '';
+
       const config = transferConfig.createConfig({
         transferNumber:
           (req.query.transferNumber as string) ||
@@ -208,7 +207,10 @@ router.post(
         });
       }
       console.log('📥 Config created');
-      console.log('📥 Custom instructions:', config.customInstructions || '(none)');
+      console.log(
+        '📥 Custom instructions:',
+        config.customInstructions || '(none)'
+      );
 
       console.log('🎤 Received speech:', speechResult);
       console.log('Call SID:', callSid);
@@ -234,7 +236,9 @@ router.post(
         0
       );
       if (termination.shouldTerminate) {
-        console.log(`🛑 ${termination.message} (confidence: ${termination.confidence})`);
+        console.log(
+          `🛑 ${termination.message} (confidence: ${termination.confidence})`
+        );
 
         callHistoryService
           .addTermination(
@@ -265,9 +269,12 @@ router.post(
 
       // Check for transfer requests FIRST (before IVR menu processing)
       // Use AI-powered transfer detection
-      const transferDetection = await aiDetectionService.detectTransferRequest(speechResult);
+      const transferDetection =
+        await aiDetectionService.detectTransferRequest(speechResult);
       if (transferDetection.wantsTransfer) {
-        console.log(`🔄 Transfer request detected (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`);
+        console.log(
+          `🔄 Transfer request detected (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`
+        );
 
         const needsConfirmation = !callState.humanConfirmed;
         if (needsConfirmation) {
@@ -323,7 +330,8 @@ router.post(
       if (callState.awaitingCompleteMenu) {
         console.log('📋 Checking if speech continues incomplete menu...');
         // Use AI to detect if speech continues menu
-        const menuDetection = await aiDetectionService.detectIVRMenu(speechResult);
+        const menuDetection =
+          await aiDetectionService.detectIVRMenu(speechResult);
         const isContinuingMenu = menuDetection.isIVRMenu;
 
         if (isContinuingMenu) {
@@ -340,22 +348,28 @@ router.post(
       }
 
       // Use AI-powered IVR menu detection
-      const menuDetection = await aiDetectionService.detectIVRMenu(speechResult);
+      const menuDetection =
+        await aiDetectionService.detectIVRMenu(speechResult);
       const isIVRMenu = menuDetection.isIVRMenu;
       console.log('📋 Checking for IVR menu...');
-      console.log(`  isIVRMenu: ${isIVRMenu} (confidence: ${menuDetection.confidence})`);
+      console.log(
+        `  isIVRMenu: ${isIVRMenu} (confidence: ${menuDetection.confidence})`
+      );
       console.log('  awaitingCompleteMenu:', callState.awaitingCompleteMenu);
 
       if (isIVRMenu || callState.awaitingCompleteMenu) {
         console.log('📋 IVR Menu detected - processing menu options');
         // Use AI-powered menu extraction
-        const extractionResult = await aiDetectionService.extractMenuOptions(speechResult);
+        const extractionResult =
+          await aiDetectionService.extractMenuOptions(speechResult);
         const menuOptions = extractionResult.menuOptions;
         console.log(
           '📋 Extracted menu options:',
           JSON.stringify(menuOptions, null, 2)
         );
-        console.log(`  Confidence: ${extractionResult.confidence}, Complete: ${extractionResult.isComplete}`);
+        console.log(
+          `  Confidence: ${extractionResult.confidence}, Complete: ${extractionResult.isComplete}`
+        );
 
         const isIncomplete = !extractionResult.isComplete;
         console.log('📋 Is incomplete menu:', isIncomplete);
@@ -421,25 +435,35 @@ router.post(
 
         // Use AI-powered loop detection (semantic matching)
         const previousMenus = callState.previousMenus || [];
-        const loopCheck = await aiDetectionService.detectLoop(allMenuOptions, previousMenus);
+        const loopCheck = await aiDetectionService.detectLoop(
+          allMenuOptions,
+          previousMenus
+        );
         if (loopCheck.isLoop && loopCheck.confidence > 0.7) {
-          console.log(`🔄 ${loopCheck.reason} - Acting immediately (confidence: ${loopCheck.confidence})`);
-          // Use AI DTMF service to select best option when loop detected
-          const aiDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
-            speechResult,
-            { callPurpose: config.callPurpose },
-            allMenuOptions
+          console.log(
+            `🔄 ${loopCheck.reason} - Acting immediately (confidence: ${loopCheck.confidence})`
           );
-          
-          const bestOption = aiDecision.shouldPress && aiDecision.digit
-            ? allMenuOptions.find((opt: { digit: string; option: string }) => opt.digit === aiDecision.digit)
-            : allMenuOptions.find(
-                (opt: { digit: string; option: string }) =>
-                  opt.option.includes('representative') ||
-                  opt.option.includes('agent') ||
-                  opt.option.includes('other') ||
-                  opt.option.includes('operator')
-              ) || allMenuOptions[0];
+          // Use AI DTMF service to select best option when loop detected
+          const aiDecision =
+            await aiDTMFService.understandCallPurposeAndPressDTMF(
+              speechResult,
+              { callPurpose: config.callPurpose },
+              allMenuOptions
+            );
+
+          const bestOption =
+            aiDecision.shouldPress && aiDecision.digit
+              ? allMenuOptions.find(
+                  (opt: { digit: string; option: string }) =>
+                    opt.digit === aiDecision.digit
+                )
+              : allMenuOptions.find(
+                  (opt: { digit: string; option: string }) =>
+                    opt.option.includes('representative') ||
+                    opt.option.includes('agent') ||
+                    opt.option.includes('other') ||
+                    opt.option.includes('operator')
+                ) || allMenuOptions[0];
 
           if (bestOption) {
             const digitToPress = bestOption.digit;
@@ -549,12 +573,16 @@ router.post(
       }
 
       // Use AI-powered human confirmation detection
-      const humanConfirmation = await aiDetectionService.detectHumanConfirmation(speechResult);
-      const isHumanConfirmation = humanConfirmation.isHuman && humanConfirmation.confidence > 0.7;
+      const humanConfirmation =
+        await aiDetectionService.detectHumanConfirmation(speechResult);
+      const isHumanConfirmation =
+        humanConfirmation.isHuman && humanConfirmation.confidence > 0.7;
 
       if (callState.awaitingHumanConfirmation || isHumanConfirmation) {
         if (isHumanConfirmation) {
-          console.log(`✅ Human confirmed - transferring (confidence: ${humanConfirmation.confidence}) - ${humanConfirmation.reason}`);
+          console.log(
+            `✅ Human confirmed - transferring (confidence: ${humanConfirmation.confidence}) - ${humanConfirmation.reason}`
+          );
           callStateManager.updateCallState(callSid, {
             humanConfirmed: true,
             awaitingHumanConfirmation: false,
@@ -615,7 +643,10 @@ router.post(
       console.log('  Speech:', speechResult);
       console.log('  Is first call:', isFirstCall);
       console.log('  Conversation history length:', conversationHistory.length);
-      console.log('  Custom instructions:', config.customInstructions || '(none)');
+      console.log(
+        '  Custom instructions:',
+        config.customInstructions || '(none)'
+      );
       console.log('  Call purpose:', config.callPurpose || '(none)');
 
       let aiResponse: string;
@@ -732,8 +763,10 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callState = callStateManager.getCallState(callSid);
   const customInstructionsFromState = callState.customInstructions;
-  const customInstructionsFromQuery = (req.query.customInstructions as string) || '';
-  const finalCustomInstructions = customInstructionsFromQuery || customInstructionsFromState || '';
+  const customInstructionsFromQuery =
+    (req.query.customInstructions as string) || '';
+  const finalCustomInstructions =
+    customInstructionsFromQuery || customInstructionsFromState || '';
 
   const config = transferConfig.createConfig({
     transferNumber:
@@ -744,7 +777,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
       'speak with a representative',
     customInstructions: finalCustomInstructions,
   });
-  
+
   // Store customInstructions in call state for persistence
   if (finalCustomInstructions) {
     callStateManager.updateCallState(callSid, {

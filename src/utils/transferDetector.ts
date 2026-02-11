@@ -19,9 +19,8 @@ export function wantsTransfer(
   // Don't trigger on IVR menu options (e.g., "press 1 for live agent")
   if (isIVRMenu(speechResult)) {
     // Check if it's a menu option pattern (press X for Y, etc.)
-    const isMenuOption = /\b(press|select|enter|choose)\s*\d+\s+(for|to)\s+/i.test(
-      text
-    );
+    const isMenuOption =
+      /\b(press|select|enter|choose)\s*\d+\s+(for|to)\s+/i.test(text);
     if (isMenuOption) {
       return false; // This is a menu option, not an actual transfer
     }
@@ -51,9 +50,8 @@ export function wantsTransfer(
 
   // For other patterns, only match if NOT in a menu context
   // (e.g., "please hold" alone is not enough if it's part of a menu)
-  const hasMenuKeywords = /\b(press|select|enter|choose|option|menu)\s*\d/i.test(
-    text
-  );
+  const hasMenuKeywords =
+    /\b(press|select|enter|choose|option|menu)\s*\d/i.test(text);
   if (hasMenuKeywords) {
     return false; // Likely a menu option
   }

@@ -33,7 +33,10 @@ export function extractMenuOptions(speech: string): MenuOption[] {
     // Check if this match is part of a forward pattern (e.g., "Press 1 for sales, press 2")
     // by checking if "for/to" is immediately preceded by "press" + digit
     const matchStart = match.index;
-    const textBeforeMatch = speech.substring(Math.max(0, matchStart - 15), matchStart);
+    const textBeforeMatch = speech.substring(
+      Math.max(0, matchStart - 15),
+      matchStart
+    );
     // If we see "press" + digit immediately before "for/to", skip it (it's part of a forward pattern)
     if (/press\s*\d\s*$/i.test(textBeforeMatch)) {
       continue;
@@ -53,7 +56,10 @@ export function extractMenuOptions(speech: string): MenuOption[] {
   while ((match = reversePatternNoComma.exec(speech)) !== null) {
     // Check if this match is part of a forward pattern
     const matchStart = match.index;
-    const textBeforeMatch = speech.substring(Math.max(0, matchStart - 15), matchStart);
+    const textBeforeMatch = speech.substring(
+      Math.max(0, matchStart - 15),
+      matchStart
+    );
     // If we see "press" + digit immediately before "for/to", skip it (it's part of a forward pattern)
     if (/press\s*\d\s*$/i.test(textBeforeMatch)) {
       continue;

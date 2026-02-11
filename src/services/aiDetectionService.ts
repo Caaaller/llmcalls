@@ -114,7 +114,9 @@ Respond with JSON:
       console.error('Error in AI IVR menu detection:', error);
       // Fallback to basic check
       const lower = speech.toLowerCase();
-      const hasMenuPattern = /(press|select|choose|dial|option)\s*\d/i.test(lower);
+      const hasMenuPattern = /(press|select|choose|dial|option)\s*\d/i.test(
+        lower
+      );
       return {
         isIVRMenu: hasMenuPattern,
         confidence: 0.5,
@@ -181,7 +183,7 @@ If no options found, return empty array.`;
       }
 
       const result = JSON.parse(content) as MenuExtractionResult;
-      
+
       // Normalize options to lowercase
       result.menuOptions = result.menuOptions.map(opt => ({
         digit: opt.digit,
@@ -204,7 +206,9 @@ If no options found, return empty array.`;
    * AI-powered transfer detection
    * Replaces static wantsTransfer() function
    */
-  async detectTransferRequest(speech: string): Promise<TransferDetectionResult> {
+  async detectTransferRequest(
+    speech: string
+  ): Promise<TransferDetectionResult> {
     try {
       const prompt = `You are analyzing phone call speech to determine if the caller or system wants to transfer the call to a human representative.
 
@@ -265,7 +269,9 @@ Respond with JSON:
    * AI-powered human confirmation detection
    * Replaces static regex pattern matching
    */
-  async detectHumanConfirmation(speech: string): Promise<HumanConfirmationResult> {
+  async detectHumanConfirmation(
+    speech: string
+  ): Promise<HumanConfirmationResult> {
     try {
       const prompt = `You are analyzing a response to the question: "Am I speaking with a real person or is this the automated system?"
 
@@ -482,4 +488,3 @@ Respond with JSON:
 const aiDetectionService = new AIDetectionService();
 
 export default aiDetectionService;
-

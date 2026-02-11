@@ -278,7 +278,3 @@ describe('Menu Waiting Flow', () => {
     });
   });
 });
-
-
-
-

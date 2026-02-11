@@ -76,9 +76,12 @@ class AIService {
     const config = scenarioOrConfig as TransferConfig;
     if (config.transferNumber || config.callPurpose) {
       console.log('📝 AI Service - Config received:');
-      console.log('  customInstructions:', config.customInstructions || '(none)');
+      console.log(
+        '  customInstructions:',
+        config.customInstructions || '(none)'
+      );
       console.log('  callPurpose:', config.callPurpose || '(none)');
-      
+
       const conversationContext = this.buildTransferContext(
         speechResult,
         isFirstCall,
@@ -89,13 +92,18 @@ class AIService {
         conversationContext,
         isFirstCall
       );
-      
+
       // Log a snippet of the prompt to verify customInstructions are included
       if (config.customInstructions) {
         const promptSnippet = promptResult.system
-          .substring(promptResult.system.indexOf('[Additional call-specific guidelines]'))
+          .substring(
+            promptResult.system.indexOf('[Additional call-specific guidelines]')
+          )
           .substring(0, 200);
-        console.log('📝 Prompt snippet (custom instructions section):', promptSnippet);
+        console.log(
+          '📝 Prompt snippet (custom instructions section):',
+          promptSnippet
+        );
       }
       prompt = promptResult;
       model = config.aiSettings?.model || 'gpt-4o';

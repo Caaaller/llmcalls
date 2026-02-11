@@ -2,7 +2,7 @@
 /**
  * Prompt Evaluation CLI
  * Run prompt evaluations to test transfer, loop detection, and DTMF decisions
- * 
+ *
  * Usage:
  *   npm run eval:prompts
  *   ts-node src/scripts/eval-prompts.ts
@@ -35,6 +35,3 @@ async function main() {
 }
 
 main();
-
-
-

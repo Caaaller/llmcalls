@@ -20,7 +20,9 @@ describe('callStateManager', () => {
       expect(state).toBeDefined();
       expect(state.callSid).toBe(expectedDefaultState.callSid);
       expect(state.menuLevel).toBe(expectedDefaultState.menuLevel);
-      expect(state.lastMenuOptions).toEqual(expectedDefaultState.lastMenuOptions);
+      expect(state.lastMenuOptions).toEqual(
+        expectedDefaultState.lastMenuOptions
+      );
       expect(state.conversationHistory).toEqual(
         expectedDefaultState.conversationHistory
       );

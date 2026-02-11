@@ -86,11 +86,11 @@ describe('ivrDetector', () => {
       const options = extractMenuOptions(speech);
 
       expect(options.length).toBeGreaterThanOrEqual(2);
-      
+
       const option1 = options.find(opt => opt.digit === '1');
       expect(option1).toBeDefined();
       expect(option1!.option).toContain('account issues');
-      
+
       const option2 = options.find(opt => opt.digit === '2');
       expect(option2).toBeDefined();
       expect(option2!.option).toContain('billing');
@@ -114,18 +114,17 @@ describe('ivrDetector', () => {
       expect(options[0].option).toContain('orders');
     });
 
-
     it('should handle options with "or" and "and" connectors', () => {
       const speech =
         'Press 1 for sales or support. Press 2 for billing and account issues.';
       const options = extractMenuOptions(speech);
 
       expect(options.length).toBeGreaterThanOrEqual(2);
-      
+
       const option1 = options.find(opt => opt.digit === '1');
       expect(option1).toBeDefined();
       expect(option1!.option).toMatch(/(sales|support)/);
-      
+
       const option2 = options.find(opt => opt.digit === '2');
       expect(option2).toBeDefined();
       expect(option2!.option).toContain('billing');
