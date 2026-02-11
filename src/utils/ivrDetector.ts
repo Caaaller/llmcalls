@@ -179,9 +179,17 @@ export function isIncompleteMenu(
   const forMatches = speech.match(/\d\s+for\s+[^,.]+/gi) || [];
   const totalPatterns = pressMatches.length + forMatches.length;
 
+  // Check if speech starts mid-menu (e.g., "To our customer service homepage... Press 2")
+  // This suggests option 1 was cut off at the beginning
+  const startsWithDescription = /^(to|for)\s+[^,]+(?:,\s*press\s*\d|\.\s*press\s*\d)/i.test(
+    speech.trim()
+  );
+
   if (menuOptions.length === 0 && totalPatterns > 0) return true;
   if (menuOptions.length === 1 && totalPatterns > 1) return true;
   if (totalPatterns > menuOptions.length) return true;
+  // If speech starts with a description followed by "Press X", it's likely incomplete
+  if (startsWithDescription && menuOptions.length > 0) return true;
 
   return false;
 }
