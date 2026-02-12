@@ -66,18 +66,14 @@ IVR Menu Speech: "${speech}"
 Available Menu Options:
 ${menuText || 'No specific options extracted, but speech contains menu instructions'}
 
-Rules:
-1. FIRST understand: What is the user's purpose for calling?
-   - If "Custom Instructions" are provided, use THOSE as the primary purpose (e.g., "how to become a vendor" means find vendor-related options)
-   - Otherwise, use the "Call Purpose" (e.g., "speak with a representative" means find options that connect to a real human agent)
-2. THEN match: Which menu option best matches that purpose?
-   - For "speak with a representative": Look for options like "customer care", "customer service", "support", "agent", "representative", "operator", "help", "assistance", or any option that would connect to a real person
-   - For custom instructions: Look for semantic matches (e.g., "become a vendor" matches "how to become a vendor")
-   - Look for keyword matches and semantic similarity
-   - The "Call Purpose" is the END GOAL, but "Custom Instructions" tell you what to navigate to FIRST
-3. Press the digit for the matching option
-4. If no clear match, don't press anything
-5. If they explicitly say "press X" or "choose X", press that digit
+Matching Rules (in priority order):
+1. EXACT MATCH: If the call purpose exactly matches a menu option (e.g., "speak with a representative" matches "speak with a representative"), press that digit immediately.
+2. SEMANTIC MATCH: If the call purpose is semantically similar to a menu option (e.g., "customer service" matches "support", "representative" matches "operator"), press that digit.
+3. REPRESENTATIVE OPTIONS: If the call purpose is to "speak with a representative" or similar, prioritize menu options that mention: representative, operator, agent, customer service, support, or "all other questions".
+4. EXPLICIT INSTRUCTION: If the menu explicitly says "press X" for something related to the call purpose, press that digit.
+5. NO MATCH: Only if there is truly no relevant option should you not press anything.
+
+Important: When the call purpose is "speak with a representative" or similar, and a menu option mentions "representative", "operator", "agent", or "customer service", that is a MATCH. Press that digit.
 
 IMPORTANT: 
 - When custom instructions are provided, prioritize matching those over the generic call purpose.

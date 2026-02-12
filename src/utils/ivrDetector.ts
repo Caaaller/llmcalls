@@ -77,7 +77,7 @@ export function extractMenuOptions(speech: string): MenuOption[] {
     ...speech.matchAll(/press\s*(\d+)\s*[,.]?\s*(?:to|for)\s+/gi),
   ];
   for (const pressMatch of pressMatches) {
-    if (!pressMatch.index) continue;
+    if (pressMatch.index === undefined) continue;
 
     const digit = pressMatch[1];
     const matchStart = pressMatch.index + pressMatch[0].length;

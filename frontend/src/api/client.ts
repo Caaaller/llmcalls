@@ -128,6 +128,46 @@ export interface InitiateCallResponse {
   };
 }
 
+export interface EvaluationMetrics {
+  totalCalls: number;
+  successfulAgentReach: {
+    count: number;
+    percentage: number;
+  };
+  transferAfterAgentJoin: {
+    count: number;
+    percentage: number;
+  };
+  droppedOrFailed: {
+    count: number;
+    percentage: number;
+  };
+  period?: {
+    startDate: string;
+    endDate: string;
+  };
+}
+
+export interface EvaluationResponse {
+  success: boolean;
+  metrics: EvaluationMetrics;
+}
+
+export interface BreakdownResponse {
+  success: boolean;
+  breakdown: {
+    byStatus: {
+      'in-progress': number;
+      completed: number;
+      failed: number;
+      terminated: number;
+    };
+    withTransfers: number;
+    withSuccessfulTransfers: number;
+    averageDuration: number;
+  };
+}
+
 /**
  * Get authorization headers
  */
@@ -141,6 +181,22 @@ export function getAuthHeaders(): HeadersInit {
     : {
         'Content-Type': 'application/json',
       };
+}
+
+/**
+ * Build query string from object, filtering out undefined/null values
+ */
+function buildQueryString(
+  params: Record<string, string | number | undefined | null>
+): string {
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      queryParams.append(key, value.toString());
+    }
+  });
+  const queryString = queryParams.toString();
+  return queryString ? `?${queryString}` : '';
 }
 
 /**
@@ -224,7 +280,7 @@ export const api = {
   // Call endpoints
   calls: {
     history: (limit: number = 50) =>
-      apiFetch<CallHistoryResponse>(`/api/calls/history?limit=${limit}`),
+      apiFetch<CallHistoryResponse>(`/api/calls/history${buildQueryString({ limit })}`),
     get: (callSid: string) =>
       apiFetch<CallDetailsResponse>(`/api/calls/${callSid}`),
     initiate: (data: InitiateCallPayload) =>
@@ -235,5 +291,19 @@ export const api = {
           body: JSON.stringify(data),
         }
       ),
+  },
+
+  // Evaluation endpoints
+  evaluations: {
+    get: (params?: { days?: number; startDate?: string; endDate?: string }) => {
+      return apiFetch<EvaluationResponse>(
+        `/api/evaluations${buildQueryString(params || {})}`
+      );
+    },
+    breakdown: (params?: { startDate?: string; endDate?: string }) => {
+      return apiFetch<BreakdownResponse>(
+        `/api/evaluations/breakdown${buildQueryString(params || {})}`
+      );
+    },
   },
 };

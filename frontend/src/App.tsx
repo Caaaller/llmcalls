@@ -2,6 +2,7 @@ import React, { useState, ChangeEvent, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './App.css';
 import HistoryTab from './HistoryTab';
+import EvaluationsTab from './EvaluationsTab';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { api, type ApiConfigResponse } from './api/client';
@@ -43,7 +44,7 @@ function App() {
 
   const [prompt, setPrompt] = useState<string>('');
   const [saved, setSaved] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'settings' | 'history'>(
+  const [activeTab, setActiveTab] = useState<'settings' | 'history' | 'evaluations'>(
     'settings'
   );
   const [showSignup, setShowSignup] = useState<boolean>(false);
@@ -339,10 +340,18 @@ function App() {
           >
             📋 Call History
           </button>
+          <button
+            className={`tab ${activeTab === 'evaluations' ? 'active' : ''}`}
+            onClick={() => setActiveTab('evaluations')}
+          >
+            📊 Evaluations
+          </button>
         </div>
 
         {activeTab === 'history' ? (
           <HistoryTab />
+        ) : activeTab === 'evaluations' ? (
+          <EvaluationsTab />
         ) : (
           <>
             <div className="settings-grid">

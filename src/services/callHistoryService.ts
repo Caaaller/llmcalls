@@ -207,6 +207,47 @@ class CallHistoryService {
   }
 
   /**
+   * Update the most recent transfer event's success status
+   */
+  async updateTransferStatus(
+    callSid: string,
+    success: boolean
+  ): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      const call = await CallHistory.findOne({ callSid });
+      if (!call) return;
+
+      // Find the most recent transfer event
+      const transferEvents = call.events
+        ?.map((e, index) => ({ event: e, index }))
+        .filter(({ event }) => event.eventType === 'transfer')
+        .sort((a, b) => {
+          const timeA = a.event.timestamp?.getTime() || 0;
+          const timeB = b.event.timestamp?.getTime() || 0;
+          return timeB - timeA; // Most recent first
+        }) || [];
+
+      if (transferEvents.length === 0) return;
+
+      const mostRecentIndex = transferEvents[0].index;
+
+      // Update the specific transfer event
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        {
+          $set: {
+            [`events.${mostRecentIndex}.success`]: success,
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error('❌ Error updating transfer status:', getErrorMessage(error));
+    }
+  }
+
+  /**
    * Record a termination
    */
   async addTermination(

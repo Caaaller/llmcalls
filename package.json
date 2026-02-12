@@ -8,6 +8,7 @@
     "dev": "ts-node src/server.ts",
     "dev:watch": "nodemon --watch src --exec ts-node src/server.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "eval:prompts": "ts-node src/scripts/run-all-evals.ts",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.{ts,json}\" \"*.{js,json}\" \"!package-lock.json\" \"!node_modules/**\"",
@@ -24,7 +25,8 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.4",
     "openai": "^6.16.0",
-    "twilio": "^5.11.2"
+    "twilio": "^5.11.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

@@ -10,8 +10,8 @@ export const CLOSED_PATTERNS = [
   'we are currently closed',
   'our office is currently closed',
   'outside of our normal business hours',
-  'our hours are',
-  'business hours are',
+  'we are closed',
+  'currently closed',
   'please call back during business hours',
 ] as const;
 
