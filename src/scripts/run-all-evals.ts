@@ -5,7 +5,7 @@
  *
  * Usage:
  *   npm run eval:prompts
- *   ts-node src/scripts/eval-prompts.ts
+ *   ts-node src/scripts/run-all-evals.ts
  */
 
 import 'dotenv/config';

@@ -4,6 +4,8 @@
  */
 
 import express, { Request, Response } from 'express';
+import { z } from 'zod';
+import { validateQuery, ValidatedRequest } from '../middleware/validateQuery';
 import transferConfig from '../config/transfer-config';
 import twilioService from '../services/twilioService';
 import callHistoryService from '../services/callHistoryService';
@@ -299,14 +301,28 @@ router.post(
 /**
  * Get evaluation metrics
  * Query params:
- * - days: number of days to look back (default: 30)
+ * - days: number of days to look back (optional)
  * - startDate: ISO date string for start date (optional)
  * - endDate: ISO date string for end date (optional)
  */
+const evaluationQuerySchema = z.object({
+  days: z
+    .string()
+    .optional()
+    .transform((val: string | undefined) => (val ? parseInt(val, 10) : undefined))
+    .refine((val: number | undefined) => val === undefined || (val > 0 && val <= 365), {
+      message: 'Days must be between 1 and 365',
+    }),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
 router.get(
   '/evaluations',
   authenticate,
+  validateQuery(evaluationQuerySchema),
   async (req: Request, res: Response) => {
+    const validatedReq = req as ValidatedRequest<z.infer<typeof evaluationQuerySchema>>;
     try {
       if (!isDbConnected()) {
         return res.status(503).json({
@@ -315,18 +331,15 @@ router.get(
         });
       }
 
-      const days = req.query.days
-        ? parseInt(req.query.days as string, 10)
-        : undefined;
-      const startDateParam = req.query.startDate as string | undefined;
-      const endDateParam = req.query.endDate as string | undefined;
+      // Now validatedReq.validatedQuery is fully typed! 🎉
+      const { days, startDate, endDate } = validatedReq.validatedQuery;
 
       let metrics;
 
-      if (startDateParam || endDateParam) {
-        const startDate = startDateParam ? new Date(startDateParam) : undefined;
-        const endDate = endDateParam ? new Date(endDateParam) : undefined;
-        metrics = await evaluationService.calculateMetrics(startDate, endDate);
+      if (startDate || endDate) {
+        const start = startDate ? new Date(startDate) : undefined;
+        const end = endDate ? new Date(endDate) : undefined;
+        metrics = await evaluationService.calculateMetrics(start, end);
       } else if (days) {
         metrics = await evaluationService.getMetricsForLastDays(days);
       } else {
@@ -350,42 +363,51 @@ router.get(
 
 /**
  * Get detailed breakdown of calls
+ * Query params:
+ * - startDate: ISO date string for start date (optional)
+ * - endDate: ISO date string for end date (optional)
  */
+const breakdownQuerySchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+});
+
 router.get(
   '/evaluations/breakdown',
   authenticate,
+  validateQuery(breakdownQuerySchema),
   async (req: Request, res: Response) => {
-    try {
-      if (!isDbConnected()) {
-        return res.status(503).json({
-          success: false,
-          error: 'Database not connected',
-        });
-      }
-
-      const startDateParam = req.query.startDate as string | undefined;
-      const endDateParam = req.query.endDate as string | undefined;
-
-      const startDate = startDateParam ? new Date(startDateParam) : undefined;
-      const endDate = endDateParam ? new Date(endDateParam) : undefined;
-
-      const breakdown = await evaluationService.getDetailedBreakdown(
-        startDate,
-        endDate
-      );
-
-      return res.json({
-        success: true,
-        breakdown,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      return res.status(500).json({
+    const validatedReq = req as ValidatedRequest<z.infer<typeof breakdownQuerySchema>>;
+  try {
+    if (!isDbConnected()) {
+      return res.status(503).json({
         success: false,
         error: errorMessage,
       });
     }
+
+    // Now validatedReq.validatedQuery is fully typed! 🎉
+    const { startDate: startDateParam, endDate: endDateParam } = validatedReq.validatedQuery;
+
+    const startDate = startDateParam ? new Date(startDateParam) : undefined;
+    const endDate = endDateParam ? new Date(endDateParam) : undefined;
+
+    const breakdown = await evaluationService.getDetailedBreakdown(
+      startDate,
+      endDate
+    );
+
+    return res.json({
+      success: true,
+      breakdown,
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+    return res.status(500).json({
+      success: false,
+      error: errorMessage,
+    });
   }
 );
 
