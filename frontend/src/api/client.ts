@@ -184,6 +184,22 @@ export function getAuthHeaders(): HeadersInit {
 }
 
 /**
+ * Build query string from object, filtering out undefined/null values
+ */
+function buildQueryString(
+  params: Record<string, string | number | undefined | null>
+): string {
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      queryParams.append(key, value.toString());
+    }
+  });
+  const queryString = queryParams.toString();
+  return queryString ? `?${queryString}` : '';
+}
+
+/**
  * Generic fetch wrapper with error handling
  */
 export async function apiFetch<T>(
@@ -264,7 +280,7 @@ export const api = {
   // Call endpoints
   calls: {
     history: (limit: number = 50) =>
-      apiFetch<CallHistoryResponse>(`/api/calls/history?limit=${limit}`),
+      apiFetch<CallHistoryResponse>(`/api/calls/history${buildQueryString({ limit })}`),
     get: (callSid: string) =>
       apiFetch<CallDetailsResponse>(`/api/calls/${callSid}`),
     initiate: (data: InitiateCallPayload) =>
@@ -280,22 +296,13 @@ export const api = {
   // Evaluation endpoints
   evaluations: {
     get: (params?: { days?: number; startDate?: string; endDate?: string }) => {
-      const queryParams = new URLSearchParams();
-      if (params?.days) queryParams.append('days', params.days.toString());
-      if (params?.startDate) queryParams.append('startDate', params.startDate);
-      if (params?.endDate) queryParams.append('endDate', params.endDate);
-      const queryString = queryParams.toString();
       return apiFetch<EvaluationResponse>(
-        `/api/evaluations${queryString ? `?${queryString}` : ''}`
+        `/api/evaluations${buildQueryString(params || {})}`
       );
     },
     breakdown: (params?: { startDate?: string; endDate?: string }) => {
-      const queryParams = new URLSearchParams();
-      if (params?.startDate) queryParams.append('startDate', params.startDate);
-      if (params?.endDate) queryParams.append('endDate', params.endDate);
-      const queryString = queryParams.toString();
       return apiFetch<BreakdownResponse>(
-        `/api/evaluations/breakdown${queryString ? `?${queryString}` : ''}`
+        `/api/evaluations/breakdown${buildQueryString(params || {})}`
       );
     },
   },

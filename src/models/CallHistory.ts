@@ -4,6 +4,10 @@
  */
 
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import { CallStatus } from '../types/callStatus';
+
+// Array of valid CallStatus values for Mongoose enum
+const CALL_STATUSES: CallStatus[] = ['in-progress', 'completed', 'failed', 'terminated'];
 
 export interface ConversationEntry {
   type: 'user' | 'ai' | 'system';
@@ -47,7 +51,7 @@ export interface ICallHistory extends Document {
   startTime: Date;
   endTime?: Date;
   duration?: number;
-  status: 'in-progress' | 'completed' | 'failed' | 'terminated';
+  status: CallStatus;
   metadata: CallHistoryMetadata;
   conversation: ConversationEntry[];
   dtmfPresses: DTMFPress[];
@@ -134,7 +138,7 @@ const callHistorySchema = new Schema<ICallHistory>(
     duration: Number,
     status: {
       type: String,
-      enum: ['in-progress', 'completed', 'failed', 'terminated'],
+      enum: CALL_STATUSES,
       default: 'in-progress',
       index: true,
     },

@@ -6,6 +6,7 @@
 import express, { Request, Response } from 'express';
 import twilio from 'twilio';
 import { TwilioGatherInput, TwilioSayAttributes } from '../types/twilio-twiml';
+import { TwilioCallStatus, isCallEnded } from '../types/callStatus';
 import transferConfig from '../config/transfer-config';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
@@ -966,21 +967,16 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
  */
 router.post('/call-status', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
-  const callStatus = req.body.CallStatus;
+  const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
   console.log('📞 Call status update:', callStatus, 'for CallSid:', callSid);
 
   // Map Twilio call statuses to our internal statuses
-  if (callSid) {
+  if (callSid && callStatus) {
     if (callStatus === 'completed') {
       callHistoryService
         .endCall(callSid, 'completed')
         .catch(err => console.error('Error ending call:', err));
-    } else if (
-      callStatus === 'failed' ||
-      callStatus === 'busy' ||
-      callStatus === 'no-answer' ||
-      callStatus === 'canceled'
-    ) {
+    } else if (isCallEnded(callStatus)) {
       callHistoryService
         .endCall(callSid, 'failed')
         .catch(err => console.error('Error ending call:', err));
@@ -997,25 +993,28 @@ router.post('/call-status', (req: Request, res: Response) => {
  */
 router.post('/transfer-status', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
-  const callStatus = req.body.CallStatus;
+  const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
   console.log('🔄 Transfer status:', callStatus);
 
-  if (callSid) {
+  if (callSid && callStatus) {
     // Update transfer event success status based on call status
     if (callStatus === 'completed') {
       callHistoryService
         .updateTransferStatus(callSid, true)
         .catch(err => console.error('Error updating transfer status:', err));
-    } else if (callStatus === 'failed') {
+    } else if (isCallEnded(callStatus)) {
       callHistoryService
         .updateTransferStatus(callSid, false)
         .catch(err => console.error('Error updating transfer status:', err));
     }
 
     // End the call if transfer completed or failed
-    if (callStatus === 'completed' || callStatus === 'failed') {
+    if (isCallEnded(callStatus)) {
+      // Map to internal status - only 'completed' or 'failed' are valid for endCall
+      const internalStatus: 'completed' | 'failed' =
+        callStatus === 'completed' ? 'completed' : 'failed';
       callHistoryService
-        .endCall(callSid, callStatus as 'completed' | 'failed')
+        .endCall(callSid, internalStatus)
         .catch(err => console.error('Error ending call:', err));
     }
   }

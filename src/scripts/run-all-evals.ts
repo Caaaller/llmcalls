@@ -1,11 +1,11 @@
 #!/usr/bin/env ts-node
 /**
  * Prompt Evaluation CLI
- * Run prompt evaluations to test transfer, loop detection, and DTMF decisions
+ * Run all prompt evaluations to test transfer, loop detection, and DTMF decisions
  * 
  * Usage:
  *   npm run eval:prompts
- *   ts-node src/scripts/eval-prompts.ts
+ *   ts-node src/scripts/run-all-evals.ts
  */
 
 import 'dotenv/config';
