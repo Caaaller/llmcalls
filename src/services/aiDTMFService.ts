@@ -59,7 +59,7 @@ class AIDTMFService {
 3. Decide which DTMF digit to press
 
 Call Purpose: ${callPurpose}
-${customInstructions ? `Additional Instructions: ${customInstructions}` : ''}
+${customInstructions ? `Custom Instructions (PRIORITY): ${customInstructions}` : ''}
 
 IVR Menu Speech: "${speech}"
 
@@ -75,9 +75,13 @@ Matching Rules (in priority order):
 
 Important: When the call purpose is "speak with a representative" or similar, and a menu option mentions "representative", "operator", "agent", or "customer service", that is a MATCH. Press that digit.
 
+IMPORTANT: 
+- When custom instructions are provided, prioritize matching those over the generic call purpose.
+- When call purpose is "speak with a representative", be smart about recognizing options that lead to human agents (customer care, support, help, etc.) even if they don't explicitly say "representative".
+
 Respond ONLY with JSON:
 {
-  "callPurpose": "what the user wants (e.g., order inquiry, delivery status, appointment booking)",
+  "callPurpose": "what the user wants (e.g., order inquiry, delivery status, appointment booking, how to become a vendor)",
   "shouldPress": true/false,
   "digit": "1" or null,
   "matchedOption": "which menu option matched",

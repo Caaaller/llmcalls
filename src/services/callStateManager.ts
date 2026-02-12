@@ -30,6 +30,8 @@ export interface CallState {
   lastSpeech?: string;
   humanConfirmed?: boolean;
   awaitingHumanConfirmation?: boolean;
+  awaitingTransferConfirmation?: boolean;
+  transferConfirmed?: boolean;
   transferConfig?: TransferConfig;
   loopDetector?: LoopDetector;
   holdStartTime?: Date | null;
