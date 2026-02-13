@@ -21,19 +21,15 @@ export interface ValidatedRequest<T> extends Omit<Request, 'query'> {
  */
 export function validateQuery<T extends ZodSchema>(
   schema: T
-): (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => void {
+): (req: Request, res: Response, next: NextFunction) => void {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
       // Parse and validate query parameters
       const validated = schema.parse(req.query);
-      
+
       // Add validated query params to request object
       (req as ValidatedRequest<z.infer<T>>).validatedQuery = validated;
-      
+
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -47,7 +43,7 @@ export function validateQuery<T extends ZodSchema>(
         });
         return;
       }
-      
+
       res.status(500).json({
         success: false,
         error: 'Validation error',
@@ -56,4 +52,3 @@ export function validateQuery<T extends ZodSchema>(
     }
   };
 }
-

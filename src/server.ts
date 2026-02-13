@@ -80,18 +80,18 @@ app.use('/api', apiRoutes);
 app.get('/health', (_req: Request, res: Response) => {
   const startTime = Date.now();
   console.log(`\n📊 Health check requested at ${new Date().toISOString()}`);
-  
+
   const response = {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
   };
-  
+
   const responseTime = Date.now() - startTime;
   console.log(`📊 Health check response time: ${responseTime}ms`);
   console.log(`📊 Response:`, JSON.stringify(response));
-  
+
   res.status(200).json(response);
 });
 
@@ -190,12 +190,8 @@ async function startServer(): Promise<void> {
     console.log(
       `   DATABASE_URL: ${process.env.DATABASE_URL ? 'SET (masked)' : 'NOT SET'}`
     );
-    console.log(
-      `   MONGOHOST: ${process.env.MONGOHOST ? 'SET' : 'NOT SET'}`
-    );
-    console.log(
-      `   NODE_ENV: ${process.env.NODE_ENV || 'NOT SET'}`
-    );
+    console.log(`   MONGOHOST: ${process.env.MONGOHOST ? 'SET' : 'NOT SET'}`);
+    console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'NOT SET'}`);
 
     // Attempt to connect to MongoDB, but don't block server startup
     const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
@@ -205,7 +201,7 @@ async function startServer(): Promise<void> {
       console.log(`   ✅ MongoDB URI found: ${maskedUri}`);
       console.log('   🔄 Starting MongoDB connection (non-blocking)...');
       const connectionStartTime = Date.now();
-      
+
       // Try to connect, but don't block server startup
       connect()
         .then(() => {
@@ -249,9 +245,11 @@ async function startServer(): Promise<void> {
       console.log(`✅ Bind address: 0.0.0.0 (all interfaces)`);
       console.log(`✅ Startup time: ${serverStartTimeElapsed}ms`);
       console.log(`✅ Health check: http://0.0.0.0:${port}/health`);
-      console.log(`✅ Health check (external): https://your-app.railway.app/health`);
+      console.log(
+        `✅ Health check (external): https://your-app.railway.app/health`
+      );
       console.log(`✅ Timestamp: ${new Date().toISOString()}`);
-      
+
       if (process.env.NODE_ENV !== 'production') {
         console.log(
           `\n⚠️  For production, use ngrok or similar to expose this server:`
