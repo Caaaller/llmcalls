@@ -22,6 +22,15 @@ import { toError } from '../utils/errorUtils';
 
 const router = express.Router();
 
+// Constants
+/**
+ * Default timeout for Twilio Gather speech input (in seconds)
+ * This is the maximum time to wait for speech to START, not recording duration.
+ * Once speech starts, Twilio records until there's a 2-second pause (speechTimeout: 'auto').
+ * Increased to 15 seconds to capture longer IVR menus.
+ */
+const DEFAULT_SPEECH_TIMEOUT = 15;
+
 // Helper function to build process-speech action URL with all parameters
 function buildProcessSpeechUrl(
   baseUrl: string,
@@ -43,6 +52,85 @@ function buildProcessSpeechUrl(
   return `${baseUrl}/voice/process-speech?${params.toString()}`;
 }
 
+/**
+ * Ask for human confirmation before transferring
+ * Sets up TwiML to ask if we're speaking with a real person
+ * @param response - Twilio VoiceResponse instance
+ * @param baseUrl - Base URL for callback
+ * @param config - Transfer configuration
+ * @param callSid - Call SID for state management
+ * @returns The response object (for chaining)
+ */
+function askForHumanConfirmation(
+  response: twilio.twiml.VoiceResponse,
+  baseUrl: string,
+  config: TransferConfigType,
+  callSid: string
+): twilio.twiml.VoiceResponse {
+  console.log('❓ Asking: Am I speaking with a human?');
+  callStateManager.updateCallState(callSid, {
+    awaitingHumanConfirmation: true,
+  });
+
+  const sayAttributes = createSayAttributes(config);
+  response.say(
+    sayAttributes as Parameters<typeof response.say>[0],
+    'Am I speaking with a real person or is this the automated system?'
+  );
+  const gatherAttributes = createGatherAttributes(config, {
+    action: buildProcessSpeechUrl(baseUrl, config),
+    method: 'POST',
+    enhanced: true,
+    timeout: DEFAULT_SPEECH_TIMEOUT,
+  });
+  response.gather(
+    gatherAttributes as Parameters<typeof response.gather>[0]
+  );
+
+  return response;
+}
+
+/**
+ * Create TwiML response for transferring call to a number
+ * Encapsulates all transfer logic: logging, history, TwiML dial setup
+ * @param response - Twilio VoiceResponse instance
+ * @param baseUrl - Base URL for status callback
+ * @param config - Transfer configuration containing transferNumber and voice settings
+ * @param callSid - Call SID for logging and history
+ * @param message - Optional message to say before transferring (default: 'Hold on, please.')
+ * @returns The response object (for chaining)
+ */
+function initiateTransfer(
+  response: twilio.twiml.VoiceResponse,
+  baseUrl: string,
+  config: TransferConfigType,
+  callSid: string,
+  message: string = 'Hold on, please.'
+): twilio.twiml.VoiceResponse {
+  console.log(`🔄 Initiating transfer to ${config.transferNumber}`);
+
+  callHistoryService
+    .addTransfer(callSid, config.transferNumber, true)
+    .catch(err => console.error('Error adding transfer:', err));
+
+  const sayAttributes = createSayAttributes(config);
+  response.say(
+    sayAttributes as Parameters<typeof response.say>[0],
+    message
+  );
+  response.pause({ length: 1 });
+
+  const dial = response.dial({
+    action: `${baseUrl}/voice/transfer-status`,
+    method: 'POST',
+    timeout: 30,
+  });
+  (dial as TwiMLDialAttributes).answerOnMedia = true;
+  dial.number(config.transferNumber);
+
+  return response;
+}
+
 // Helper functions for properly typed Twilio TwiML calls
 function createGatherAttributes(
   config: TransferConfigType,
@@ -54,8 +142,7 @@ function createGatherAttributes(
     // Use 'auto' to wait for natural speech pauses, but ensure we capture everything
     // 'auto' waits up to 2 seconds of silence before finalizing
     speechTimeout: 'auto',
-    // Increase default timeout to 15 seconds to capture longer IVR menus
-    timeout: 15,
+    timeout: DEFAULT_SPEECH_TIMEOUT,
     ...overrides,
   };
 }
@@ -136,7 +223,7 @@ router.post('/', (req: Request, res: Response): void => {
       action: buildProcessSpeechUrl(baseUrl, config, { firstCall: 'true' }),
       method: 'POST',
       enhanced: true,
-      timeout: 15, // Increased to capture longer IVR menus
+      timeout: DEFAULT_SPEECH_TIMEOUT,
     });
     console.log('🎤 Setting up initial gather - listening for speech...');
     console.log('  Timeout:', gatherAttributes.timeout, 'seconds');
@@ -283,46 +370,22 @@ router.post(
             awaitingHumanConfirmation: false,
           });
 
-          callHistoryService
-            .addTransfer(callSid, config.transferNumber, true)
-            .catch(err => console.error('Error adding transfer:', err));
-
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
+          initiateTransfer(
+            response,
+            baseUrl,
+            config,
+            callSid,
             'Thank you. Hold on, please.'
           );
-          response.pause({ length: 1 });
-
-          const dial = response.dial({
-            action: `${baseUrl}/voice/transfer-status`,
-            method: 'POST',
-            timeout: 30,
-          });
-          (dial as TwiMLDialAttributes).answerOnMedia = true;
-          dial.number(config.transferNumber);
 
           res.type('text/xml');
           res.send(response.toString());
           return;
         } else {
           // Not a human confirmation, but we're still awaiting it
-          // Ask again or continue waiting
+          // Ask again
           console.log('⚠️ Still awaiting human confirmation, but response was not a clear confirmation');
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Am I speaking with a real person or is this the automated system?'
-          );
-          const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl(baseUrl, config),
-            method: 'POST',
-            enhanced: true,
-            timeout: 15,
-          });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
+          askForHumanConfirmation(response, baseUrl, config, callSid);
           res.type('text/xml');
           res.send(response.toString());
           return;
@@ -373,25 +436,7 @@ router.post(
 
           // Only ask about human if AI confirmed we're speaking with a real human
           if (isRealHuman) {
-            console.log('❓ Asking: Am I speaking with a human?');
-            callStateManager.updateCallState(callSid, {
-              awaitingHumanConfirmation: true,
-            });
-
-            const sayAttributes = createSayAttributes(config);
-            response.say(
-              sayAttributes as Parameters<typeof response.say>[0],
-              'Am I speaking with a real person or is this the automated system?'
-            );
-            const gatherAttributes = createGatherAttributes(config, {
-              action: buildProcessSpeechUrl(baseUrl, config),
-              method: 'POST',
-              enhanced: true,
-              timeout: 15,
-            });
-            response.gather(
-              gatherAttributes as Parameters<typeof response.gather>[0]
-            );
+            askForHumanConfirmation(response, baseUrl, config, callSid);
             res.type('text/xml');
             res.send(response.toString());
             return;
@@ -401,24 +446,12 @@ router.post(
           // Human already confirmed - transfer immediately
           console.log(`🔄 Human confirmed - transferring to ${config.transferNumber}`);
 
-          callHistoryService
-            .addTransfer(callSid, config.transferNumber, true)
-            .catch(err => console.error('Error adding transfer:', err));
-
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Hold on, please.'
+          initiateTransfer(
+            response,
+            baseUrl,
+            config,
+            callSid
           );
-          response.pause({ length: 1 });
-
-          const dial = response.dial({
-            action: `${baseUrl}/voice/transfer-status`,
-            method: 'POST',
-            timeout: 30,
-          });
-          (dial as TwiMLDialAttributes).answerOnMedia = true;
-          dial.number(config.transferNumber);
 
           res.type('text/xml');
           res.send(response.toString());
@@ -581,7 +614,7 @@ router.post(
             action: buildProcessSpeechUrl(baseUrl, config),
             method: 'POST',
             enhanced: true,
-            timeout: 15, // Increased to capture longer IVR menus
+            timeout: DEFAULT_SPEECH_TIMEOUT,
           });
           response.gather(
             gatherAttributes as Parameters<typeof response.gather>[0]
@@ -771,7 +804,7 @@ router.post(
             action: buildProcessSpeechUrl(baseUrl, config),
             method: 'POST',
             enhanced: true,
-            timeout: 15, // Increased to capture longer IVR menus
+            timeout: DEFAULT_SPEECH_TIMEOUT,
           });
           response.gather(
             gatherAttributes as Parameters<typeof response.gather>[0]
@@ -798,7 +831,7 @@ router.post(
           action: buildProcessSpeechUrl(baseUrl, config),
           method: 'POST',
           enhanced: true,
-          timeout: 15, // Increased to capture longer IVR menus
+          timeout: DEFAULT_SPEECH_TIMEOUT,
         });
         response.gather(
           gatherAttributes as Parameters<typeof response.gather>[0]
@@ -818,7 +851,7 @@ router.post(
 
       let aiResponse: string;
       try {
-        // Add timeout to prevent hanging (15 seconds max)
+        // Add timeout to prevent hanging
         const aiPromise = aiService.generateResponse(
           config as TransferConfig,
           speechResult,
@@ -828,8 +861,8 @@ router.post(
 
         const timeoutPromise = new Promise<string>((_, reject) => {
           setTimeout(
-            () => reject(new Error('AI service timeout after 15 seconds')),
-            15000
+            () => reject(new Error(`AI service timeout after ${DEFAULT_SPEECH_TIMEOUT} seconds`)),
+            DEFAULT_SPEECH_TIMEOUT * 1000
           );
         });
 
@@ -879,7 +912,7 @@ router.post(
         action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
         method: 'POST',
         enhanced: true,
-        timeout: 15, // Increased to capture longer IVR menus
+        timeout: DEFAULT_SPEECH_TIMEOUT,
       });
       console.log('🎤 Setting up gather for next speech segment...');
       console.log('  Timeout:', gatherAttributes.timeout, 'seconds');
@@ -961,7 +994,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
     action: buildProcessSpeechUrl(baseUrl, config),
     method: 'POST',
     enhanced: true,
-    timeout: 15, // Increased to capture longer IVR menus
+              timeout: DEFAULT_SPEECH_TIMEOUT, // Increased to capture longer IVR menus
   });
   response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 
