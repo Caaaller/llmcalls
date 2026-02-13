@@ -10,7 +10,6 @@ import { TwilioCallStatus, isCallEnded } from '../types/callStatus';
 import transferConfig from '../config/transfer-config';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
-import { createLoopDetector } from '../utils/loopDetector'; // Keep for backward compatibility
 import aiService from '../services/aiService';
 import aiDTMFService from '../services/aiDTMFService';
 import aiDetectionService from '../services/aiDetectionService';
@@ -115,7 +114,6 @@ router.post('/', (req: Request, res: Response): void => {
 
     callStateManager.updateCallState(callSid, {
       transferConfig: config as TransferConfigType,
-      loopDetector: createLoopDetector(), // Keep for backward compatibility
       previousMenus: [], // Initialize for AI loop detection
       holdStartTime: null,
       customInstructions: config.customInstructions, // Store for persistence

@@ -4,7 +4,7 @@
  */
 
 import OpenAI from 'openai';
-import { MenuOption } from '../utils/ivrDetector';
+import { MenuOption } from '../types/menu';
 
 export interface IVRMenuDetectionResult {
   isIVRMenu: boolean;
