@@ -472,6 +472,121 @@ class PromptEvaluationService {
           expectedCallPurpose: 'representative',
         },
       },
+
+      // Real-world Phone Number Evaluations
+      {
+        name: 'Langone Health - Appointment Scheduling',
+        description:
+          'Langone Health (18776482964) - Should handle appointment scheduling question',
+        speech: 'Press 1 to schedule an appointment, press 2 for existing appointments',
+        config: {
+          callPurpose: 'schedule a new appointment',
+          transferNumber: '+18776482964',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '1',
+        },
+      },
+      {
+        name: 'Xfinity - Mobile Data Issue',
+        description:
+          'Xfinity (1-800-934-6489) - Should handle Xfinity mobile data issue',
+        speech: 'Press 1 for mobile support, press 2 for internet support, press 3 for billing',
+        config: {
+          callPurpose: 'Xfinity mobile data issue',
+          transferNumber: '+18009346489',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '1',
+        },
+      },
+      {
+        name: 'Wells Fargo - Credit Card Fraud',
+        description:
+          'Wells Fargo (866-234-8271) - Should handle credit card fraud inquiry',
+        speech: 'Press 1 for credit card services, press 2 for fraud protection, press 0 for operator',
+        config: {
+          callPurpose: 'speak with credit card fraud',
+          transferNumber: '+18662348271',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          // Should choose fraud protection (2) or operator (0) for fraud-related issues
+          expectedDigit: '2', // Fraud protection is most relevant
+        },
+      },
+      {
+        name: 'Directv - Billing Question',
+        description:
+          'Directv (888-777-2454) - Should handle billing question',
+        speech: 'Press 1 for technical support, press 2 for billing, press 3 for new service',
+        config: {
+          callPurpose: 'billing question',
+          transferNumber: '+18887772454',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '2',
+        },
+      },
+      {
+        name: 'Acer - Technical Support',
+        description:
+          'Acer (800-571-2237) - Should handle technical support request',
+        speech: 'Press 1 for technical support, press 2 for warranty, press 3 for sales',
+        config: {
+          callPurpose: 'technical support',
+          transferNumber: '+18005712237',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '1',
+        },
+      },
+      {
+        name: 'Amazon - Speak with Representative',
+        description:
+          'Amazon (866-216-1072) - Should handle request to speak with representative',
+        speech: 'Press 0 to speak with a representative, press 1 for orders, press 2 for returns',
+        config: {
+          callPurpose: 'speak with a representative',
+          transferNumber: '+18662161072',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '0',
+        },
+      },
+      {
+        name: 'Costco Local - Speak with Representative',
+        description:
+          'Costco local (720-587-1000) - Should handle request to speak with representative',
+        speech: 'Press 1 for membership, press 2 for store hours, press 0 for operator',
+        config: {
+          callPurpose: 'speak with a representative',
+          transferNumber: '+17205871000',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '0',
+        },
+      },
+      {
+        name: 'Costco Corporate - Membership Question',
+        description:
+          'Costco corporate (800-774-2678) - Should handle membership question',
+        speech: 'Press 1 for membership services, press 2 for online orders, press 3 for store locations',
+        config: {
+          callPurpose: 'question about membership',
+          transferNumber: '+18007742678',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '1',
+        },
+      },
     ];
   }
 
