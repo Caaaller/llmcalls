@@ -150,8 +150,8 @@ class AIService {
   }
 
   /**
-   * Confirm if a transfer request is legitimate
-   * Returns true if AI confirms this is a real transfer request, false otherwise
+   * Validate if we are speaking with a real human (not an automated system)
+   * Returns true if AI confirms this is a real human, false otherwise
    */
   async confirmTransferRequest(
     config: TransferConfig,
@@ -168,13 +168,16 @@ ${history}
 
 Current speech: "${speechResult}"
 
-The system detected a potential transfer request. Analyze the speech and determine if this is:
-1. A REAL transfer request (e.g., system saying "I'm transferring you now", "Let me connect you", user explicitly asking to be transferred)
-2. A FALSE POSITIVE (e.g., IVR asking "Do you want to speak with a representative?" then offering to help itself, menu options mentioning "representative", automated system describing its own features or asking questions)
+Analyze the speech and determine if we are speaking with:
+1. A REAL HUMAN (e.g., a person responding naturally, having a conversation, asking questions, providing information)
+2. An AUTOMATED SYSTEM (e.g., IVR menu announcements, automated prompts, system messages like "You're speaking with Walmart's automated system", menu options being read, pre-recorded messages)
 
-IMPORTANT: If the speech is a QUESTION asking if the user wants to speak with a representative, but then offers to help itself (like "I can help with most things"), this is NOT a transfer request - it's a false positive.
+IMPORTANT: 
+- If the speech sounds like a pre-recorded message, menu options, or automated system announcements, it is NOT a real human.
+- If the speech is natural conversation, questions, or responses from a person, it IS a real human.
+- Be conservative - only say YES if you are confident this is a real person speaking.
 
-Respond with ONLY "YES" if this is a legitimate transfer request, or "NO" if it's a false positive.`;
+Respond with ONLY "YES" if this is a real human, or "NO" if it's an automated system.`;
 
     const completion = await this.client.chat.completions.create({
       model: config.aiSettings?.model || 'gpt-4o',
@@ -182,7 +185,7 @@ Respond with ONLY "YES" if this is a legitimate transfer request, or "NO" if it'
         {
           role: 'system',
           content:
-            'You are a call analysis assistant. Your job is to determine if a transfer request is legitimate or a false positive from an IVR menu. Be VERY conservative - only say YES if the system is ACTUALLY transferring or the user is EXPLICITLY requesting a transfer. If the IVR is asking questions or offering to help itself, say NO.',
+            'You are a call analysis assistant. Your job is to determine if we are speaking with a real human person or an automated system. Be VERY conservative - only say YES if you are confident this is a real person having a natural conversation. If it sounds like an IVR menu, automated announcement, or pre-recorded message, say NO.',
         },
         { role: 'user', content: context },
       ],
@@ -199,7 +202,7 @@ Respond with ONLY "YES" if this is a legitimate transfer request, or "NO" if it'
     console.log('🤖 AI Transfer Confirmation:', {
       speech: speechResult.substring(0, 100),
       aiResponse: response,
-      confirmed: isConfirmed,
+      isRealHuman: isConfirmed,
     });
 
     return isConfirmed;

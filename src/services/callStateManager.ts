@@ -25,8 +25,6 @@ export interface CallState {
   lastSpeech?: string;
   humanConfirmed?: boolean;
   awaitingHumanConfirmation?: boolean;
-  awaitingTransferConfirmation?: boolean;
-  transferConfirmed?: boolean;
   transferConfig?: TransferConfig;
   previousMenus?: MenuOption[][]; // Track previous menus for AI loop detection
   holdStartTime?: Date | null;
