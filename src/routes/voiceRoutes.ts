@@ -32,12 +32,34 @@ const router = express.Router();
  */
 const DEFAULT_SPEECH_TIMEOUT = 15;
 
+// Type definitions for function parameters
+interface BuildProcessSpeechUrlParams {
+  baseUrl: string;
+  config: TransferConfigType;
+  additionalParams?: Record<string, string>;
+}
+
+interface AskForHumanConfirmationParams {
+  response: twilio.twiml.VoiceResponse;
+  baseUrl: string;
+  config: TransferConfigType;
+  callSid: string;
+}
+
+interface InitiateTransferParams {
+  response: twilio.twiml.VoiceResponse;
+  baseUrl: string;
+  config: TransferConfigType;
+  callSid: string;
+  message?: string;
+}
+
 // Helper function to build process-speech action URL with all parameters
-function buildProcessSpeechUrl(
-  baseUrl: string,
-  config: TransferConfigType,
-  additionalParams: Record<string, string> = {}
-): string {
+function buildProcessSpeechUrl({
+  baseUrl,
+  config,
+  additionalParams = {},
+}: BuildProcessSpeechUrlParams): string {
   const params = new URLSearchParams();
   params.append('transferNumber', config.transferNumber);
   if (config.callPurpose) {
@@ -62,12 +84,12 @@ function buildProcessSpeechUrl(
  * @param callSid - Call SID for state management
  * @returns The response object (for chaining)
  */
-function askForHumanConfirmation(
-  response: twilio.twiml.VoiceResponse,
-  baseUrl: string,
-  config: TransferConfigType,
-  callSid: string
-): twilio.twiml.VoiceResponse {
+function askForHumanConfirmation({
+  response,
+  baseUrl,
+  config,
+  callSid,
+}: AskForHumanConfirmationParams): twilio.twiml.VoiceResponse {
   console.log('❓ Asking: Am I speaking with a human?');
   callStateManager.updateCallState(callSid, {
     awaitingHumanConfirmation: true,
@@ -79,7 +101,7 @@ function askForHumanConfirmation(
     'Am I speaking with a real person or is this the automated system?'
   );
   const gatherAttributes = createGatherAttributes(config, {
-    action: buildProcessSpeechUrl(baseUrl, config),
+    action: buildProcessSpeechUrl({ baseUrl, config }),
     method: 'POST',
     enhanced: true,
     timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -101,13 +123,13 @@ function askForHumanConfirmation(
  * @param message - Optional message to say before transferring (default: 'Hold on, please.')
  * @returns The response object (for chaining)
  */
-function initiateTransfer(
-  response: twilio.twiml.VoiceResponse,
-  baseUrl: string,
-  config: TransferConfigType,
-  callSid: string,
-  message: string = 'Hold on, please.'
-): twilio.twiml.VoiceResponse {
+function initiateTransfer({
+  response,
+  baseUrl,
+  config,
+  callSid,
+  message = 'Hold on, please.',
+}: InitiateTransferParams): twilio.twiml.VoiceResponse {
   console.log(`🔄 Initiating transfer to ${config.transferNumber}`);
 
   callHistoryService
@@ -127,7 +149,7 @@ function initiateTransfer(
     timeout: 30,
   });
   (dial as TwiMLDialAttributes).answerOnMedia = true;
-  dial.number(config.transferNumber);
+  dialNumber(dial, config.transferNumber);
 
   return response;
 }
@@ -163,6 +185,18 @@ function createSayAttributes(
 interface TwiMLDialAttributes {
   answerOnMedia?: boolean;
   [key: string]: string | number | boolean | undefined;
+}
+
+/**
+ * Helper function to dial a phone number (verb naming convention)
+ * @param dial - Twilio Dial instance
+ * @param phoneNumber - Phone number to dial
+ */
+function dialNumber(
+  dial: ReturnType<twilio.twiml.VoiceResponse['dial']>,
+  phoneNumber: string
+): void {
+  dial.number(phoneNumber);
 }
 
 /**
@@ -221,7 +255,7 @@ router.post('/', (req: Request, res: Response): void => {
 
     const response = new twilio.twiml.VoiceResponse();
     const gatherAttributes = createGatherAttributes(config, {
-      action: buildProcessSpeechUrl(baseUrl, config, { firstCall: 'true' }),
+      action: buildProcessSpeechUrl({ baseUrl, config, additionalParams: { firstCall: 'true' } }),
       method: 'POST',
       enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -371,13 +405,13 @@ router.post(
             awaitingHumanConfirmation: false,
           });
 
-          initiateTransfer(
+          initiateTransfer({
             response,
             baseUrl,
             config,
             callSid,
-            'Thank you. Hold on, please.'
-          );
+            message: 'Thank you. Hold on, please.',
+          });
 
           res.type('text/xml');
           res.send(response.toString());
@@ -386,7 +420,7 @@ router.post(
           // Not a human confirmation, but we're still awaiting it
           // Ask again
           console.log('⚠️ Still awaiting human confirmation, but response was not a clear confirmation');
-          askForHumanConfirmation(response, baseUrl, config, callSid);
+          askForHumanConfirmation({ response, baseUrl, config, callSid });
           res.type('text/xml');
           res.send(response.toString());
           return;
@@ -437,7 +471,7 @@ router.post(
 
           // Only ask about human if AI confirmed we're speaking with a real human
           if (isRealHuman) {
-            askForHumanConfirmation(response, baseUrl, config, callSid);
+            askForHumanConfirmation({ response, baseUrl, config, callSid });
             res.type('text/xml');
             res.send(response.toString());
             return;
@@ -447,12 +481,12 @@ router.post(
           // Human already confirmed - transfer immediately
           console.log(`🔄 Human confirmed - transferring to ${config.transferNumber}`);
 
-          initiateTransfer(
+          initiateTransfer({
             response,
             baseUrl,
             config,
-            callSid
-          );
+            callSid,
+          });
 
           res.type('text/xml');
           res.send(response.toString());
@@ -612,7 +646,7 @@ router.post(
             .catch(err => console.error('Error adding conversation:', err));
 
           const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl(baseUrl, config),
+            action: buildProcessSpeechUrl({ baseUrl, config }),
             method: 'POST',
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -802,7 +836,7 @@ router.post(
             )
             .catch(err => console.error('Error adding conversation:', err));
           const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl(baseUrl, config),
+            action: buildProcessSpeechUrl({ baseUrl, config }),
             method: 'POST',
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -821,28 +855,28 @@ router.post(
         console.log(
           '⚠️ Still awaiting complete menu - remaining silent, waiting for more options'
         );
-        callHistoryService
-          .addConversation(
-            callSid,
-            'system',
-            '[Waiting for complete menu - remaining silent]'
-          )
-          .catch(err => console.error('Error adding conversation:', err));
-        const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl(baseUrl, config),
-          method: 'POST',
-          enhanced: true,
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        res.type('text/xml');
-        res.send(response.toString());
-        return;
-      }
+          callHistoryService
+            .addConversation(
+              callSid,
+              'system',
+              '[Waiting for complete menu - remaining silent]'
+            )
+            .catch(err => console.error('Error adding conversation:', err));
+          const gatherAttributes = createGatherAttributes(config, {
+            action: buildProcessSpeechUrl({ baseUrl, config }),
+            method: 'POST',
+            enhanced: true,
+            timeout: DEFAULT_SPEECH_TIMEOUT,
+          });
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
+          );
+          res.type('text/xml');
+          res.send(response.toString());
+          return;
+        }
 
-      const conversationHistory = callState.conversationHistory || [];
+        const conversationHistory = callState.conversationHistory || [];
       console.log('🤖 Calling AI service...');
       console.log('  Speech:', speechResult);
       console.log('  Is first call:', isFirstCall);
@@ -992,7 +1026,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
 
   const response = new twilio.twiml.VoiceResponse();
   const gatherAttributes = createGatherAttributes(config, {
-    action: buildProcessSpeechUrl(baseUrl, config),
+    action: buildProcessSpeechUrl({ baseUrl, config }),
     method: 'POST',
     enhanced: true,
               timeout: DEFAULT_SPEECH_TIMEOUT, // Increased to capture longer IVR menus
