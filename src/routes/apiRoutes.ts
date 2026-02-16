@@ -309,10 +309,15 @@ const evaluationQuerySchema = z.object({
   days: z
     .string()
     .optional()
-    .transform((val: string | undefined) => (val ? parseInt(val, 10) : undefined))
-    .refine((val: number | undefined) => val === undefined || (val > 0 && val <= 365), {
-      message: 'Days must be between 1 and 365',
-    }),
+    .transform((val: string | undefined) =>
+      val ? parseInt(val, 10) : undefined
+    )
+    .refine(
+      (val: number | undefined) => val === undefined || (val > 0 && val <= 365),
+      {
+        message: 'Days must be between 1 and 365',
+      }
+    ),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
@@ -322,7 +327,9 @@ router.get(
   authenticate,
   validateQuery(evaluationQuerySchema),
   async (req: Request, res: Response) => {
-    const validatedReq = req as ValidatedRequest<z.infer<typeof evaluationQuerySchema>>;
+    const validatedReq = req as ValidatedRequest<
+      z.infer<typeof evaluationQuerySchema>
+    >;
     try {
       if (!isDbConnected()) {
         return res.status(503).json({
@@ -377,38 +384,42 @@ router.get(
   authenticate,
   validateQuery(breakdownQuerySchema),
   async (req: Request, res: Response) => {
-    const validatedReq = req as ValidatedRequest<z.infer<typeof breakdownQuerySchema>>;
-  try {
-    if (!isDbConnected()) {
-      return res.status(503).json({
+    const validatedReq = req as ValidatedRequest<
+      z.infer<typeof breakdownQuerySchema>
+    >;
+    try {
+      if (!isDbConnected()) {
+        return res.status(503).json({
+          success: false,
+          error: 'Database not connected',
+        });
+      }
+
+      // Now validatedReq.validatedQuery is fully typed! 🎉
+      const { startDate: startDateParam, endDate: endDateParam } =
+        validatedReq.validatedQuery;
+
+      const startDate = startDateParam ? new Date(startDateParam) : undefined;
+      const endDate = endDateParam ? new Date(endDateParam) : undefined;
+
+      const breakdown = await evaluationService.getDetailedBreakdown(
+        startDate,
+        endDate
+      );
+
+      return res.json({
+        success: true,
+        breakdown,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return res.status(500).json({
         success: false,
-        error: 'Database not connected',
+        error: errorMessage,
       });
     }
-
-    // Now validatedReq.validatedQuery is fully typed! 🎉
-    const { startDate: startDateParam, endDate: endDateParam } = validatedReq.validatedQuery;
-
-    const startDate = startDateParam ? new Date(startDateParam) : undefined;
-    const endDate = endDateParam ? new Date(endDateParam) : undefined;
-
-    const breakdown = await evaluationService.getDetailedBreakdown(
-      startDate,
-      endDate
-    );
-
-    return res.json({
-      success: true,
-      breakdown,
-    });
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
-    return res.status(500).json({
-      success: false,
-      error: errorMessage,
-    });
   }
-});
+);
 
 export default router;

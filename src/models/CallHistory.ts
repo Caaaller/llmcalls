@@ -7,7 +7,12 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 import { CallStatus } from '../types/callStatus';
 
 // Array of valid CallStatus values for Mongoose enum
-const CALL_STATUSES: CallStatus[] = ['in-progress', 'completed', 'failed', 'terminated'];
+const CALL_STATUSES: CallStatus[] = [
+  'in-progress',
+  'completed',
+  'failed',
+  'terminated',
+];
 
 export interface ConversationEntry {
   type: 'user' | 'ai' | 'system';

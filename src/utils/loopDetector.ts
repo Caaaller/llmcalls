@@ -14,7 +14,9 @@ export function createLoopDetector(): LoopDetector {
   const seenOptions: string[] = [];
 
   return {
-    detectLoop: (options: MenuOption[]): { isLoop: boolean; message?: string } => {
+    detectLoop: (
+      options: MenuOption[]
+    ): { isLoop: boolean; message?: string } => {
       if (options.length === 0) {
         return { isLoop: false };
       }
@@ -34,5 +36,3 @@ export function createLoopDetector(): LoopDetector {
     },
   };
 }
-
-

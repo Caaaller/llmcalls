@@ -106,9 +106,7 @@ function askForHumanConfirmation({
     enhanced: true,
     timeout: DEFAULT_SPEECH_TIMEOUT,
   });
-  response.gather(
-    gatherAttributes as Parameters<typeof response.gather>[0]
-  );
+  response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 
   return response;
 }
@@ -137,10 +135,7 @@ function initiateTransfer({
     .catch(err => console.error('Error adding transfer:', err));
 
   const sayAttributes = createSayAttributes(config);
-  response.say(
-    sayAttributes as Parameters<typeof response.say>[0],
-    message
-  );
+  response.say(sayAttributes as Parameters<typeof response.say>[0], message);
   response.pause({ length: 1 });
 
   const dial = response.dial({
@@ -255,7 +250,11 @@ router.post('/', (req: Request, res: Response): void => {
 
     const response = new twilio.twiml.VoiceResponse();
     const gatherAttributes = createGatherAttributes(config, {
-      action: buildProcessSpeechUrl({ baseUrl, config, additionalParams: { firstCall: 'true' } }),
+      action: buildProcessSpeechUrl({
+        baseUrl,
+        config,
+        additionalParams: { firstCall: 'true' },
+      }),
       method: 'POST',
       enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -312,9 +311,11 @@ router.post(
       const callState = callStateManager.getCallState(callSid);
       // Use stored customInstructions from call state if available, otherwise from query params
       const customInstructionsFromState = callState.customInstructions;
-      const customInstructionsFromQuery = (req.query.customInstructions as string) || '';
-      const finalCustomInstructions = customInstructionsFromQuery || customInstructionsFromState || '';
-      
+      const customInstructionsFromQuery =
+        (req.query.customInstructions as string) || '';
+      const finalCustomInstructions =
+        customInstructionsFromQuery || customInstructionsFromState || '';
+
       const config = transferConfig.createConfig({
         transferNumber:
           (req.query.transferNumber as string) ||
@@ -335,7 +336,10 @@ router.post(
         });
       }
       console.log('📥 Config created');
-      console.log('📥 Custom instructions:', config.customInstructions || '(none)');
+      console.log(
+        '📥 Custom instructions:',
+        config.customInstructions || '(none)'
+      );
 
       console.log('🎤 Received speech:', speechResult);
       console.log('  Speech length:', speechResult?.length || 0, 'characters');
@@ -419,7 +423,9 @@ router.post(
         } else {
           // Not a human confirmation, but we're still awaiting it
           // Ask again
-          console.log('⚠️ Still awaiting human confirmation, but response was not a clear confirmation');
+          console.log(
+            '⚠️ Still awaiting human confirmation, but response was not a clear confirmation'
+          );
           askForHumanConfirmation({ response, baseUrl, config, callSid });
           res.type('text/xml');
           res.send(response.toString());
@@ -438,14 +444,18 @@ router.post(
         } else if (!callState.humanConfirmed) {
           // First, validate with AI that we are speaking with a real human (not automated system)
           let isRealHuman = false;
-          
+
           try {
-            console.log('🤖 Validating with AI: Are we speaking with a real human?');
-            const conversationHistory = callState.conversationHistory.map(h => ({
-              type: h.type,
-              text: h.text || '',
-            }));
-            
+            console.log(
+              '🤖 Validating with AI: Are we speaking with a real human?'
+            );
+            const conversationHistory = callState.conversationHistory.map(
+              h => ({
+                type: h.type,
+                text: h.text || '',
+              })
+            );
+
             isRealHuman = await aiService.confirmTransferRequest(
               config as TransferConfig,
               speechResult,
@@ -453,7 +463,9 @@ router.post(
             );
 
             if (!isRealHuman) {
-              console.log('❌ AI confirmed this is NOT a real human - likely automated system');
+              console.log(
+                '❌ AI confirmed this is NOT a real human - likely automated system'
+              );
               console.log('   Speech was:', speechResult.substring(0, 100));
               // Continue with normal flow, don't transfer
               // Fall through to IVR menu processing
@@ -479,7 +491,9 @@ router.post(
           // If AI didn't validate, continue with normal flow (IVR menu processing)
         } else {
           // Human already confirmed - transfer immediately
-          console.log(`🔄 Human confirmed - transferring to ${config.transferNumber}`);
+          console.log(
+            `🔄 Human confirmed - transferring to ${config.transferNumber}`
+          );
 
           initiateTransfer({
             response,
@@ -547,7 +561,10 @@ router.post(
                 callState.partialMenuOptions &&
                 callState.partialMenuOptions.length > 0
               ) {
-                allMenuOptions = [...callState.partialMenuOptions, ...menuOptions];
+                allMenuOptions = [
+                  ...callState.partialMenuOptions,
+                  ...menuOptions,
+                ];
                 const seen = new Set<string>();
                 allMenuOptions = allMenuOptions.filter(
                   (opt: { digit: string; option: string }) => {
@@ -850,38 +867,40 @@ router.post(
         }
       }
 
-
       if (callState.awaitingCompleteMenu) {
         console.log(
           '⚠️ Still awaiting complete menu - remaining silent, waiting for more options'
         );
-          callHistoryService
-            .addConversation(
-              callSid,
-              'system',
-              '[Waiting for complete menu - remaining silent]'
-            )
-            .catch(err => console.error('Error adding conversation:', err));
-          const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl({ baseUrl, config }),
-            method: 'POST',
-            enhanced: true,
-            timeout: DEFAULT_SPEECH_TIMEOUT,
-          });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
-          res.type('text/xml');
-          res.send(response.toString());
-          return;
-        }
+        callHistoryService
+          .addConversation(
+            callSid,
+            'system',
+            '[Waiting for complete menu - remaining silent]'
+          )
+          .catch(err => console.error('Error adding conversation:', err));
+        const gatherAttributes = createGatherAttributes(config, {
+          action: buildProcessSpeechUrl({ baseUrl, config }),
+          method: 'POST',
+          enhanced: true,
+          timeout: DEFAULT_SPEECH_TIMEOUT,
+        });
+        response.gather(
+          gatherAttributes as Parameters<typeof response.gather>[0]
+        );
+        res.type('text/xml');
+        res.send(response.toString());
+        return;
+      }
 
-        const conversationHistory = callState.conversationHistory || [];
+      const conversationHistory = callState.conversationHistory || [];
       console.log('🤖 Calling AI service...');
       console.log('  Speech:', speechResult);
       console.log('  Is first call:', isFirstCall);
       console.log('  Conversation history length:', conversationHistory.length);
-      console.log('  Custom instructions:', config.customInstructions || '(none)');
+      console.log(
+        '  Custom instructions:',
+        config.customInstructions || '(none)'
+      );
       console.log('  Call purpose:', config.callPurpose || '(none)');
 
       let aiResponse: string;
@@ -896,7 +915,12 @@ router.post(
 
         const timeoutPromise = new Promise<string>((_, reject) => {
           setTimeout(
-            () => reject(new Error(`AI service timeout after ${DEFAULT_SPEECH_TIMEOUT} seconds`)),
+            () =>
+              reject(
+                new Error(
+                  `AI service timeout after ${DEFAULT_SPEECH_TIMEOUT} seconds`
+                )
+              ),
             DEFAULT_SPEECH_TIMEOUT * 1000
           );
         });
@@ -1001,8 +1025,10 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callState = callStateManager.getCallState(callSid);
   const customInstructionsFromState = callState.customInstructions;
-  const customInstructionsFromQuery = (req.query.customInstructions as string) || '';
-  const finalCustomInstructions = customInstructionsFromQuery || customInstructionsFromState || '';
+  const customInstructionsFromQuery =
+    (req.query.customInstructions as string) || '';
+  const finalCustomInstructions =
+    customInstructionsFromQuery || customInstructionsFromState || '';
 
   const config = transferConfig.createConfig({
     transferNumber:
@@ -1013,7 +1039,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
       'speak with a representative',
     customInstructions: finalCustomInstructions,
   });
-  
+
   // Store customInstructions in call state for persistence
   if (finalCustomInstructions) {
     callStateManager.updateCallState(callSid, {
@@ -1029,7 +1055,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
     action: buildProcessSpeechUrl({ baseUrl, config }),
     method: 'POST',
     enhanced: true,
-              timeout: DEFAULT_SPEECH_TIMEOUT, // Increased to capture longer IVR menus
+    timeout: DEFAULT_SPEECH_TIMEOUT, // Increased to capture longer IVR menus
   });
   response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 

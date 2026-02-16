@@ -33,7 +33,10 @@ export function extractMenuOptions(speech: string): MenuOption[] {
     // Check if this match is part of a forward pattern (e.g., "Press 1 for sales, press 2")
     // by checking if "for/to" is immediately preceded by "press" + digit
     const matchStart = match.index;
-    const textBeforeMatch = speech.substring(Math.max(0, matchStart - 15), matchStart);
+    const textBeforeMatch = speech.substring(
+      Math.max(0, matchStart - 15),
+      matchStart
+    );
     // If we see "press" + digit immediately before "for/to", skip it (it's part of a forward pattern)
     if (/press\s*\d\s*$/i.test(textBeforeMatch)) {
       continue;
@@ -53,7 +56,10 @@ export function extractMenuOptions(speech: string): MenuOption[] {
   while ((match = reversePatternNoComma.exec(speech)) !== null) {
     // Check if this match is part of a forward pattern
     const matchStart = match.index;
-    const textBeforeMatch = speech.substring(Math.max(0, matchStart - 15), matchStart);
+    const textBeforeMatch = speech.substring(
+      Math.max(0, matchStart - 15),
+      matchStart
+    );
     // If we see "press" + digit immediately before "for/to", skip it (it's part of a forward pattern)
     if (/press\s*\d\s*$/i.test(textBeforeMatch)) {
       continue;
@@ -175,9 +181,8 @@ export function isIncompleteMenu(
 
   // Check if speech starts mid-menu (e.g., "To our customer service homepage... Press 2")
   // This suggests option 1 was cut off at the beginning
-  const startsWithDescription = /^(to|for)\s+[^,]+(?:,\s*press\s*\d|\.\s*press\s*\d)/i.test(
-    speech.trim()
-  );
+  const startsWithDescription =
+    /^(to|for)\s+[^,]+(?:,\s*press\s*\d|\.\s*press\s*\d)/i.test(speech.trim());
 
   if (menuOptions.length === 0 && totalPatterns > 0) return true;
   if (menuOptions.length === 1 && totalPatterns > 1) return true;

@@ -20,9 +20,7 @@ export interface TerminationResult {
  * isClosed('We are currently closed, press 9 for emergencies') // returns true
  * isClosed('We are open Monday through Friday') // returns false
  */
-export function isClosed(
-  speechResult: string | null | undefined
-): boolean {
+export function isClosed(speechResult: string | null | undefined): boolean {
   if (!speechResult) return false;
   const text = speechResult.toLowerCase();
 
@@ -50,9 +48,7 @@ export function isDeadEnd(
   silenceDuration: number = 0
 ): boolean {
   const currentEmpty = !speechResult || !speechResult.trim();
-  const previousClosed = previousSpeech
-    ? isClosed(previousSpeech)
-    : false;
+  const previousClosed = previousSpeech ? isClosed(previousSpeech) : false;
 
   if (previousClosed && currentEmpty && silenceDuration >= 5) {
     return true;

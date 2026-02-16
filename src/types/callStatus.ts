@@ -68,4 +68,3 @@ export function isCallActive(twilioStatus: TwilioCallStatus): boolean {
     twilioStatus === 'in-progress'
   );
 }
-

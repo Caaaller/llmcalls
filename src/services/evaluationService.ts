@@ -80,15 +80,14 @@ class EvaluationService {
       // - It has at least one transfer event with success=true
       // - OR it has a transfer event and the call status is 'completed'
       const successfulAgentReachCalls = allCalls.filter(call => {
-        const transferEvents = call.events?.filter(
-          e => e.eventType === 'transfer'
-        ) || [];
-        
+        const transferEvents =
+          call.events?.filter(e => e.eventType === 'transfer') || [];
+
         // Check if there's a successful transfer
         const hasSuccessfulTransfer = transferEvents.some(
           e => e.success === true
         );
-        
+
         // Or if there's any transfer and call completed successfully
         const hasTransferAndCompleted =
           transferEvents.length > 0 && call.status === 'completed';
@@ -104,10 +103,9 @@ class EvaluationService {
       // This means: transfer was initiated AND completed successfully
       // We consider this as calls that have a successful transfer event
       const transferAfterAgentJoinCalls = allCalls.filter(call => {
-        const transferEvents = call.events?.filter(
-          e => e.eventType === 'transfer'
-        ) || [];
-        
+        const transferEvents =
+          call.events?.filter(e => e.eventType === 'transfer') || [];
+
         // Must have at least one successful transfer
         return transferEvents.some(e => e.success === true);
       });
@@ -152,7 +150,9 @@ class EvaluationService {
   /**
    * Get metrics for the last N days
    */
-  async getMetricsForLastDays(days: number = 30): Promise<CallEvaluationMetrics> {
+  async getMetricsForLastDays(
+    days: number = 30
+  ): Promise<CallEvaluationMetrics> {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -211,10 +211,9 @@ class EvaluationService {
         }
 
         // Count transfers
-        const transferEvents = call.events?.filter(
-          e => e.eventType === 'transfer'
-        ) || [];
-        
+        const transferEvents =
+          call.events?.filter(e => e.eventType === 'transfer') || [];
+
         if (transferEvents.length > 0) {
           breakdown.withTransfers++;
         }
@@ -231,7 +230,9 @@ class EvaluationService {
       });
 
       if (callsWithDuration > 0) {
-        breakdown.averageDuration = Math.round(totalDuration / callsWithDuration);
+        breakdown.averageDuration = Math.round(
+          totalDuration / callsWithDuration
+        );
       }
 
       return breakdown;
@@ -247,6 +248,3 @@ class EvaluationService {
 const evaluationService = new EvaluationService();
 
 export default evaluationService;
-
-
-
