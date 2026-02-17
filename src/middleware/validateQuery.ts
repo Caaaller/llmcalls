@@ -3,7 +3,7 @@
  * Uses Zod to validate and type query parameters
  */
 
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { z, ZodSchema } from 'zod';
 
 /**
@@ -51,4 +51,21 @@ export function validateQuery<T extends ZodSchema>(
       return;
     }
   };
+}
+
+/**
+ * Helper that combines validation middleware with a typed handler
+ * Eliminates the need for `as ValidatedRequest` casts in route handlers
+ * @param schema - Zod schema for query parameters
+ * @param handler - Route handler that receives a properly typed ValidatedRequest
+ * @returns Array of middleware/handler that can be spread into router calls
+ */
+export function validatedRoute<T extends ZodSchema>(
+  schema: T,
+  handler: (
+    req: ValidatedRequest<z.infer<T>>,
+    res: Response
+  ) => void | Promise<void> | Response | Promise<Response>
+): [RequestHandler, RequestHandler] {
+  return [validateQuery(schema), handler as unknown as RequestHandler];
 }

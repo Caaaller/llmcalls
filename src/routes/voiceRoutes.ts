@@ -308,8 +308,9 @@ router.post(
       const callState = callStateManager.getCallState(callSid);
       // Use stored customInstructions from call state if available, otherwise from query params
       const customInstructionsFromState = callState.customInstructions;
-      const customInstructionsFromQuery =
-        (req.query.customInstructions as string) || '';
+      const customInstructionsFromQuery = req.query.customInstructions as
+        | string
+        | undefined;
       const finalCustomInstructions =
         customInstructionsFromQuery || customInstructionsFromState || '';
 
@@ -444,7 +445,7 @@ router.post(
 
           // Set up gather to wait silently for more speech (don't speak, just listen)
           const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl(baseUrl, config),
+            action: buildProcessSpeechUrl({ baseUrl, config }),
             method: 'POST',
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -499,23 +500,7 @@ router.post(
         const needsConfirmation = !callState.humanConfirmed;
         if (needsConfirmation) {
           console.log('❓ Confirming human before transfer...');
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Am I speaking with a real person or is this the automated system?'
-          );
-          callStateManager.updateCallState(callSid, {
-            awaitingHumanConfirmation: true,
-          });
-          const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl(baseUrl, config),
-            method: 'POST',
-            enhanced: true,
-            timeout: 10,
-          });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
+          askForHumanConfirmation({ response, baseUrl, config, callSid });
           res.type('text/xml');
           res.send(response.toString());
           return;
@@ -904,24 +889,13 @@ router.post(
             awaitingHumanConfirmation: false,
           });
 
-          callHistoryService
-            .addTransfer(callSid, config.transferNumber, true)
-            .catch(err => console.error('Error adding transfer:', err));
-
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Thank you. Hold on, please.'
-          );
-          response.pause({ length: 1 });
-
-          const dial = response.dial({
-            action: `${baseUrl}/voice/transfer-status`,
-            method: 'POST',
-            timeout: 30,
+          initiateTransfer({
+            response,
+            baseUrl,
+            config,
+            callSid,
+            message: 'Thank you. Hold on, please.',
           });
-          (dial as TwiMLDialAttributes).answerOnMedia = true;
-          dial.number(config.transferNumber);
 
           res.type('text/xml');
           res.send(response.toString());
@@ -1087,8 +1061,9 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callState = callStateManager.getCallState(callSid);
   const customInstructionsFromState = callState.customInstructions;
-  const customInstructionsFromQuery =
-    (req.query.customInstructions as string) || '';
+  const customInstructionsFromQuery = req.query.customInstructions as
+    | string
+    | undefined;
   const finalCustomInstructions =
     customInstructionsFromQuery || customInstructionsFromState || '';
 
