@@ -324,6 +324,8 @@ router.post(
       }
 
       // If we were awaiting complete speech, merge with previous partial speech
+      // Note: We don't set awaitingCompleteSpeech: false here because we need to
+      // check if the merged speech is still incomplete (it might need more segments)
       let finalSpeech = speechResult;
       if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
         console.log('📝 Merging partial speech with continuation...');
@@ -332,9 +334,7 @@ router.post(
         // Merge: combine previous partial speech with new speech
         finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
         console.log(`  Merged: "${finalSpeech}"`);
-        callStateManager.updateCallState(callSid, {
-          awaitingCompleteSpeech: false,
-        });
+        // Don't set awaitingCompleteSpeech: false yet - let the incomplete check below determine if we need more
       }
 
       const previousSpeech = callState.lastSpeech || '';
@@ -409,25 +409,25 @@ router.post(
             incompleteSpeechWaitCount: incompleteSpeechWaitCount + 1,
           });
 
-          initiateTransfer(
-            response,
-            baseUrl,
-            config,
-            callSid,
-            'Thank you. Hold on, please.'
+          // Set up gather to wait silently for more speech (don't speak, just listen)
+          const gatherAttributes = createGatherAttributes(config, {
+            action: buildProcessSpeechUrl(baseUrl, config),
+            method: 'POST',
+            enhanced: true,
+            timeout: DEFAULT_SPEECH_TIMEOUT,
+          });
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
           );
 
           res.type('text/xml');
           res.send(response.toString());
           return;
         } else {
-          // Not a human confirmation, but we're still awaiting it
-          // Ask again
-          console.log('⚠️ Still awaiting human confirmation, but response was not a clear confirmation');
-          askForHumanConfirmation(response, baseUrl, config, callSid);
-          res.type('text/xml');
-          res.send(response.toString());
-          return;
+          // Speech appears complete - continue with normal processing
+          console.log(
+            `✅ Speech appears complete (confidence: ${1 - (incompleteCheck.confidence || 0)}) - continuing with processing`
+          );
         }
       } else if (incompleteSpeechWaitCount >= maxIncompleteWaits) {
         console.log(

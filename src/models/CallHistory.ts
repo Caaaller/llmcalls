@@ -28,9 +28,6 @@ export interface DTMFPress {
 
 import { MenuOption } from '../types/menu';
 
-// Re-export for backward compatibility
-export type { MenuOption };
-
 export interface CallEvent {
   eventType: 'conversation' | 'dtmf' | 'ivr_menu' | 'transfer' | 'termination';
   type?: string; // For conversation events: 'user', 'ai', 'system'
