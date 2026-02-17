@@ -6,11 +6,9 @@
 
 import aiService from './aiService';
 import aiDTMFService from './aiDTMFService';
+import aiDetectionService from './aiDetectionService';
 import { TransferConfig } from './aiService';
 import { DTMFDecision } from './aiDTMFService';
-import { wantsTransfer } from '../utils/transferDetector';
-import { shouldTerminate } from '../utils/terminationDetector';
-import { extractMenuOptions, isIVRMenu } from '../utils/ivrDetector';
 
 export interface PromptTestCase {
   name: string;
@@ -90,21 +88,27 @@ class PromptEvaluationService {
     const details: PromptTestResult['details'] = {};
 
     try {
-      // Test transfer detection
+      // Test transfer detection using AI
       if (testCase.expectedBehavior.shouldTransfer !== undefined) {
-        const transferDetected = wantsTransfer(testCase.speech);
-        details.transferDetected = transferDetected;
+        const transferDetection =
+          await aiDetectionService.detectTransferRequest(testCase.speech);
+        details.transferDetected = transferDetection.wantsTransfer;
 
-        if (transferDetected !== testCase.expectedBehavior.shouldTransfer) {
+        if (
+          transferDetection.wantsTransfer !==
+          testCase.expectedBehavior.shouldTransfer
+        ) {
           errors.push(
-            `Transfer detection mismatch: expected ${testCase.expectedBehavior.shouldTransfer}, got ${transferDetected}`
+            `Transfer detection mismatch: expected ${testCase.expectedBehavior.shouldTransfer}, got ${transferDetection.wantsTransfer} (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`
           );
         }
       }
 
-      // Test termination detection
+      // Test termination detection using AI
       if (testCase.expectedBehavior.shouldTerminate !== undefined) {
-        const termination = shouldTerminate(testCase.speech);
+        const termination = await aiDetectionService.detectTermination(
+          testCase.speech
+        );
         details.terminationDetected = termination.shouldTerminate;
 
         if (
@@ -112,7 +116,7 @@ class PromptEvaluationService {
           testCase.expectedBehavior.shouldTerminate
         ) {
           errors.push(
-            `Termination detection mismatch: expected ${testCase.expectedBehavior.shouldTerminate}, got ${termination.shouldTerminate}`
+            `Termination detection mismatch: expected ${testCase.expectedBehavior.shouldTerminate}, got ${termination.shouldTerminate} (confidence: ${termination.confidence}) - ${termination.message}`
           );
         }
 
@@ -131,19 +135,30 @@ class PromptEvaluationService {
         testCase.expectedBehavior.shouldPressDTMF !== undefined ||
         testCase.expectedBehavior.expectedDigit !== undefined
       ) {
-        if (isIVRMenu(testCase.speech)) {
-          const menuOptions = extractMenuOptions(testCase.speech);
+        // Use AI to detect if this is an IVR menu
+        const menuDetection = await aiDetectionService.detectIVRMenu(
+          testCase.speech
+        );
+        if (menuDetection.isIVRMenu) {
+          // Use AI to extract menu options
+          const extractionResult = await aiDetectionService.extractMenuOptions(
+            testCase.speech
+          );
+          const menuOptions = extractionResult.menuOptions;
+
           // Debug: log extracted menu options for troubleshooting
           if (menuOptions.length === 0) {
             console.log(
-              `   ⚠️  Warning: No menu options extracted from: "${testCase.speech}"`
+              `   ⚠️  Warning: No menu options extracted from: "${testCase.speech}" (confidence: ${extractionResult.confidence})`
             );
           }
-          const dtmfDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
-            testCase.speech,
-            config,
-            menuOptions
-          );
+
+          const dtmfDecision =
+            await aiDTMFService.understandCallPurposeAndPressDTMF(
+              testCase.speech,
+              config,
+              menuOptions
+            );
           details.dtmfDecision = dtmfDecision;
 
           if (
@@ -185,9 +200,8 @@ class PromptEvaluationService {
           // For transfer confirmations from system, AI should ask for confirmation first
           // This is correct behavior per the prompt
           const responseLower = aiResponse.toLowerCase();
-          const isTransferConfirmation = testCase.speech
-            .toLowerCase()
-            .includes("i'm transferring") ||
+          const isTransferConfirmation =
+            testCase.speech.toLowerCase().includes("i'm transferring") ||
             testCase.speech.toLowerCase().includes('i am transferring') ||
             testCase.speech.toLowerCase().includes('i will transfer');
 
@@ -240,7 +254,9 @@ class PromptEvaluationService {
 
           // Flexible matching: check for key words from the purpose
           // e.g., "order status" should match "status of my order", "order", "status"
-          const purposeWords = purposeLower.split(/\s+/).filter(w => w.length > 3);
+          const purposeWords = purposeLower
+            .split(/\s+/)
+            .filter(w => w.length > 3);
           const hasPurpose = purposeWords.some(word =>
             responseLower.includes(word)
           );
@@ -277,8 +293,7 @@ class PromptEvaluationService {
       // Transfer Detection Tests
       {
         name: 'Transfer Request - Direct',
-        description:
-          'Should detect direct transfer confirmation from system',
+        description: 'Should detect direct transfer confirmation from system',
         speech: "I'm transferring you now to a representative",
         expectedBehavior: {
           shouldTransfer: true,
@@ -414,7 +429,8 @@ class PromptEvaluationService {
       {
         name: 'Termination - Business Closed',
         description: 'Should detect business closed and terminate',
-        speech: 'We are currently closed. Our hours are Monday through Friday 9 to 5',
+        speech:
+          'We are currently closed. Our hours are Monday through Friday 9 to 5',
         expectedBehavior: {
           shouldTerminate: true,
           terminationReason: 'closed_no_menu',
@@ -422,7 +438,8 @@ class PromptEvaluationService {
       },
       {
         name: 'No Termination - Business Hours',
-        description: 'Should NOT terminate when business hours are provided without closed status',
+        description:
+          'Should NOT terminate when business hours are provided without closed status',
         speech: 'Our business hours are Monday through Friday 9 to 5',
         expectedBehavior: {
           shouldTerminate: false,
@@ -445,7 +462,8 @@ class PromptEvaluationService {
       },
       {
         name: 'Call Purpose - Default Purpose',
-        description: 'Should use default call purpose when no custom instructions',
+        description:
+          'Should use default call purpose when no custom instructions',
         speech: 'What is the purpose of your call?',
         config: {
           callPurpose: 'speak with a representative',
@@ -512,4 +530,3 @@ class PromptEvaluationService {
 const promptEvaluationService = new PromptEvaluationService();
 
 export default promptEvaluationService;
-

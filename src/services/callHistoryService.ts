@@ -3,7 +3,8 @@
  * Stores and retrieves call history with full conversation logs using MongoDB
  */
 
-import CallHistory, { MenuOption } from '../models/CallHistory';
+import CallHistory from '../models/CallHistory';
+import { MenuOption } from '../types/menu';
 import { isDbConnected } from './database';
 import { isDuplicateKeyError } from '../utils/mongoErrorCodes';
 import { getErrorMessage, getMongoErrorCode } from '../utils/errorUtils';
@@ -209,10 +210,7 @@ class CallHistoryService {
   /**
    * Update the most recent transfer event's success status
    */
-  async updateTransferStatus(
-    callSid: string,
-    success: boolean
-  ): Promise<void> {
+  async updateTransferStatus(callSid: string, success: boolean): Promise<void> {
     if (!isMongoAvailable()) return;
 
     try {
@@ -220,14 +218,15 @@ class CallHistoryService {
       if (!call) return;
 
       // Find the most recent transfer event
-      const transferEvents = call.events
-        ?.map((e, index) => ({ event: e, index }))
-        .filter(({ event }) => event.eventType === 'transfer')
-        .sort((a, b) => {
-          const timeA = a.event.timestamp?.getTime() || 0;
-          const timeB = b.event.timestamp?.getTime() || 0;
-          return timeB - timeA; // Most recent first
-        }) || [];
+      const transferEvents =
+        call.events
+          ?.map((e, index) => ({ event: e, index }))
+          .filter(({ event }) => event.eventType === 'transfer')
+          .sort((a, b) => {
+            const timeA = a.event.timestamp?.getTime() || 0;
+            const timeB = b.event.timestamp?.getTime() || 0;
+            return timeB - timeA; // Most recent first
+          }) || [];
 
       if (transferEvents.length === 0) return;
 
@@ -243,7 +242,10 @@ class CallHistoryService {
         }
       );
     } catch (error: unknown) {
-      console.error('❌ Error updating transfer status:', getErrorMessage(error));
+      console.error(
+        '❌ Error updating transfer status:',
+        getErrorMessage(error)
+      );
     }
   }
 
