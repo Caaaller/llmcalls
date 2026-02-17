@@ -3,7 +3,8 @@
  * Stores and retrieves call history with full conversation logs using MongoDB
  */
 
-import CallHistory, { MenuOption } from '../models/CallHistory';
+import CallHistory from '../models/CallHistory';
+import { MenuOption } from '../types/menu';
 import { isDbConnected } from './database';
 import { isDuplicateKeyError } from '../utils/mongoErrorCodes';
 import { getErrorMessage, getMongoErrorCode } from '../utils/errorUtils';

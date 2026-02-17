@@ -12,6 +12,11 @@ let isConnected = false;
  * Connect to MongoDB
  */
 export async function connect(): Promise<void> {
+  const connectStartTime = Date.now();
+  console.log('\n🔌 ========================================');
+  console.log('🔌 MONGODB CONNECTION ATTEMPT');
+  console.log('🔌 ========================================');
+
   if (isConnected) {
     console.log('✅ MongoDB already connected');
     return;
@@ -42,10 +47,14 @@ export async function connect(): Promise<void> {
     });
 
     isConnected = true;
-    console.log(
-      '✅ Connected to MongoDB:',
-      mongoUri.replace(/\/\/.*@/, '//***:***@')
-    );
+    const connectTime = Date.now() - connectStartTime;
+    console.log('✅ ========================================');
+    console.log('✅ MONGODB CONNECTION SUCCESSFUL');
+    console.log('✅ ========================================');
+    console.log('✅ Connected to:', mongoUri.replace(/\/\/.*@/, '//***:***@'));
+    console.log(`✅ Connection time: ${connectTime}ms`);
+    console.log(`✅ ReadyState: ${mongoose.connection.readyState}`);
+    console.log('✅ ========================================\n');
 
     mongoose.connection.on('error', err => {
       console.error('❌ MongoDB connection error:', err);

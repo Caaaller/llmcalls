@@ -1,5 +1,36 @@
 # Claude/Agent Coding Standards
 
+## Avoid Unnecessary Re-exports
+
+**Do not add "backward compatibility" re-exports unless there's a specific, documented reason.**
+
+### Why This Is Problematic
+- **TypeScript will catch breaking changes**: If a type is removed or changed, TypeScript will automatically detect violations at compile time
+- **Adds maintenance burden**: Unnecessary re-exports create confusion about where types actually live
+- **Violates single source of truth**: Types should be imported from their original location
+
+### Example
+
+**Don't do this:**
+```typescript
+import { MenuOption } from '../types/menu';
+
+// Re-export for backward compatibility
+export type { MenuOption };
+```
+
+**Do this instead:**
+```typescript
+import { MenuOption } from '../types/menu';
+
+// Use MenuOption directly - TypeScript will catch any issues
+export interface CallEvent {
+  menuOptions?: MenuOption[];
+}
+```
+
+If there are actual breaking changes that need backward compatibility, handle them explicitly with deprecation warnings or migration paths, not silent re-exports.
+
 ## Function Naming
 
 **Functions should be verbs that describe the action they perform.**
@@ -82,4 +113,3 @@ initiateTransfer({
   message: 'Thank you. Hold on, please.'
 });
 ```
-

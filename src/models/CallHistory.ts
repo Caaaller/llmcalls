@@ -26,10 +26,7 @@ export interface DTMFPress {
   timestamp?: Date;
 }
 
-export interface MenuOption {
-  digit: string;
-  option: string;
-}
+import { MenuOption } from '../types/menu';
 
 export interface CallEvent {
   eventType: 'conversation' | 'dtmf' | 'ivr_menu' | 'transfer' | 'termination';

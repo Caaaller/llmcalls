@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 /**
  * Prompt Evaluation CLI
- * Run all prompt evaluations to test transfer, loop detection, and DTMF decisions
+ * Run prompt evaluations to test transfer, loop detection, and DTMF decisions
  *
  * Usage:
  *   npm run eval:prompts

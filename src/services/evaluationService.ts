@@ -49,7 +49,13 @@ class EvaluationService {
 
     try {
       // Build query filter
-      const queryFilter: any = {};
+      interface QueryFilter {
+        startTime?: {
+          $gte?: Date;
+          $lte?: Date;
+        };
+      }
+      const queryFilter: QueryFilter = {};
       if (startDate || endDate) {
         queryFilter.startTime = {};
         if (startDate) {
@@ -176,7 +182,13 @@ class EvaluationService {
     }
 
     try {
-      const queryFilter: any = {};
+      interface QueryFilter {
+        startTime?: {
+          $gte?: Date;
+          $lte?: Date;
+        };
+      }
+      const queryFilter: QueryFilter = {};
       if (startDate || endDate) {
         queryFilter.startTime = {};
         if (startDate) {

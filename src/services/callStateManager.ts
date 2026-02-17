@@ -3,18 +3,13 @@
  * Manages state for each call (IVR navigation, conversation history, etc.)
  */
 
-import { MenuOption } from '../utils/ivrDetector';
+import { MenuOption } from '../types/menu';
 import { TransferConfig } from '../config/transfer-config';
 
 export interface ConversationEntry {
   type: 'user' | 'ai' | 'system';
   text: string;
   timestamp?: Date;
-}
-
-export interface LoopDetector {
-  detectLoop(options: MenuOption[]): { isLoop: boolean; message?: string };
-  reset(): void;
 }
 
 export interface CallState {
@@ -31,9 +26,11 @@ export interface CallState {
   humanConfirmed?: boolean;
   awaitingHumanConfirmation?: boolean;
   transferConfig?: TransferConfig;
-  loopDetector?: LoopDetector;
+  previousMenus?: MenuOption[][]; // Track previous menus for AI loop detection
   holdStartTime?: Date | null;
   customInstructions?: string;
+  awaitingCompleteSpeech?: boolean; // Track if we're waiting for more speech
+  incompleteSpeechWaitCount?: number; // Track how many times we've waited for incomplete speech
 }
 
 /**
@@ -48,6 +45,7 @@ export function createDefaultCallState(callSid: string): CallState {
     conversationHistory: [],
     scenarioId: null,
     createdAt: new Date(),
+    previousMenus: [], // Initialize for AI loop detection
   };
 }
 
