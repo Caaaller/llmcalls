@@ -5,7 +5,7 @@
 
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
-import { validateQuery, ValidatedRequest } from '../middleware/validateQuery';
+import { validatedRoute } from '../middleware/validateQuery';
 import transferConfig from '../config/transfer-config';
 import twilioService from '../services/twilioService';
 import callHistoryService from '../services/callHistoryService';
@@ -325,11 +325,7 @@ const evaluationQuerySchema = z.object({
 router.get(
   '/evaluations',
   authenticate,
-  validateQuery(evaluationQuerySchema),
-  async (req: Request, res: Response) => {
-    const validatedReq = req as ValidatedRequest<
-      z.infer<typeof evaluationQuerySchema>
-    >;
+  ...validatedRoute(evaluationQuerySchema, async (req, res) => {
     try {
       if (!isDbConnected()) {
         return res.status(503).json({
@@ -338,8 +334,7 @@ router.get(
         });
       }
 
-      // Now validatedReq.validatedQuery is fully typed! 🎉
-      const { days, startDate, endDate } = validatedReq.validatedQuery;
+      const { days, startDate, endDate } = req.validatedQuery;
 
       let metrics;
 
@@ -365,7 +360,7 @@ router.get(
         error: errorMessage,
       });
     }
-  }
+  })
 );
 
 /**
@@ -382,11 +377,7 @@ const breakdownQuerySchema = z.object({
 router.get(
   '/evaluations/breakdown',
   authenticate,
-  validateQuery(breakdownQuerySchema),
-  async (req: Request, res: Response) => {
-    const validatedReq = req as ValidatedRequest<
-      z.infer<typeof breakdownQuerySchema>
-    >;
+  ...validatedRoute(breakdownQuerySchema, async (req, res) => {
     try {
       if (!isDbConnected()) {
         return res.status(503).json({
@@ -395,9 +386,8 @@ router.get(
         });
       }
 
-      // Now validatedReq.validatedQuery is fully typed! 🎉
       const { startDate: startDateParam, endDate: endDateParam } =
-        validatedReq.validatedQuery;
+        req.validatedQuery;
 
       const startDate = startDateParam ? new Date(startDateParam) : undefined;
       const endDate = endDateParam ? new Date(endDateParam) : undefined;
@@ -419,7 +409,7 @@ router.get(
         error: errorMessage,
       });
     }
-  }
+  })
 );
 
 export default router;

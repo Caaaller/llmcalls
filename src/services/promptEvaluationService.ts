@@ -152,7 +152,6 @@ class PromptEvaluationService {
               `   ⚠️  Warning: No menu options extracted from: "${testCase.speech}" (confidence: ${extractionResult.confidence})`
             );
           }
-
           const dtmfDecision =
             await aiDTMFService.understandCallPurposeAndPressDTMF(
               testCase.speech,

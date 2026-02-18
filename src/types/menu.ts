@@ -6,4 +6,3 @@ export interface MenuOption {
   digit: string;
   option: string;
 }
-
