@@ -27,7 +27,6 @@ class CallHistoryService {
    */
   async startCall(callSid: string, metadata: CallMetadata = {}): Promise<void> {
     if (!isMongoAvailable()) {
-      console.log('⚠️  MongoDB not connected. Call history will not be saved.');
       return;
     }
 
@@ -49,10 +48,8 @@ class CallHistoryService {
       });
 
       await callHistory.save();
-      console.log(`📞 Started tracking call: ${callSid}`);
     } catch (error: unknown) {
       if (isDuplicateKeyError(getMongoErrorCode(error))) {
-        console.log(`📞 Call ${callSid} already exists, updating...`);
         await CallHistory.findOneAndUpdate(
           { callSid },
           {

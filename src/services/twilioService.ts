@@ -60,11 +60,6 @@ class TwilioService {
     options: CallOptions = {}
   ) {
     try {
-      console.log('📞 TwilioService: Creating call...');
-      console.log('  To:', to);
-      console.log('  From:', from);
-      console.log('  URL:', url);
-
       const call = await this.client.calls.create({
         to,
         from,
@@ -75,16 +70,10 @@ class TwilioService {
         ...options,
       });
 
-      console.log('✅ TwilioService: Call created successfully');
-      console.log('  Call SID:', call.sid);
-      console.log('  Status:', call.status);
-      console.log('  Direction:', call.direction);
-
       return call;
     } catch (error: unknown) {
       const err = toError(error);
-      console.error('❌ TwilioService: Failed to initiate call:', err.message);
-      console.error('  Error details:', error);
+      console.error('Failed to initiate call:', err.message);
       throw new Error(`Failed to initiate call: ${err.message}`);
     }
   }
