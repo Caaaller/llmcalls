@@ -28,6 +28,9 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
       if (data.success) {
         setAuth(data.user, data.token);
         onLogin(data.user, data.token);
+      } else {
+        // Handle case where API returns success: false
+        setError((data as any).error || 'Login failed. Please try again.');
       }
     },
     onError: (err: Error) => {
@@ -47,8 +50,14 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
     e.preventDefault();
     setError('');
 
+    // Validate form data
+    if (!formData.email || !formData.password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
     loginMutation.mutate({
-      email: formData.email,
+      email: formData.email.trim(),
       password: formData.password,
     });
   };

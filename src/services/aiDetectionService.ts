@@ -428,12 +428,13 @@ Terminate for:
    - "You've reached voicemail"
    - "Leave a message at the tone"
 
-2. CLOSED: Business is closed with no menu options
+2. CLOSED: Business/office is currently closed
    - "We are currently closed"
+   - "Our office is currently closed"
    - "Our office is closed"
    - "Outside business hours"
    - "Please call back during business hours"
-   - Note: If closed BUT has menu options (e.g., "Press 9 for emergencies"), do NOT terminate
+   - CRITICAL: If the speech explicitly states the office/business is "currently closed" or "closed", ALWAYS terminate, even if menu options are provided. Menu options when closed are typically for automated systems (payments, balances) which don't help reach a live representative.
 
 3. DEAD END: Call reached a dead end
    - Previous speech indicated closed
@@ -441,8 +442,8 @@ Terminate for:
    - Silence duration >= 5 seconds
 
 Do NOT terminate for:
-- Business hours information without closed status
-- IVR menus
+- Business hours information WITHOUT closed status (e.g., "Our hours are 9-5" without saying "closed")
+- IVR menus when business is open
 - Normal conversation
 - Hold music or waiting
 

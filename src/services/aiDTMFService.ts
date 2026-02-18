@@ -71,13 +71,20 @@ Matching Rules (in priority order):
 2. SEMANTIC MATCH: If the call purpose is semantically similar to a menu option (e.g., "customer service" matches "support", "representative" matches "operator"), press that digit.
 3. REPRESENTATIVE OPTIONS: If the call purpose is to "speak with a representative" or similar, prioritize menu options that mention: representative, operator, agent, customer service, support, or "all other questions".
 4. EXPLICIT INSTRUCTION: If the menu explicitly says "press X" for something related to the call purpose, press that digit.
-5. NO MATCH: Only if there is truly no relevant option should you not press anything.
+5. BEST AVAILABLE OPTION: If there is no perfect match but a complete menu is presented, you MUST still press a digit to progress. Choose the option most likely to lead to a representative or help:
+   - If options include "yes/no" or "1/2" for service type questions, choose the option that seems most likely to lead to support (often "yes" or the first option).
+   - If options include "all other questions", "other", "more options", or similar, choose that.
+   - If unsure, choose the option that seems most general or likely to connect to a person.
+6. NO MATCH: Only if the menu is clearly incomplete (e.g., "Press 1 for..." with no other options) should you not press anything.
+
+CRITICAL: When a COMPLETE menu is presented (e.g., "Press 1 for X, Press 2 for Y"), you MUST press a digit. Do not wait for a perfect match. Always choose the best available option to progress through the IVR system.
 
 Important: When the call purpose is "speak with a representative" or similar, and a menu option mentions "representative", "operator", "agent", or "customer service", that is a MATCH. Press that digit.
 
 IMPORTANT: 
 - When custom instructions are provided, prioritize matching those over the generic call purpose.
 - When call purpose is "speak with a representative", be smart about recognizing options that lead to human agents (customer care, support, help, etc.) even if they don't explicitly say "representative".
+- When a complete menu is shown but no option perfectly matches, still press the best available option to continue navigation.
 
 Respond ONLY with JSON:
 {

@@ -58,6 +58,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Logging middleware
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`\n[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log(`Query:`, req.query);
   if (
     req.body &&
     typeof req.body === 'object' &&
@@ -68,13 +69,17 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-// Serve static files from public directory
-app.use(express.static('public'));
-
 // Routes (API routes before static file serving)
+console.log('📋 Registering routes...');
 app.use('/voice', voiceRoutes);
+console.log('  ✅ /voice routes registered');
 app.use('/api/auth', authRoutes);
+console.log('  ✅ /api/auth routes registered');
 app.use('/api', apiRoutes);
+console.log('  ✅ /api routes registered');
+
+// Serve static files from public directory (after routes to avoid conflicts)
+app.use(express.static('public'));
 
 // Health check endpoint
 app.get('/health', (_req: Request, res: Response) => {
@@ -98,20 +103,25 @@ app.get('/health', (_req: Request, res: Response) => {
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
   const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
+  
+  // Serve static files from frontend build
   app.use(express.static(frontendBuildPath));
 
   // Catch-all handler: send back React's index.html file for client-side routing
+  // IMPORTANT: This must come AFTER all API routes
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Don't serve React app for API routes or voice routes
+    // Don't serve React app for API routes, voice routes, or health check
     if (
       req.path.startsWith('/api') ||
       req.path.startsWith('/voice') ||
       req.path.startsWith('/health')
     ) {
-      return next();
+      console.log(`   ⚠️  Catch-all skipping: ${req.method} ${req.path} (API route)`);
+      return next(); // Let it fall through to 404 handler if route doesn't exist
     }
     // Only handle GET requests for the catch-all
     if (req.method === 'GET') {
+      console.log(`   📄 Serving React app for: ${req.method} ${req.path}`);
       res.sendFile(path.join(frontendBuildPath, 'index.html'));
     } else {
       next();
@@ -133,6 +143,19 @@ if (process.env.NODE_ENV === 'production') {
     });
   });
 }
+
+// 404 handler for unmatched routes
+app.use((req: Request, res: Response) => {
+  console.error(`\n❌ 404 - Route not found: ${req.method} ${req.path}`);
+  console.error(`   Original URL: ${req.originalUrl}`);
+  console.error(`   Query:`, req.query);
+  res.status(404).json({
+    success: false,
+    error: 'Route not found',
+    path: req.path,
+    method: req.method,
+  });
+});
 
 // Error handling middleware
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {

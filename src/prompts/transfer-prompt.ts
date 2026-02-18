@@ -145,6 +145,13 @@ When asked for the purpose of the call, ${customInstructions ? `interpret "${cus
 [Default personal information]
 If no override is provided above in the "Additional call-specific guidelines" section, then assume the user's phone number is ${userPhone} and their email is ${userEmail}.
 
+[Providing information when asked]
+When a representative asks for information (such as phone number, account number, email, or any other details), provide it IMMEDIATELY without hesitation or delay. Do not ask clarifying questions or wait. Simply provide the requested information right away.
+- If asked for a phone number, immediately say: "${userPhone}"
+- If asked for an email, immediately say: "${userEmail}"
+- If asked for an account number or any other information, provide it instantly if you have it, or say you don't have that information if you don't.
+- Speak clearly and at a normal pace when providing numbers or information orally.
+
 ${conversationContext}`;
 
     return {
