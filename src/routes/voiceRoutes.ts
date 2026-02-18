@@ -308,9 +308,7 @@ router.post(
       const callState = callStateManager.getCallState(callSid);
       // Use stored customInstructions from call state if available, otherwise from query params
       const customInstructionsFromState = callState.customInstructions;
-      const customInstructionsFromQuery = req.query.customInstructions as
-        | string
-        | undefined;
+      const customInstructionsFromQuery = req.query.customInstructions as string | undefined;
       const finalCustomInstructions =
         customInstructionsFromQuery || customInstructionsFromState || '';
 
@@ -1061,9 +1059,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callState = callStateManager.getCallState(callSid);
   const customInstructionsFromState = callState.customInstructions;
-  const customInstructionsFromQuery = req.query.customInstructions as
-    | string
-    | undefined;
+  const customInstructionsFromQuery = req.query.customInstructions as string | undefined;
   const finalCustomInstructions =
     customInstructionsFromQuery || customInstructionsFromState || '';
 

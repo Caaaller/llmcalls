@@ -334,7 +334,6 @@ router.get(
         });
       }
 
-      // req.validatedQuery is already fully typed! 🎉
       const { days, startDate, endDate } = req.validatedQuery;
 
       let metrics;
@@ -387,7 +386,6 @@ router.get(
         });
       }
 
-      // req.validatedQuery is already fully typed! 🎉
       const { startDate: startDateParam, endDate: endDateParam } =
         req.validatedQuery;
 
