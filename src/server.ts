@@ -118,6 +118,8 @@ if (process.env.NODE_ENV === 'production') {
 
 // Error handling middleware
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
+  console.error(`Unhandled error on ${req.method} ${req.path}:`, err);
+
   if (
     req.path.includes('voice') ||
     req.path.includes('process-speech') ||
