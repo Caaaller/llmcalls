@@ -15,6 +15,7 @@ import { connect, disconnect } from './services/database';
 import voiceRoutes from './routes/voiceRoutes';
 import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
+import { requestLogger } from './middleware/requestLogger';
 import twilio from 'twilio';
 
 const app = express();
@@ -54,6 +55,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   }
   next();
 });
+
+// Request logging
+app.use(requestLogger);
 
 // Serve static files from public directory
 app.use(express.static('public'));
@@ -114,8 +118,6 @@ if (process.env.NODE_ENV === 'production') {
 
 // Error handling middleware
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
-  console.error('Unhandled error:', err.message, 'on', req.method, req.path);
-
   if (
     req.path.includes('voice') ||
     req.path.includes('process-speech') ||
@@ -144,9 +146,7 @@ app.use(errorHandler);
 async function startServer(): Promise<void> {
   const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
   if (mongoUri) {
-    connect()
-      .then(() => console.log('MongoDB connected'))
-      .catch(err => console.error('MongoDB connection failed:', err instanceof Error ? err.message : String(err)));
+    connect().catch(() => {});
   } else {
     console.warn('No MongoDB URI set - database operations will fail');
   }

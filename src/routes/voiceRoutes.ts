@@ -323,8 +323,6 @@ router.post(
           customInstructions: finalCustomInstructions,
         });
       }
-      console.log(`🎤 Speech received [${callSid}]: "${speechResult}"`);
-
       if (!callSid) {
         throw new Error('Call SID is missing');
       }
@@ -952,7 +950,6 @@ router.post(
  * Process DTMF - handle DTMF key presses
  */
 router.post('/process-dtmf', (req: Request, res: Response) => {
-  const digits = req.body.Digits || req.query.Digits;
   const baseUrl = getBaseUrl(req);
 
   const callSid = req.body.CallSid;
@@ -981,8 +978,6 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
     });
   }
 
-  console.log(`🔢 DTMF processed: ${digits}`);
-
   const response = new twilio.twiml.VoiceResponse();
   const gatherAttributes = createGatherAttributes(config, {
     action: buildProcessSpeechUrl({ baseUrl, config }),
@@ -1002,7 +997,6 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
 router.post('/call-status', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
-  console.log(`📞 Call status: ${callStatus} [${callSid}]`);
 
   if (callSid && callStatus) {
     if (callStatus === 'completed') {
@@ -1027,7 +1021,6 @@ router.post('/call-status', (req: Request, res: Response) => {
 router.post('/transfer-status', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
-  console.log(`🔄 Transfer status: ${callStatus} [${callSid}]`);
 
   if (callSid && callStatus) {
     if (callStatus === 'completed') {

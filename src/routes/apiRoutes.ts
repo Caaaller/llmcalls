@@ -91,7 +91,6 @@ router.get(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error('Error fetching call history:', error);
       res.status(500).json({
         success: false,
         error: errorMessage,
@@ -234,8 +233,6 @@ router.post(
           statusCallbackMethod: 'POST',
         }
       );
-
-      console.log(`Call initiated: ${call.sid} -> ${call.to}`);
 
       await callHistoryService.startCall(call.sid, {
         to: call.to,
