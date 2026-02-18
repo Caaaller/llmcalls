@@ -640,6 +640,12 @@ router.post(
                   `✅ Pressing DTMF ${digitToPress} (AI confirmed match)`
                 );
 
+                // Track that we pressed this DTMF for this menu
+                callStateManager.updateCallState(callSid, {
+                  lastPressedDTMF: digitToPress,
+                  lastMenuForDTMF: allMenuOptions,
+                });
+
                 callHistoryService
                   .addDTMF(
                     callSid,
@@ -741,48 +747,73 @@ router.post(
           console.log(
             `🔄 ${loopCheck.reason} - Acting immediately (confidence: ${loopCheck.confidence})`
           );
-          // Use AI DTMF service to select best option when loop detected
-          const aiDecision =
-            await aiDTMFService.understandCallPurposeAndPressDTMF(
-              speechResult,
-              { callPurpose: config.callPurpose },
-              allMenuOptions
+
+          // Check if we already pressed a DTMF for this same menu
+          const lastMenuForDTMF = callState.lastMenuForDTMF || [];
+          const menusMatch =
+            lastMenuForDTMF.length === allMenuOptions.length &&
+            lastMenuForDTMF.every(
+              (opt, idx) =>
+                opt.digit === allMenuOptions[idx]?.digit &&
+                opt.option === allMenuOptions[idx]?.option
             );
 
-          const bestOption =
-            aiDecision.shouldPress && aiDecision.digit
-              ? allMenuOptions.find(
-                  (opt: { digit: string; option: string }) =>
-                    opt.digit === aiDecision.digit
-                )
-              : allMenuOptions.find(
-                  (opt: { digit: string; option: string }) =>
-                    opt.option.includes('representative') ||
-                    opt.option.includes('agent') ||
-                    opt.option.includes('other') ||
-                    opt.option.includes('operator')
-                ) || allMenuOptions[0];
-
-          if (bestOption) {
-            const digitToPress = bestOption.digit;
+          if (menusMatch && callState.lastPressedDTMF) {
             console.log(
-              `✅ Pressing DTMF ${digitToPress} immediately (loop detected)`
+              `⚠️ Loop detected: Same menu as before, already pressed DTMF ${callState.lastPressedDTMF}. Not pressing again - waiting for response.`
             );
+            // Don't press again - wait for the system to respond
+            // Continue with normal flow to gather more speech
+          } else {
+            // Use AI DTMF service to select best option when loop detected
+            const aiDecision =
+              await aiDTMFService.understandCallPurposeAndPressDTMF(
+                speechResult,
+                { callPurpose: config.callPurpose },
+                allMenuOptions
+              );
 
-            callHistoryService
-              .addDTMF(callSid, digitToPress, 'Loop detected - immediate press')
-              .catch(err => console.error('Error adding DTMF:', err));
+            const bestOption =
+              aiDecision.shouldPress && aiDecision.digit
+                ? allMenuOptions.find(
+                    (opt: { digit: string; option: string }) =>
+                      opt.digit === aiDecision.digit
+                  )
+                : allMenuOptions.find(
+                    (opt: { digit: string; option: string }) =>
+                      opt.option.includes('representative') ||
+                      opt.option.includes('agent') ||
+                      opt.option.includes('other') ||
+                      opt.option.includes('operator')
+                  ) || allMenuOptions[0];
 
-            response.pause({ length: 0.5 });
-            setTimeout(async () => {
-              await twilioService.sendDTMF(callSid, digitToPress);
-            }, 500);
-            response.redirect(
-              `${baseUrl}/voice/process-dtmf?Digits=${digitToPress}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
-            );
-            res.type('text/xml');
-            res.send(response.toString());
-            return;
+            if (bestOption) {
+              const digitToPress = bestOption.digit;
+              console.log(
+                `✅ Pressing DTMF ${digitToPress} immediately (loop detected)`
+              );
+
+              // Track that we pressed this DTMF for this menu
+              callStateManager.updateCallState(callSid, {
+                lastPressedDTMF: digitToPress,
+                lastMenuForDTMF: allMenuOptions,
+              });
+
+              callHistoryService
+                .addDTMF(callSid, digitToPress, 'Loop detected - immediate press')
+                .catch(err => console.error('Error adding DTMF:', err));
+
+              response.pause({ length: 0.5 });
+              setTimeout(async () => {
+                await twilioService.sendDTMF(callSid, digitToPress);
+              }, 500);
+              response.redirect(
+                `${baseUrl}/voice/process-dtmf?Digits=${digitToPress}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
+              );
+              res.type('text/xml');
+              res.send(response.toString());
+              return;
+            }
           }
         }
 
@@ -835,6 +866,13 @@ router.post(
             aiDecision && aiDecision.matchedOption
               ? `AI selected: ${aiDecision.matchedOption}`
               : 'Selected best option';
+
+          // Track that we pressed this DTMF for this menu
+          callStateManager.updateCallState(callSid, {
+            lastPressedDTMF: digitToPress,
+            lastMenuForDTMF: allMenuOptions,
+          });
+
           callHistoryService
             .addDTMF(callSid, digitToPress, reason)
             .catch(err => console.error('Error adding DTMF:', err));

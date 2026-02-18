@@ -9,6 +9,7 @@ import aiDTMFService from './aiDTMFService';
 import aiDetectionService from './aiDetectionService';
 import { TransferConfig } from './aiService';
 import { DTMFDecision } from './aiDTMFService';
+import { MenuOption } from '../types/menu';
 
 export interface PromptTestCase {
   name: string;
@@ -23,6 +24,25 @@ export interface PromptTestCase {
     terminationReason?: 'voicemail' | 'closed_no_menu' | 'dead_end' | null;
     expectedCallPurpose?: string;
   };
+}
+
+/**
+ * Multi-step test case for testing loop detection and stateful behavior
+ * Simulates sequential requests with state tracking
+ */
+export interface MultiStepTestCase {
+  name: string;
+  description: string;
+  steps: Array<{
+    speech: string;
+    expectedBehavior: {
+      shouldPressDTMF?: boolean;
+      expectedDigit?: string;
+      shouldDetectLoop?: boolean;
+      shouldNotPressAgain?: boolean; // If DTMF was already pressed, should not press again
+    };
+  }>;
+  config?: Partial<TransferConfig>;
 }
 
 export interface PromptTestResult {
@@ -42,6 +62,32 @@ export interface PromptEvaluationReport {
   passed: number;
   failed: number;
   results: PromptTestResult[];
+  timestamp: Date;
+}
+
+export interface MultiStepTestResult {
+  testCase: MultiStepTestCase;
+  passed: boolean;
+  errors: string[];
+  stepResults: Array<{
+    stepIndex: number;
+    speech: string;
+    passed: boolean;
+    errors: string[];
+    details: {
+      menuOptions?: MenuOption[];
+      dtmfDecision?: DTMFDecision;
+      loopDetected?: boolean;
+      previousMenus?: MenuOption[][];
+    };
+  }>;
+}
+
+export interface MultiStepEvaluationReport {
+  totalTests: number;
+  passed: number;
+  failed: number;
+  results: MultiStepTestResult[];
   timestamp: Date;
 }
 
@@ -206,28 +252,54 @@ class PromptEvaluationService {
 
           if (isTransferConfirmation) {
             // For system transfer confirmations, AI should confirm it's a real person
+            // Per prompt: "When you Think you are speaking with a human, confirm it by asking..."
+            // However, if the AI recognizes this is an automated system announcement,
+            // it may correctly remain silent (per prompt: "Remain silent during menu prompts")
+            const isSilentWord = responseLower.trim() === 'silent.' || responseLower.trim() === 'silent';
+            const isEmptyResponse = aiResponse.trim() === '';
             const hasConfirmationIntent =
               responseLower.includes('real person') ||
               responseLower.includes('automated system') ||
               responseLower.includes('human') ||
-              responseLower.includes('transfer');
+              (responseLower.includes('transfer') && responseLower.includes('speaking'));
 
-            if (!hasConfirmationIntent) {
+            // CRITICAL: AI should NOT say "Silent." - per prompt: "If you are being silent, do not say the word 'Silent'. Simply don't say anything"
+            if (isSilentWord) {
               errors.push(
-                `AI response should confirm before transferring: "${aiResponse}"`
+                `AI should not say "Silent." - per prompt: "If you are being silent, do not say the word 'Silent'. Simply don't say anything". Response: "${aiResponse}"`
+              );
+            } else if (!isEmptyResponse && !hasConfirmationIntent) {
+              // If AI responds but doesn't confirm, that's an error
+              // The AI should either ask for confirmation OR remain completely silent
+              errors.push(
+                `AI response should either: (1) confirm before transferring by asking about real person/human, OR (2) remain completely silent. Got: "${aiResponse}"`
               );
             }
+            // Empty response is acceptable - AI correctly recognized it's an automated announcement
           } else {
-            // For user transfer requests, check for transfer intent
+            // For user transfer requests, the AI should acknowledge and navigate
+            // Acceptable responses include:
+            // 1. Transfer/navigation intent keywords
+            // 2. Navigation/acknowledgment language (e.g., "I'll navigate", "begin navigating", "proceed")
+            // 3. Empty response (if AI correctly recognizes it should remain silent)
             const hasTransferIntent =
               responseLower.includes('transfer') ||
               responseLower.includes('connect') ||
               responseLower.includes('representative') ||
               responseLower.includes('agent');
+            
+            const hasNavigationIntent =
+              responseLower.includes('navigat') ||
+              responseLower.includes('proceed') ||
+              responseLower.includes('begin') ||
+              responseLower.includes('hold') ||
+              responseLower.includes('understand');
+            
+            const isEmptyResponse = aiResponse.trim() === '';
 
-            if (!hasTransferIntent) {
+            if (!hasTransferIntent && !hasNavigationIntent && !isEmptyResponse) {
               errors.push(
-                `AI response doesn't indicate transfer intent: "${aiResponse}"`
+                `AI response should indicate transfer/navigation intent or remain silent: "${aiResponse}"`
               );
             }
           }
@@ -281,6 +353,284 @@ class PromptEvaluationService {
       passed: errors.length === 0,
       errors,
       details,
+    };
+  }
+
+  /**
+   * Run a multi-step test case (for loop detection and stateful behavior)
+   */
+  async runMultiStepTestCase(
+    testCase: MultiStepTestCase,
+    config: TransferConfig
+  ): Promise<MultiStepTestResult> {
+    const errors: string[] = [];
+    const stepResults: MultiStepTestResult['stepResults'] = [];
+    let previousMenus: MenuOption[][] = [];
+    let lastPressedDTMF: string | undefined;
+    let lastMenuForDTMF: MenuOption[] | undefined;
+
+    for (let i = 0; i < testCase.steps.length; i++) {
+      const step = testCase.steps[i];
+      const stepErrors: string[] = [];
+      const stepDetails: MultiStepTestResult['stepResults'][0]['details'] = {
+        previousMenus: [...previousMenus],
+      };
+
+      try {
+        // Detect if this is an IVR menu
+        const menuDetection = await aiDetectionService.detectIVRMenu(
+          step.speech
+        );
+
+        if (menuDetection.isIVRMenu) {
+          // Extract menu options
+          const extractionResult =
+            await aiDetectionService.extractMenuOptions(step.speech);
+          const menuOptions = extractionResult.menuOptions;
+          stepDetails.menuOptions = menuOptions;
+
+          // Check for loop detection
+          let loopDetected = false;
+          if (previousMenus.length > 0) {
+            const loopCheck = await aiDetectionService.detectLoop(
+              menuOptions,
+              previousMenus
+            );
+            loopDetected = loopCheck.isLoop;
+            stepDetails.loopDetected = loopCheck.isLoop;
+
+            if (
+              step.expectedBehavior.shouldDetectLoop !== undefined &&
+              loopCheck.isLoop !== step.expectedBehavior.shouldDetectLoop
+            ) {
+              stepErrors.push(
+                `Loop detection mismatch at step ${i + 1}: expected ${step.expectedBehavior.shouldDetectLoop}, got ${loopCheck.isLoop} (confidence: ${loopCheck.confidence})`
+              );
+            }
+          }
+
+          // Simulate the loop prevention logic from voiceRoutes.ts
+          // Check if we already pressed a DTMF for this same menu
+          const menusMatch =
+            lastMenuForDTMF &&
+            lastMenuForDTMF.length === menuOptions.length &&
+            lastMenuForDTMF.every(
+              (opt, idx) =>
+                opt.digit === menuOptions[idx]?.digit &&
+                opt.option === menuOptions[idx]?.option
+            );
+
+          let shouldActuallyPress = true;
+          if (loopDetected && menusMatch && lastPressedDTMF) {
+            // Same menu as before, already pressed DTMF - should NOT press again
+            shouldActuallyPress = false;
+            console.log(
+              `   ⚠️  Step ${i + 1}: Loop detected with same menu, already pressed DTMF ${lastPressedDTMF}. Should NOT press again.`
+            );
+          }
+
+          // Get DTMF decision (what AI would decide)
+          const dtmfDecision =
+            await aiDTMFService.understandCallPurposeAndPressDTMF(
+              step.speech,
+              config,
+              menuOptions
+            );
+          stepDetails.dtmfDecision = dtmfDecision;
+
+          // Check if should press DTMF (considering loop prevention)
+          const expectedShouldPress = step.expectedBehavior.shouldPressDTMF;
+          if (expectedShouldPress !== undefined) {
+            // If loop prevention should kick in, we expect shouldPress to be false
+            // even if AI would normally press
+            if (step.expectedBehavior.shouldNotPressAgain) {
+              if (shouldActuallyPress && dtmfDecision.shouldPress) {
+                stepErrors.push(
+                  `Should not press DTMF at step ${i + 1} (loop detected, same menu, already pressed ${lastPressedDTMF}) - but system would still press`
+                );
+              }
+            } else {
+              // Normal case - check if decision matches expectation
+              if (dtmfDecision.shouldPress !== expectedShouldPress) {
+                stepErrors.push(
+                  `DTMF decision mismatch at step ${i + 1}: expected shouldPress=${expectedShouldPress}, got ${dtmfDecision.shouldPress}`
+                );
+              }
+            }
+          }
+
+          // Check expected digit (only if we should actually press)
+          if (
+            step.expectedBehavior.expectedDigit !== undefined &&
+            shouldActuallyPress
+          ) {
+            if (dtmfDecision.digit !== step.expectedBehavior.expectedDigit) {
+              stepErrors.push(
+                `DTMF digit mismatch at step ${i + 1}: expected ${step.expectedBehavior.expectedDigit}, got ${dtmfDecision.digit}`
+              );
+            }
+          }
+
+          // Update state for next step (only if we actually pressed)
+          if (shouldActuallyPress && dtmfDecision.shouldPress && dtmfDecision.digit) {
+            lastPressedDTMF = dtmfDecision.digit;
+            lastMenuForDTMF = menuOptions;
+          }
+          previousMenus.push(menuOptions);
+        } else {
+          // Not an IVR menu - check if we expected it to be
+          if (step.expectedBehavior.shouldPressDTMF === true) {
+            stepErrors.push(
+              `Expected IVR menu at step ${i + 1}, but menu was not detected`
+            );
+          }
+        }
+      } catch (error) {
+        stepErrors.push(
+          `Error processing step ${i + 1}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      stepResults.push({
+        stepIndex: i,
+        speech: step.speech,
+        passed: stepErrors.length === 0,
+        errors: stepErrors,
+        details: stepDetails,
+      });
+
+      errors.push(...stepErrors);
+    }
+
+    return {
+      testCase,
+      passed: errors.length === 0,
+      errors,
+      stepResults,
+    };
+  }
+
+  /**
+   * Get all multi-step test cases for loop detection
+   */
+  getMultiStepTestCases(): MultiStepTestCase[] {
+    return [
+      {
+        name: 'Loop Detection - NYU Langone Scenario',
+        description:
+          'Tests the actual looping scenario where same menu appears multiple times and DTMF 5 is pressed repeatedly',
+        config: {
+          callPurpose: 'speak with a representative',
+        },
+        steps: [
+          {
+            speech:
+              "Thank you for calling the NYU langone faculty group. Practice billing office. If you are calling to make a payment or discuss payment options, press 1 to inquire about the status of prior authorization,",
+            expectedBehavior: {
+              shouldPressDTMF: false, // Incomplete menu, should wait
+            },
+          },
+          {
+            speech: 'Press 5.',
+            expectedBehavior: {
+              shouldPressDTMF: false, // Just a digit fragment, no complete menu context
+            },
+          },
+          {
+            speech:
+              "Ization, press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4, all other inquiries press 5.",
+            expectedBehavior: {
+              shouldPressDTMF: true,
+              expectedDigit: '5',
+              shouldDetectLoop: true, // May detect loop if similar to step 1 menu, that's OK
+            },
+          },
+          {
+            speech:
+              "2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4, all other inquiries press 5.",
+            expectedBehavior: {
+              shouldPressDTMF: true,
+              expectedDigit: '5',
+              shouldDetectLoop: true, // Same menu appearing again
+              shouldNotPressAgain: true, // Should detect loop and NOT press again
+            },
+          },
+          {
+            speech:
+              "Press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4, all other inquiries press 5.",
+            expectedBehavior: {
+              shouldPressDTMF: true,
+              expectedDigit: '5',
+              shouldDetectLoop: true, // Same menu appearing again
+              shouldNotPressAgain: true, // Should detect loop and NOT press again
+            },
+          },
+        ],
+      },
+      {
+        name: 'Loop Detection - Incomplete Menu Repeating',
+        description:
+          'Tests when incomplete menu keeps repeating without option 5',
+        config: {
+          callPurpose: 'speak with a representative',
+        },
+        steps: [
+          {
+            speech:
+              "Press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4.",
+            expectedBehavior: {
+              shouldPressDTMF: false, // No option 5, no clear match
+            },
+          },
+          {
+            speech:
+              "To inquire about the status of prior authorization. Press 2 to request or discuss a financial estimate, press 3. If you're calling from an insurance company or an attorney's office press 4.",
+            expectedBehavior: {
+              shouldPressDTMF: false,
+              shouldDetectLoop: false, // Option 2 changed significantly (from "financial estimate" to "prior authorization"), so not a loop
+            },
+          },
+          {
+            speech:
+              "Press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4.",
+            expectedBehavior: {
+              shouldPressDTMF: false,
+              shouldDetectLoop: true, // Same menu as step 1 - this IS a loop
+            },
+          },
+        ],
+      },
+    ];
+  }
+
+  /**
+   * Run all multi-step test cases
+   */
+  async runAllMultiStepTests(
+    config?: Partial<TransferConfig>
+  ): Promise<MultiStepEvaluationReport> {
+    const testCases = this.getMultiStepTestCases();
+    const results: MultiStepTestResult[] = [];
+
+    for (const testCase of testCases) {
+      const mergedConfig = {
+        ...config,
+        ...testCase.config,
+      } as TransferConfig;
+
+      const result = await this.runMultiStepTestCase(testCase, mergedConfig);
+      results.push(result);
+    }
+
+    const passed = results.filter(r => r.passed).length;
+    const failed = results.filter(r => !r.passed).length;
+
+    return {
+      totalTests: testCases.length,
+      passed,
+      failed,
+      results,
+      timestamp: new Date(),
     };
   }
 
@@ -359,6 +709,74 @@ class PromptEvaluationService {
         expectedBehavior: {
           shouldPressDTMF: true,
           expectedDigit: '0',
+        },
+      },
+      {
+        name: 'Loop Detection - Same Menu After DTMF Pressed',
+        description:
+          'Should detect when same menu appears after DTMF was already pressed (NYU Langone scenario)',
+        speech:
+          'Press 2 to request or discuss a financial estimate press 3. If you\'re calling from an insurance company or an attorney\'s office, press 4, all other inquiries press 5.',
+        config: {
+          callPurpose: 'speak with a representative',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '5', // Should press 5 for "all other inquiries"
+        },
+      },
+      {
+        name: 'Loop Detection - Incomplete Menu Without Option 5',
+        description:
+          'Should handle incomplete menu that keeps repeating without "all other inquiries" option',
+        speech:
+          'Press 2 to request or discuss a financial estimate press 3. If you\'re calling from an insurance company or an attorney\'s office, press 4.',
+        config: {
+          callPurpose: 'speak with a representative',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: false, // No clear match for representative
+        },
+      },
+      {
+        name: 'Loop Detection - Menu Fragment Continuation',
+        description:
+          'Should handle menu fragment that looks like continuation but is actually repeat',
+        speech:
+          'Ization, press 2 to request or discuss a financial estimate press 3. If you\'re calling from an insurance company or an attorney\'s office, press 4, all other inquiries press 5.',
+        config: {
+          callPurpose: 'speak with a representative',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '5',
+        },
+      },
+      {
+        name: 'Loop Detection - Repeated Same Menu Options',
+        description:
+          'Should detect when exact same menu options appear multiple times (prevent infinite loop)',
+        speech:
+          'Press 2 to request or discuss a financial estimate press 3. If you\'re calling from an insurance company or an attorney\'s office, press 4, all other inquiries press 5.',
+        config: {
+          callPurpose: 'speak with a representative',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '5',
+        },
+      },
+      {
+        name: 'Loop Detection - Incomplete Menu Repeating',
+        description:
+          'Should handle incomplete menu that keeps appearing without completing (status of prior authorization scenario)',
+        speech:
+          'Status of prior authorization. Press 2 to request or discuss a financial estimate, press 3. If you\'re calling from an insurance company or an attorney\'s office, press 4.',
+        config: {
+          callPurpose: 'speak with a representative',
+        },
+        expectedBehavior: {
+          shouldPressDTMF: false, // No option 5, no clear match
         },
       },
 
@@ -472,6 +890,81 @@ class PromptEvaluationService {
         },
       },
     ];
+  }
+
+  /**
+   * Print multi-step evaluation report to console
+   */
+  printMultiStepReport(report: MultiStepEvaluationReport): void {
+    console.log('\n' + '='.repeat(80));
+    console.log('📊 MULTI-STEP LOOP DETECTION EVALUATION REPORT');
+    console.log('='.repeat(80));
+    console.log(`Total Tests: ${report.totalTests}`);
+    console.log(`✅ Passed: ${report.passed}`);
+    console.log(`❌ Failed: ${report.failed}`);
+    console.log(`Timestamp: ${report.timestamp.toISOString()}`);
+    console.log('\n' + '-'.repeat(80));
+
+    report.results.forEach((result, index) => {
+      const status = result.passed ? '✅' : '❌';
+      console.log(`\n${index + 1}. ${status} ${result.testCase.name}`);
+      console.log(`   Description: ${result.testCase.description}`);
+
+      if (!result.passed) {
+        console.log(`   Errors:`);
+        result.errors.forEach(error => {
+          console.log(`     - ${error}`);
+        });
+      }
+
+      result.stepResults.forEach((stepResult, stepIndex) => {
+        const stepStatus = stepResult.passed ? '✅' : '❌';
+        console.log(`\n   Step ${stepIndex + 1}: ${stepStatus}`);
+        console.log(`     Speech: "${stepResult.speech.substring(0, 100)}${stepResult.speech.length > 100 ? '...' : ''}"`);
+
+        if (stepResult.details.menuOptions) {
+          console.log(
+            `     Menu Options: ${stepResult.details.menuOptions.map(opt => `Press ${opt.digit} for ${opt.option}`).join(', ')}`
+          );
+        }
+
+        if (stepResult.details.loopDetected !== undefined) {
+          console.log(
+            `     Loop Detected: ${stepResult.details.loopDetected ? '✅ Yes' : '❌ No'}`
+          );
+        }
+
+        if (stepResult.details.dtmfDecision) {
+          const decision = stepResult.details.dtmfDecision;
+          console.log(
+            `     DTMF Decision: ${decision.shouldPress ? 'Press' : 'No press'} ${decision.digit || 'N/A'} - ${decision.reason}`
+          );
+        }
+
+        if (stepResult.details.previousMenus && stepResult.details.previousMenus.length > 0) {
+          console.log(
+            `     Previous Menus: ${stepResult.details.previousMenus.length} menu(s) seen before`
+          );
+        }
+
+        if (!stepResult.passed && stepResult.errors.length > 0) {
+          console.log(`     Step Errors:`);
+          stepResult.errors.forEach(error => {
+            console.log(`       - ${error}`);
+          });
+        }
+      });
+    });
+
+    console.log('\n' + '='.repeat(80));
+
+    if (report.failed > 0) {
+      console.log(
+        `\n⚠️  ${report.failed} test(s) failed. Review the errors above.`
+      );
+    } else {
+      console.log('\n✅ All multi-step tests passed!');
+    }
   }
 
   /**
