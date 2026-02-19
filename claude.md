@@ -45,3 +45,24 @@ interface TransferParams {
 }
 function transfer({ response, baseUrl, config, callSid, message }: TransferParams) { }
 ```
+
+## Comments
+
+**Only comment complex code or function parameters. Avoid obvious or celebratory comments.**
+
+```typescript
+// ❌ Don't
+// req.validatedQuery is already fully typed! 🎉
+const { days } = req.validatedQuery;
+
+// ✅ Do
+// Complex algorithm: merge overlapping time ranges
+const mergedRanges = mergeTimeRanges(ranges);
+
+// ✅ Do (function parameters)
+/**
+ * Process voice input and return structured results
+ * @param context - Voice processing context with speech and state
+ */
+function processVoiceInput(context: VoiceProcessingContext) { }
+```
