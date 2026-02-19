@@ -224,8 +224,10 @@ Transfer requests include:
 - "I want to speak with someone"
 - "Can I talk to a real person?"
 - "Connect me to customer service"
-- System saying "I'm transferring you now"
+- System saying "I'm transferring you now" or "I'm now transferring you" or "transferring you to"
+- "I'm now transferring you to [person/associate/representative]"
 - "Put me through to an agent"
+- "Transferring you to a [associate/representative/agent]"
 
 NOT transfer requests:
 - IVR menu options like "Press 1 for customer service"
@@ -360,12 +362,16 @@ A loop means the SAME menu options are being presented again, even if worded sli
 
 Examples of loops:
 - "Press 1 for sales" → "Press 1 for sales" (exact match)
-- "Press 1 for sales" → "Press 1 for our sales department" (semantic match)
-- "Press 0 for operator" → "Press 0 to speak with an operator" (same meaning)
+- "Press 1 for sales" → "Press 1 for our sales department" (semantic match, same option)
+- "Press 0 for operator" → "Press 0 to speak with an operator" (same meaning, reworded)
 
-NOT loops:
-- "Press 1 for sales" → "Press 1 for support" (different option)
+NOT loops (significant content changes):
+- "Press 1 for sales" → "Press 1 for support" (different option, different purpose)
 - "Press 1 for pharmacy" → "Press 1 for deli" (same number, different department)
+- "Press 3 for financial estimate" → "Press 3 for prior authorization" (same number, but option content changed significantly - this is a NEW menu, not a loop)
+- If ANY menu option's content changes significantly (not just wording, but the actual option/service), it is NOT a loop
+
+CRITICAL: Only detect a loop if the menu options are semantically the SAME. If any option's meaning or purpose changes, it is NOT a loop, even if the structure is similar.
 
 Current menu: "${currentMenuStr}"
 Previous menus seen: "${previousMenusStr || 'None'}"
@@ -428,13 +434,16 @@ Terminate for:
    - "You've reached voicemail"
    - "Leave a message at the tone"
 
-2. CLOSED: Business/office is currently closed
+2. CLOSED: Business/office/warehouse/store is currently closed
    - "We are currently closed"
    - "Our office is currently closed"
    - "Our office is closed"
+   - "The warehouse is now closed"
+   - "The store is closed"
+   - "We're closed"
    - "Outside business hours"
    - "Please call back during business hours"
-   - CRITICAL: If the speech explicitly states the office/business is "currently closed" or "closed", ALWAYS terminate, even if menu options are provided. Menu options when closed are typically for automated systems (payments, balances) which don't help reach a live representative.
+   - CRITICAL: If the speech explicitly states the office/business/warehouse/store is "currently closed", "now closed", or "closed", ALWAYS terminate, even if menu options are provided. Menu options when closed are typically for automated systems (payments, balances) which don't help reach a live representative.
 
 3. DEAD END: Call reached a dead end
    - Previous speech indicated closed

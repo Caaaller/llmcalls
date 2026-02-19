@@ -30,7 +30,7 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
         onLogin(data.user, data.token);
       } else {
         // Handle case where API returns success: false
-        setError((data as any).error || 'Login failed. Please try again.');
+        setError(data.error || 'Login failed. Please try again.');
       }
     },
     onError: (err: Error) => {

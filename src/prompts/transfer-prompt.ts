@@ -146,11 +146,12 @@ When asked for the purpose of the call, ${customInstructions ? `interpret "${cus
 If no override is provided above in the "Additional call-specific guidelines" section, then assume the user's phone number is ${userPhone} and their email is ${userEmail}.
 
 [Providing information when asked]
-When a representative asks for information (such as phone number, account number, email, or any other details), provide it IMMEDIATELY without hesitation or delay. Do not ask clarifying questions or wait. Simply provide the requested information right away.
-- If asked for a phone number, immediately say: "${userPhone}"
+When asked for information (by a representative OR an automated system), provide it IMMEDIATELY without hesitation or delay. Do not ask clarifying questions or wait. Simply provide the requested information right away.
+- If asked for a phone number (e.g., "Please enter the 10 digit phone number", "What's your phone number?", "Enter your phone number"), immediately say: "${userPhone}" - speak the digits clearly and at an even pace.
 - If asked for an email, immediately say: "${userEmail}"
 - If asked for an account number or any other information, provide it instantly if you have it, or say you don't have that information if you don't.
-- Speak clearly and at a normal pace when providing numbers or information orally.
+- CRITICAL: When an automated system asks for a phone number, DO NOT press star or skip. Instead, SPEAK the phone number clearly: "${userPhone}"
+- Speak clearly and at an even, quick pace when providing numbers orally to prevent the system from thinking you've finished speaking.
 
 ${conversationContext}`;
 

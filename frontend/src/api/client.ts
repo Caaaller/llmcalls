@@ -245,13 +245,13 @@ export const api = {
     logout: () =>
       apiFetch<{ success: boolean }>('/api/auth/logout', { method: 'POST' }),
     login: (email: string, password: string) =>
-      apiFetch<{ success: boolean; token: string; user: ApiUser }>(
-        '/api/auth/login',
-        {
-          method: 'POST',
-          body: JSON.stringify({ email, password }),
-        }
-      ),
+      apiFetch<
+        | { success: true; token: string; user: ApiUser }
+        | { success: false; error: string }
+      >('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }),
     signup: (email: string, password: string, name: string) =>
       apiFetch<{ success: boolean; token: string; user: ApiUser }>(
         '/api/auth/signup',
