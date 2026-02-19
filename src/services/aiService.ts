@@ -180,6 +180,8 @@ Respond with ONLY "YES" if this is a real human, or "NO" if it's an automated sy
     const isConfirmed: boolean =
       response === 'YES' || (response?.startsWith('YES') ?? false);
 
+    console.log(`AI human confirmation: ${isConfirmed ? 'YES' : 'NO'} (response="${response}")`);
+
     return isConfirmed;
   }
 }

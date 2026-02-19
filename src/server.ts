@@ -153,8 +153,11 @@ async function startServer(): Promise<void> {
     console.warn('No MongoDB URI set - database operations will fail');
   }
 
+  console.log(`Environment: ${process.env.NODE_ENV ?? 'development'}`);
+  console.log(`Node ${process.version} | PID ${process.pid}`);
+
   app.listen(port, '0.0.0.0', () => {
-    console.log('Server running on port ' + port);
+    console.log(`Server running on port ${port}`);
   });
 
   process.on('uncaughtException', (err: Error) => {
