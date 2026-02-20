@@ -152,9 +152,15 @@ async function startServer(): Promise<void> {
 
   // Environment variables check
   console.log('Environment Variables Check:');
-  console.log(`  MONGODB_URI: ${process.env.MONGODB_URI ? 'SET (masked)' : 'NOT SET'}`);
-  console.log(`  MONGO_URL: ${process.env.MONGO_URL ? 'SET (masked)' : 'NOT SET'}`);
-  console.log(`  DATABASE_URL: ${process.env.DATABASE_URL ? 'SET (masked)' : 'NOT SET'}`);
+  console.log(
+    `  MONGODB_URI: ${process.env.MONGODB_URI ? 'SET (masked)' : 'NOT SET'}`
+  );
+  console.log(
+    `  MONGO_URL: ${process.env.MONGO_URL ? 'SET (masked)' : 'NOT SET'}`
+  );
+  console.log(
+    `  DATABASE_URL: ${process.env.DATABASE_URL ? 'SET (masked)' : 'NOT SET'}`
+  );
   console.log(`  MONGOHOST: ${process.env.MONGOHOST ? 'SET' : 'NOT SET'}`);
 
   // MongoDB connection setup

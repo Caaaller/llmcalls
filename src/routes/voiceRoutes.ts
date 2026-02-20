@@ -256,7 +256,9 @@ router.post('/', (req: Request, res: Response): void => {
       enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
     });
-    console.log(`🎤 Setting up initial gather (timeout: ${gatherAttributes.timeout}s, speechTimeout: ${gatherAttributes.speechTimeout})`);
+    console.log(
+      `🎤 Setting up initial gather (timeout: ${gatherAttributes.timeout}s, speechTimeout: ${gatherAttributes.speechTimeout})`
+    );
     response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 
     const sayAttributes = createSayAttributes(config);
@@ -297,7 +299,9 @@ router.post(
       const isFirstCall = req.query.firstCall === 'true';
       const baseUrl = getBaseUrl(req);
 
-      console.log(`🎤 Speech received: "${speechResult}" (${speechResult.length} chars, firstCall: ${isFirstCall})`);
+      console.log(
+        `🎤 Speech received: "${speechResult}" (${speechResult.length} chars, firstCall: ${isFirstCall})`
+      );
 
       const callState = callStateManager.getCallState(callSid);
       // Use stored customInstructions from call state if available, otherwise from query params
@@ -440,11 +444,15 @@ router.post(
       }
 
       if (incompleteSpeechWaitCount >= maxIncompleteWaits) {
-        console.log(`⚠️ Max incomplete speech waits reached (${maxIncompleteWaits}), processing as-is`);
+        console.log(
+          `⚠️ Max incomplete speech waits reached (${maxIncompleteWaits}), processing as-is`
+        );
       } else if (isIncompleteCheckIVRMenu) {
         console.log('📋 Detected IVR menu, treating speech as complete');
       } else if (finalSpeech.length >= 500) {
-        console.log(`⚠️ Speech very long (${finalSpeech.length} chars), processing as-is`);
+        console.log(
+          `⚠️ Speech very long (${finalSpeech.length} chars), processing as-is`
+        );
       }
 
       // Use finalSpeech (merged if needed) for all subsequent processing
@@ -513,7 +521,9 @@ router.post(
         if (isContinuingMenu) {
           console.log('✅ Speech continues menu - merging options...');
         } else {
-          console.log('⚠️ Speech does not continue menu - clearing awaiting flag');
+          console.log(
+            '⚠️ Speech does not continue menu - clearing awaiting flag'
+          );
         }
 
         if (!isContinuingMenu) {
@@ -545,7 +555,9 @@ router.post(
           // Even if menu appears incomplete, use AI to check if we have a good match
           // Custom instructions take priority, otherwise check if option matches "speak with a representative"
           if (menuOptions.length > 0) {
-            console.log('🤖 Checking incomplete menu options with AI for early match...');
+            console.log(
+              '🤖 Checking incomplete menu options with AI for early match...'
+            );
             try {
               // Merge with any previous partial options for context
               let allMenuOptions = menuOptions;
@@ -617,7 +629,9 @@ router.post(
                 res.send(response.toString());
                 return;
               } else {
-                console.log('⚠️ AI did not find a match in incomplete menu - waiting for more options');
+                console.log(
+                  '⚠️ AI did not find a match in incomplete menu - waiting for more options'
+                );
               }
             } catch (error: unknown) {
               const err = error as Error;
@@ -782,7 +796,9 @@ router.post(
         }
 
         if (digitToPress) {
-          console.log(`⏳ Waiting for silence before pressing ${digitToPress}...`);
+          console.log(
+            `⏳ Waiting for silence before pressing ${digitToPress}...`
+          );
           const reason =
             aiDecision && aiDecision.matchedOption
               ? `AI selected: ${aiDecision.matchedOption}`
@@ -882,7 +898,9 @@ router.post(
       }
 
       const conversationHistory = callState.conversationHistory || [];
-      console.log(`🤖 Calling AI service (speech: "${finalSpeech.substring(0, 80)}${finalSpeech.length > 80 ? '...' : ''}", firstCall: ${isFirstCall}, history: ${conversationHistory.length}, purpose: ${config.callPurpose || '(none)'})`);
+      console.log(
+        `🤖 Calling AI service (speech: "${finalSpeech.substring(0, 80)}${finalSpeech.length > 80 ? '...' : ''}", firstCall: ${isFirstCall}, history: ${conversationHistory.length}, purpose: ${config.callPurpose || '(none)'})`
+      );
 
       let aiResponse: string;
       try {
@@ -957,7 +975,9 @@ router.post(
         enhanced: true,
         timeout: DEFAULT_SPEECH_TIMEOUT,
       });
-      console.log(`🎤 Setting up gather for next speech segment (timeout: ${gatherAttributes.timeout}s)`);
+      console.log(
+        `🎤 Setting up gather for next speech segment (timeout: ${gatherAttributes.timeout}s)`
+      );
       response.gather(
         gatherAttributes as Parameters<typeof response.gather>[0]
       );

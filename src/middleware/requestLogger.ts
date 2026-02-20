@@ -22,10 +22,14 @@ function formatValue(val: unknown): string {
  * Formats all key-value pairs of an object into a space-separated string.
  * Skips null, undefined, empty strings, and any keys in the skip set.
  */
-function formatFields(obj: Record<string, unknown>, skip: Set<string> = new Set()): string {
+function formatFields(
+  obj: Record<string, unknown>,
+  skip: Set<string> = new Set()
+): string {
   const pairs: Array<string> = [];
   for (const [key, val] of Object.entries(obj)) {
-    if (skip.has(key) || val === undefined || val === null || val === '') continue;
+    if (skip.has(key) || val === undefined || val === null || val === '')
+      continue;
     pairs.push(`${key}=${formatValue(val)}`);
   }
   return pairs.join(' ');
@@ -55,7 +59,11 @@ function summarizeResponse(body: unknown): string {
  * Captures method, path, status, duration, all query params, all body fields,
  * and response summary (JSON fields or TwiML verbs). Uses console.error for 5xx.
  */
-export function requestLogger(req: Request, res: Response, next: NextFunction): void {
+export function requestLogger(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
   if (req.path === '/health') {
     next();
     return;
@@ -83,7 +91,9 @@ export function requestLogger(req: Request, res: Response, next: NextFunction): 
   res.on('finish', () => {
     const duration = Date.now() - start;
     const status = res.statusCode;
-    const parts: Array<string> = [`${req.method} ${req.path} ${status} ${duration}ms`];
+    const parts: Array<string> = [
+      `${req.method} ${req.path} ${status} ${duration}ms`,
+    ];
 
     // Query params
     const query = req.query as Record<string, unknown>;
