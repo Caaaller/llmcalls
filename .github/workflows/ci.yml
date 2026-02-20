@@ -13,7 +13,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,6 +26,16 @@ jobs:
 
       - name: Install backend dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
+        env:
+          ESLINT_USE_FLAT_CONFIG: false
+
+      - name: Check formatting
+        run: |
+          npm run format:check
+          cd frontend && npm run format:check
 
       - name: Build TypeScript
         run: npm run build
@@ -46,4 +56,3 @@ jobs:
       # Add tests here when available
       # - name: Run tests
       #   run: npm test
-
