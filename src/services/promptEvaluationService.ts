@@ -4,13 +4,11 @@
  * Run these when modifying prompts to ensure critical behaviors still work
  */
 
-import aiService from './aiService';
-import aiDTMFService from './aiDTMFService';
-import aiDetectionService from './aiDetectionService';
 import { TransferConfig } from './aiService';
 import { DTMFDecision } from './aiDTMFService';
 import { MenuOption } from '../types/menu';
-import { processVoiceInput } from './voiceProcessingService';
+import { processSpeech } from './speechProcessingService';
+import callStateManager from './callStateManager';
 
 export interface PromptTestCase {
   name: string;
@@ -685,6 +683,7 @@ class PromptEvaluationService {
 
   /**
    * Run a single test case
+   * Uses processSpeech (same function as route handler) to avoid duplication
    */
   async runTestCase(
     testCase: PromptTestCase,
@@ -694,96 +693,98 @@ class PromptEvaluationService {
     const details: PromptTestResult['details'] = {};
 
     try {
-      // Test transfer detection using AI
-      if (testCase.expectedBehavior.shouldTransfer !== undefined) {
-        const transferDetection =
-          await aiDetectionService.detectTransferRequest(testCase.speech);
-        details.transferDetected = transferDetection.wantsTransfer;
+      // Use processSpeech (same function as route handler) in test mode
+      const testCallSid = `test-single-${testCase.name}`;
+      const result = await processSpeech({
+        callSid: testCallSid,
+        speechResult: testCase.speech,
+        isFirstCall: true,
+        baseUrl: 'http://test',
+        callPurpose: config.callPurpose,
+        customInstructions: config.customInstructions,
+        transferNumber: config.transferNumber,
+        userPhone: config.userPhone,
+        userEmail: config.userEmail,
+        testMode: true,
+      });
 
+      if (!result.processingResult) {
+        errors.push('No processing result returned from processSpeech');
+        return {
+          testCase,
+          passed: false,
+          errors,
+          details,
+        };
+      }
+
+      const processingResult = result.processingResult;
+      details.transferDetected = processingResult.transferRequested;
+      details.terminationDetected = processingResult.shouldTerminate;
+      details.dtmfDecision = processingResult.dtmfDecision;
+      details.aiResponse = result.aiResponse;
+
+      // Test transfer detection
+      if (testCase.expectedBehavior.shouldTransfer !== undefined) {
         if (
-          transferDetection.wantsTransfer !==
+          processingResult.transferRequested !==
           testCase.expectedBehavior.shouldTransfer
         ) {
           errors.push(
-            `Transfer detection mismatch: expected ${testCase.expectedBehavior.shouldTransfer}, got ${transferDetection.wantsTransfer} (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`
+            `Transfer detection mismatch: expected ${testCase.expectedBehavior.shouldTransfer}, got ${processingResult.transferRequested} (confidence: ${processingResult.transferConfidence}) - ${processingResult.transferReason}`
           );
         }
       }
 
-      // Test termination detection using AI
+      // Test termination detection
       if (testCase.expectedBehavior.shouldTerminate !== undefined) {
-        const termination = await aiDetectionService.detectTermination(
-          testCase.speech
-        );
-        details.terminationDetected = termination.shouldTerminate;
-
         if (
-          termination.shouldTerminate !==
+          processingResult.shouldTerminate !==
           testCase.expectedBehavior.shouldTerminate
         ) {
           errors.push(
-            `Termination detection mismatch: expected ${testCase.expectedBehavior.shouldTerminate}, got ${termination.shouldTerminate} (confidence: ${termination.confidence}) - ${termination.message}`
+            `Termination detection mismatch: expected ${testCase.expectedBehavior.shouldTerminate}, got ${processingResult.shouldTerminate} - ${processingResult.terminationReason}`
           );
         }
 
         if (
           testCase.expectedBehavior.terminationReason &&
-          termination.reason !== testCase.expectedBehavior.terminationReason
+          processingResult.terminationReason !== testCase.expectedBehavior.terminationReason
         ) {
           errors.push(
-            `Termination reason mismatch: expected ${testCase.expectedBehavior.terminationReason}, got ${termination.reason}`
+            `Termination reason mismatch: expected ${testCase.expectedBehavior.terminationReason}, got ${processingResult.terminationReason}`
           );
         }
       }
 
-      // Test DTMF decision if this is an IVR menu
+      // Test DTMF decision
       if (
         testCase.expectedBehavior.shouldPressDTMF !== undefined ||
         testCase.expectedBehavior.expectedDigit !== undefined
       ) {
-        // Use AI to detect if this is an IVR menu
-        const menuDetection = await aiDetectionService.detectIVRMenu(
-          testCase.speech
-        );
-        if (menuDetection.isIVRMenu) {
-          // Use AI to extract menu options
-          const extractionResult = await aiDetectionService.extractMenuOptions(
-            testCase.speech
+        if (testCase.expectedBehavior.shouldPressDTMF === true && !processingResult.isIVRMenu) {
+          errors.push(
+            `Expected IVR menu but menu was not detected`
           );
-          const menuOptions = extractionResult.menuOptions;
+        }
 
-          // Debug: log extracted menu options for troubleshooting
-          if (menuOptions.length === 0) {
-            console.log(
-              `   ⚠️  Warning: No menu options extracted from: "${testCase.speech}" (confidence: ${extractionResult.confidence})`
-            );
-          }
-          const dtmfDecision =
-            await aiDTMFService.understandCallPurposeAndPressDTMF(
-              testCase.speech,
-              config,
-              menuOptions
-            );
-          details.dtmfDecision = dtmfDecision;
+        if (
+          testCase.expectedBehavior.shouldPressDTMF !== undefined &&
+          processingResult.dtmfDecision.shouldPress !==
+            testCase.expectedBehavior.shouldPressDTMF
+        ) {
+          errors.push(
+            `DTMF decision mismatch: expected shouldPress=${testCase.expectedBehavior.shouldPressDTMF}, got ${processingResult.dtmfDecision.shouldPress}`
+          );
+        }
 
-          if (
-            testCase.expectedBehavior.shouldPressDTMF !== undefined &&
-            dtmfDecision.shouldPress !==
-              testCase.expectedBehavior.shouldPressDTMF
-          ) {
-            errors.push(
-              `DTMF decision mismatch: expected shouldPress=${testCase.expectedBehavior.shouldPressDTMF}, got ${dtmfDecision.shouldPress}`
-            );
-          }
-
-          if (
-            testCase.expectedBehavior.expectedDigit !== undefined &&
-            dtmfDecision.digit !== testCase.expectedBehavior.expectedDigit
-          ) {
-            errors.push(
-              `DTMF digit mismatch: expected ${testCase.expectedBehavior.expectedDigit}, got ${dtmfDecision.digit}`
-            );
-          }
+        if (
+          testCase.expectedBehavior.expectedDigit !== undefined &&
+          processingResult.dtmfDecision.digit !== testCase.expectedBehavior.expectedDigit
+        ) {
+          errors.push(
+            `DTMF digit mismatch: expected ${testCase.expectedBehavior.expectedDigit}, got ${processingResult.dtmfDecision.digit}`
+          );
         }
       }
 
@@ -793,49 +794,27 @@ class PromptEvaluationService {
         testCase.expectedBehavior.shouldTransfer &&
         testCase.expectedBehavior.expectedCallPurpose === undefined
       ) {
-        try {
-          const aiResponse = await aiService.generateResponse(
-            config,
-            testCase.speech,
-            true,
-            []
-          );
-          details.aiResponse = aiResponse;
-
+        // AI response is already generated by processSpeech and returned in result.aiResponse
+        if (result.aiResponse) {
           // Validate that AI doesn't say "Silent." (per prompt instructions)
-          const responseLower = aiResponse.toLowerCase().trim();
+          const responseLower = result.aiResponse.toLowerCase().trim();
           const isSilentWord = responseLower === 'silent.' || responseLower === 'silent';
           
           if (isSilentWord) {
             errors.push(
-              `AI should not say "Silent." - per prompt: "If you are being silent, do not say the word 'Silent'. Simply don't say anything". Response: "${aiResponse}"`
+              `AI should not say "Silent." - per prompt: "If you are being silent, do not say the word 'Silent'. Simply don't say anything". Response: "${result.aiResponse}"`
             );
           }
-          // Note: We don't validate the specific content of the AI response beyond checking for "Silent."
-          // The transfer detection itself is what we're testing, not the exact wording of the AI's response.
-        } catch (error) {
-          errors.push(`AI response generation failed: ${error}`);
         }
       }
 
       // Test call purpose extraction if expected
       if (testCase.expectedBehavior.expectedCallPurpose) {
-        try {
-          const aiResponse = await aiService.generateResponse(
-            config,
-            testCase.speech,
-            true,
-            []
-          );
-          details.aiResponse = aiResponse;
-
-          // Note: We don't validate the exact wording of the AI response for call purpose.
-          // The AI may express the call purpose in various ways, and we trust the AI to
-          // understand and communicate the purpose correctly. We only log the response
-          // for manual review if needed.
-        } catch (error) {
-          errors.push(`AI response generation failed: ${error}`);
-        }
+        // AI response is already generated by processSpeech and returned in result.aiResponse
+        // Note: We don't validate the exact wording of the AI response for call purpose.
+        // The AI may express the call purpose in various ways, and we trust the AI to
+        // understand and communicate the purpose correctly. We only log the response
+        // for manual review if needed.
       }
     } catch (error) {
       errors.push(`Test execution error: ${error}`);
@@ -871,15 +850,42 @@ class PromptEvaluationService {
       };
 
       try {
-        // Use the shared voice processing service (same logic as route handler)
-        const processingResult = await processVoiceInput({
-          speech: step.speech,
+        // Sync eval service state to callStateManager (so processSpeech uses the same state)
+        const testCallSid = `test-${testCase.name}-${i}`;
+        callStateManager.updateCallState(testCallSid, {
           previousMenus,
           lastPressedDTMF,
           lastMenuForDTMF,
           consecutiveDTMFPresses,
-          config,
         });
+
+        // Use processSpeech (same function as route handler) in test mode
+        const result = await processSpeech({
+          callSid: testCallSid,
+          speechResult: step.speech,
+          isFirstCall: i === 0,
+          baseUrl: 'http://test',
+          callPurpose: config.callPurpose,
+          customInstructions: config.customInstructions,
+          transferNumber: config.transferNumber,
+          userPhone: config.userPhone,
+          userEmail: config.userEmail,
+          testMode: true,
+        });
+
+        if (!result.processingResult) {
+          stepErrors.push(`No processing result returned at step ${i + 1}`);
+          continue;
+        }
+
+        const processingResult = result.processingResult;
+
+        // Extract updated state from callStateManager back to eval service variables
+        const updatedState = callStateManager.getCallState(testCallSid);
+        previousMenus = updatedState.previousMenus || [];
+        lastPressedDTMF = updatedState.lastPressedDTMF;
+        lastMenuForDTMF = updatedState.lastMenuForDTMF;
+        consecutiveDTMFPresses = updatedState.consecutiveDTMFPresses || [];
 
         stepDetails.menuOptions = processingResult.menuOptions;
         stepDetails.loopDetected = processingResult.loopDetected;

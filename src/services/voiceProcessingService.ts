@@ -1,7 +1,7 @@
 /**
  * Voice Processing Service
- * Core logic for processing speech, detecting menus, loops, and making DTMF decisions.
- * This service is used by both the route handler and evaluation tests to avoid code duplication.
+ * Core AI detection layer - used by both route handler (via speechProcessingService)
+ * and evaluation tests directly.
  */
 
 import { MenuOption } from '../types/menu';
@@ -10,7 +10,6 @@ import aiDTMFService, { DTMFDecision } from './aiDTMFService';
 import { TransferConfig } from './aiService';
 
 export interface VoiceProcessingResult {
-  // Detection results
   isIVRMenu: boolean;
   menuOptions: MenuOption[];
   isMenuComplete: boolean;
@@ -22,17 +21,15 @@ export interface VoiceProcessingResult {
   transferRequested: boolean;
   transferConfidence?: number;
   transferReason?: string;
-
-  // DTMF decision
   dtmfDecision: DTMFDecision;
-
-  // Loop prevention
-  shouldPreventDTMF: boolean; // True if same menu detected and DTMF already pressed
+  shouldPreventDTMF: boolean;
 }
 
 export interface VoiceProcessingContext {
   speech: string;
+  previousSpeech?: string;          // For richer termination detection context
   previousMenus: MenuOption[][];
+  partialMenuOptions?: MenuOption[]; // Accumulated options from previous incomplete menus
   lastPressedDTMF?: string;
   lastMenuForDTMF?: MenuOption[];
   consecutiveDTMFPresses?: { digit: string; count: number }[];
@@ -40,17 +37,18 @@ export interface VoiceProcessingContext {
 }
 
 /**
- * Process speech and return structured results for decision-making
- * This is the core logic used by both route handlers and evaluation tests
+ * Core AI detection and decision layer.
+ * Returns structured results — no state management, no TwiML.
  */
 export async function processVoiceInput(
   context: VoiceProcessingContext
 ): Promise<VoiceProcessingResult> {
   const {
     speech,
+    previousSpeech = '',
     previousMenus,
+    partialMenuOptions = [],
     lastPressedDTMF,
-    lastMenuForDTMF,
     consecutiveDTMFPresses = [],
     config,
   } = context;
@@ -58,7 +56,7 @@ export async function processVoiceInput(
   // 1. Detect termination
   const termination = await aiDetectionService.detectTermination(
     speech,
-    '',
+    previousSpeech,
     0
   );
 
@@ -85,13 +83,23 @@ export async function processVoiceInput(
   let shouldPreventDTMF = false;
 
   if (isIVRMenu) {
-    // Extract menu options
-    const extractionResult =
-      await aiDetectionService.extractMenuOptions(speech);
+    const extractionResult = await aiDetectionService.extractMenuOptions(speech);
     menuOptions = extractionResult.menuOptions;
     isMenuComplete = extractionResult.isComplete;
 
-    // Check for loop detection
+    // Merge with any partial options accumulated from previous calls
+    if (partialMenuOptions.length > 0) {
+      const combined = [...partialMenuOptions, ...menuOptions];
+      const seen = new Set<string>();
+      menuOptions = combined.filter(opt => {
+        const key = `${opt.digit}-${opt.option}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    // Loop detection
     if (previousMenus.length > 0) {
       const loopCheck = await aiDetectionService.detectLoop(
         menuOptions,
@@ -101,47 +109,31 @@ export async function processVoiceInput(
       loopConfidence = loopCheck.confidence;
       loopReason = loopCheck.reason;
 
-      // Improved loop prevention: Use semantic similarity from AI loop detection
-      // If a loop is detected with high confidence, prevent pressing ANY digit if we've
-      // already pressed for a similar menu, regardless of which digit we pressed
-      if (loopDetected && loopCheck.confidence > 0.7) {
-        // If we've already pressed a DTMF for a similar menu (detected by AI), prevent re-pressing
-        // This prevents pressing different digits in the same looping menu
-        if (lastPressedDTMF && lastMenuForDTMF) {
-          // Check if current menu is semantically similar to the menu we pressed for
-          // by checking if AI detected it as a loop with high confidence
-          shouldPreventDTMF = true;
-        }
-      }
-
-      // Additional check: Prevent if we've pressed the same digit 3+ times consecutively
-      if (lastPressedDTMF && consecutiveDTMFPresses.length > 0) {
-        const lastPress = consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
-        if (lastPress.digit === lastPressedDTMF && lastPress.count >= 3) {
-          shouldPreventDTMF = true;
-        }
-      }
-
-      // Additional check: If we've pressed any digit recently and loop is detected,
-      // prevent pressing to avoid getting stuck in loops
+      // Semantic loop prevention: if a loop is detected with high confidence
+      // and we've already pressed a DTMF for a similar menu, don't press again
       if (loopDetected && loopCheck.confidence > 0.7 && lastPressedDTMF) {
-        // Even if it's a different digit, if we're in a loop and already pressed,
-        // wait for the system to respond instead of pressing again
         shouldPreventDTMF = true;
       }
     }
 
-    // Get DTMF decision (only if we're not preventing it)
+    // Consecutive press prevention: same digit pressed 3+ times in a row
+    if (!shouldPreventDTMF && lastPressedDTMF && consecutiveDTMFPresses.length > 0) {
+      const lastPress = consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
+      if (lastPress.digit === lastPressedDTMF && lastPress.count >= 3) {
+        shouldPreventDTMF = true;
+      }
+    }
+
+    // DTMF decision (only if not prevented)
     if (!shouldPreventDTMF) {
-      dtmfDecision =
-        await aiDTMFService.understandCallPurposeAndPressDTMF(
-          speech,
-          {
-            callPurpose: config.callPurpose,
-            customInstructions: config.customInstructions,
-          },
-          menuOptions
-        );
+      dtmfDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
+        speech,
+        {
+          callPurpose: config.callPurpose,
+          customInstructions: config.customInstructions,
+        },
+        menuOptions
+      );
     }
   }
 
@@ -161,4 +153,3 @@ export async function processVoiceInput(
     shouldPreventDTMF,
   };
 }
-

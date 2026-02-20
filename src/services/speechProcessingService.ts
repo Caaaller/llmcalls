@@ -1,16 +1,18 @@
 /**
  * Speech Processing Service
- * Handles all speech processing logic - consolidates logic from route handler and evaluation tests
+ * Main function used by BOTH route handler and eval service.
+ * Orchestrates full speech processing: state management, AI decisions, and TwiML generation.
  */
 
 import twilio from 'twilio';
-import callStateManager from './callStateManager';
+import callStateManager, { CallState } from './callStateManager';
 import callHistoryService from './callHistoryService';
 import aiService, { TransferConfig } from './aiService';
 import aiDetectionService from './aiDetectionService';
-import aiDTMFService from './aiDTMFService';
+import aiDTMFService, { DTMFDecision } from './aiDTMFService';
 import twilioService from './twilioService';
 import transferConfig from '../config/transfer-config';
+import { MenuOption } from '../types/menu';
 import {
   buildProcessSpeechUrl,
   createSayAttributes,
@@ -31,16 +33,54 @@ export interface ProcessSpeechParams {
   customInstructions?: string;
   userPhone?: string;
   userEmail?: string;
+  // Test mode: skip TwiML generation and call history persistence
+  testMode?: boolean;
 }
 
 export interface ProcessSpeechResult {
   twiml: string;
   shouldSend: boolean;
+  // Structured results for eval service
+  processingResult?: {
+    isIVRMenu: boolean;
+    menuOptions: MenuOption[];
+    isMenuComplete: boolean;
+    loopDetected: boolean;
+    loopConfidence?: number;
+    loopReason?: string;
+    shouldTerminate: boolean;
+    terminationReason?: string;
+    transferRequested: boolean;
+    transferConfidence?: number;
+    transferReason?: string;
+    dtmfDecision: DTMFDecision;
+    shouldPreventDTMF: boolean;
+  };
+  aiResponse?: string;
+  digitPressed?: string;
 }
 
 /**
- * Process speech input and return TwiML response
- * This consolidates all speech processing logic from the route handler
+ * Track how many times a digit has been pressed consecutively.
+ */
+function updateConsecutivePresses(
+  callState: CallState,
+  digitToPress: string
+): { digit: string; count: number }[] {
+  const existing = callState.consecutiveDTMFPresses || [];
+  const last = existing[existing.length - 1];
+
+  if (last && last.digit === digitToPress) {
+    return [...existing.slice(0, -1), { digit: digitToPress, count: last.count + 1 }];
+  }
+
+  const updated = [...existing, { digit: digitToPress, count: 1 }];
+  return updated.length > 5 ? updated.slice(-5) : updated;
+}
+
+/**
+ * Process a speech turn end-to-end.
+ * Used by both route handler (with TwiML) and eval service (test mode).
  */
 export async function processSpeech({
   callSid,
@@ -52,23 +92,22 @@ export async function processSpeech({
   customInstructions,
   userPhone,
   userEmail,
+  testMode = false,
 }: ProcessSpeechParams): Promise<ProcessSpeechResult> {
   const response = new twilio.twiml.VoiceResponse();
 
   try {
+    // ── 1. State & config setup ──────────────────────────────────────────────
     const callState = callStateManager.getCallState(callSid);
-    const customInstructionsFromState = callState.customInstructions;
     const finalCustomInstructions =
-      customInstructions || customInstructionsFromState || '';
+      customInstructions || callState.customInstructions || '';
 
     const config = transferConfig.createConfig({
       transferNumber: transferNumber || process.env.TRANSFER_PHONE_NUMBER,
       userPhone: userPhone || process.env.USER_PHONE_NUMBER,
       userEmail: userEmail || process.env.USER_EMAIL,
       callPurpose:
-        callPurpose ||
-        process.env.CALL_PURPOSE ||
-        'speak with a representative',
+        callPurpose || process.env.CALL_PURPOSE || 'speak with a representative',
       customInstructions: finalCustomInstructions,
     });
 
@@ -78,64 +117,27 @@ export async function processSpeech({
       });
     }
 
-    console.log('👤', speechResult);
-
-    if (!callSid) {
-      throw new Error('Call SID is missing');
-    }
+    if (!callSid) throw new Error('Call SID is missing');
 
     if (!callState.previousMenus) {
-      callStateManager.updateCallState(callSid, {
-        previousMenus: [],
-      });
+      callStateManager.updateCallState(callSid, { previousMenus: [] });
     }
 
+    if (!testMode) {
+      console.log('👤', speechResult);
+    }
+
+    // ── 2. Merge incomplete speech ───────────────────────────────────────────
     let finalSpeech = speechResult;
     if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
       finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
     }
 
-    const previousSpeech = callState.lastSpeech || '';
-    const termination = await aiDetectionService.detectTermination(
-      finalSpeech,
-      previousSpeech,
-      0
-    );
-    if (termination.shouldTerminate) {
-      callHistoryService
-        .addTermination(
-          callSid,
-          termination.reason || termination.message || ''
-        )
-        .catch(err => console.error('Error adding termination:', err));
-      callHistoryService
-        .endCall(callSid, 'terminated')
-        .catch(err => console.error('Error ending call:', err));
-
-      const sayAttributes = createSayAttributes(config);
-      response.say(
-        sayAttributes as Parameters<typeof response.say>[0],
-        'Thank you. Goodbye.'
-      );
-      response.hangup();
-      callStateManager.clearCallState(callSid);
-      return { twiml: response.toString(), shouldSend: true };
-    }
-
-    const incompleteSpeechWaitCount =
-      callState.incompleteSpeechWaitCount || 0;
+    // ── 3. Incomplete-speech guard (fast path — avoids heavy AI calls) ───────
+    const incompleteSpeechWaitCount = callState.incompleteSpeechWaitCount || 0;
     const maxIncompleteWaits = 2;
 
-    const incompleteCheckMenuDetection =
-      await aiDetectionService.detectIVRMenu(finalSpeech);
-    const isIncompleteCheckIVRMenu = incompleteCheckMenuDetection.isIVRMenu;
-
-    const shouldCheckIncomplete =
-      incompleteSpeechWaitCount < maxIncompleteWaits &&
-      !isIncompleteCheckIVRMenu &&
-      finalSpeech.length < 500;
-
-    if (shouldCheckIncomplete) {
+    if (incompleteSpeechWaitCount < maxIncompleteWaits && finalSpeech.length < 500) {
       const incompleteCheck =
         await aiDetectionService.detectIncompleteSpeech(finalSpeech);
       if (incompleteCheck.isIncomplete && incompleteCheck.confidence > 0.7) {
@@ -144,17 +146,19 @@ export async function processSpeech({
           awaitingCompleteSpeech: true,
           incompleteSpeechWaitCount: incompleteSpeechWaitCount + 1,
         });
-
-        const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl({ baseUrl, config }),
-          method: 'POST',
-          enhanced: true,
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        return { twiml: response.toString(), shouldSend: true };
+        if (!testMode) {
+          const gatherAttributes = createGatherAttributes(config, {
+            action: buildProcessSpeechUrl({ baseUrl, config }),
+            method: 'POST',
+            enhanced: true,
+            timeout: DEFAULT_SPEECH_TIMEOUT,
+          });
+          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+        }
+        return {
+          twiml: response.toString(),
+          shouldSend: !testMode,
+        };
       }
     }
 
@@ -163,248 +167,154 @@ export async function processSpeech({
       awaitingCompleteSpeech: false,
       incompleteSpeechWaitCount: 0,
     });
-    callHistoryService
-      .addConversation(callSid, 'user', finalSpeech)
-      .catch(err => console.error('Error adding conversation:', err));
 
-    const transferDetection =
-      await aiDetectionService.detectTransferRequest(finalSpeech);
-    if (transferDetection.wantsTransfer) {
-      console.log(
-        `🔄 Transfer detected (confidence: ${transferDetection.confidence}): ${transferDetection.reason}`
-      );
+    if (!testMode) {
+      callHistoryService
+        .addConversation(callSid, 'user', finalSpeech)
+        .catch(err => console.error('Error adding conversation:', err));
+    }
 
-      const needsConfirmation = !callState.humanConfirmed;
-      if (needsConfirmation) {
-        callStateManager.updateCallState(callSid, {
-          awaitingHumanConfirmation: true,
+    // ── 4. Core AI decisions (all logic inlined here, no separate function) ──
+    // Detect termination
+    const termination = await aiDetectionService.detectTermination(
+      finalSpeech,
+      callState.lastSpeech || '',
+      0
+    );
+
+    // Detect transfer requests
+    const transferDetection = await aiDetectionService.detectTransferRequest(finalSpeech);
+
+    // Detect IVR menu
+    const menuDetection = await aiDetectionService.detectIVRMenu(finalSpeech);
+    const isIVRMenu = menuDetection.isIVRMenu;
+
+    let menuOptions: MenuOption[] = [];
+    let isMenuComplete = false;
+    let loopDetected = false;
+    let loopConfidence: number | undefined;
+    let loopReason: string | undefined;
+    let dtmfDecision: DTMFDecision = {
+      callPurpose: config.callPurpose || 'speak with a representative',
+      shouldPress: false,
+      digit: null,
+      matchedOption: '',
+      reason: '',
+    };
+    let shouldPreventDTMF = false;
+
+    if (isIVRMenu) {
+      const extractionResult = await aiDetectionService.extractMenuOptions(finalSpeech);
+      menuOptions = extractionResult.menuOptions;
+      isMenuComplete = extractionResult.isComplete;
+
+      // Merge with any partial options accumulated from previous calls
+      if (callState.partialMenuOptions && callState.partialMenuOptions.length > 0) {
+        const combined = [...callState.partialMenuOptions, ...menuOptions];
+        const seen = new Set<string>();
+        menuOptions = combined.filter(opt => {
+          const key = `${opt.digit}-${opt.option}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
+      }
+
+      // Loop detection
+      const previousMenus = callState.previousMenus || [];
+      if (previousMenus.length > 0) {
+        const loopCheck = await aiDetectionService.detectLoop(menuOptions, previousMenus);
+        loopDetected = loopCheck.isLoop;
+        loopConfidence = loopCheck.confidence;
+        loopReason = loopCheck.reason;
+
+        // Semantic loop prevention: if a loop is detected with high confidence
+        // and we've already pressed a DTMF for a similar menu, don't press again
+        if (loopDetected && loopCheck.confidence > 0.7 && callState.lastPressedDTMF) {
+          shouldPreventDTMF = true;
+        }
+      }
+
+      // Consecutive press prevention: same digit pressed 3+ times in a row
+      if (!shouldPreventDTMF && callState.lastPressedDTMF && callState.consecutiveDTMFPresses && callState.consecutiveDTMFPresses.length > 0) {
+        const lastPress = callState.consecutiveDTMFPresses[callState.consecutiveDTMFPresses.length - 1];
+        if (lastPress.digit === callState.lastPressedDTMF && lastPress.count >= 3) {
+          shouldPreventDTMF = true;
+        }
+      }
+
+      // DTMF decision (only if not prevented)
+      if (!shouldPreventDTMF) {
+        dtmfDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
+          finalSpeech,
+          {
+            callPurpose: config.callPurpose,
+            customInstructions: config.customInstructions,
+          },
+          menuOptions
+        );
+      }
+    }
+
+    const result = {
+      isIVRMenu,
+      menuOptions,
+      isMenuComplete,
+      loopDetected,
+      loopConfidence,
+      loopReason,
+      shouldTerminate: termination.shouldTerminate,
+      terminationReason: termination.reason || termination.message,
+      transferRequested: transferDetection.wantsTransfer,
+      transferConfidence: transferDetection.confidence,
+      transferReason: transferDetection.reason,
+      dtmfDecision,
+      shouldPreventDTMF,
+    };
+
+    // ── 5. Termination ───────────────────────────────────────────────────────
+    if (result.shouldTerminate) {
+      if (!testMode) {
+        console.log(`🛑 Call Terminated: ${result.terminationReason || 'unknown'}`);
+        callHistoryService
+          .addTermination(callSid, result.terminationReason || '')
+          .catch(err => console.error('Error adding termination:', err));
+        callHistoryService
+          .endCall(callSid, 'terminated')
+          .catch(err => console.error('Error ending call:', err));
 
         const sayAttributes = createSayAttributes(config);
         response.say(
           sayAttributes as Parameters<typeof response.say>[0],
-          'Am I speaking with a real person or is this the automated system?'
+          'Thank you. Goodbye.'
         );
-        const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl({ baseUrl, config }),
-          method: 'POST',
-          enhanced: true,
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        return { twiml: response.toString(), shouldSend: true };
+        response.hangup();
+        callStateManager.clearCallState(callSid);
       }
-
-      callHistoryService
-        .addTransfer(callSid, config.transferNumber, true)
-        .catch(err => console.error('Error adding transfer:', err));
-
-      const sayAttributes = createSayAttributes(config);
-      response.say(
-        sayAttributes as Parameters<typeof response.say>[0],
-        'Hold on, please.'
-      );
-      response.pause({ length: 1 });
-
-      const dial = response.dial({
-        action: `${baseUrl}/voice/transfer-status`,
-        method: 'POST',
-        timeout: 30,
-      });
-      (dial as any).answerOnMedia = true;
-      dial.number(config.transferNumber);
-
-      return { twiml: response.toString(), shouldSend: true };
+      return {
+        twiml: response.toString(),
+        shouldSend: !testMode,
+        processingResult: result,
+      };
     }
 
-    if (callState.awaitingCompleteMenu) {
-      const menuDetection =
-        await aiDetectionService.detectIVRMenu(finalSpeech);
-      const isContinuingMenu = menuDetection.isIVRMenu;
-
-      if (!isContinuingMenu) {
-        callStateManager.updateCallState(callSid, {
-          awaitingCompleteMenu: false,
-          partialMenuOptions: [],
-        });
-      }
-    }
-
-    const menuDetection = await aiDetectionService.detectIVRMenu(finalSpeech);
-    const isIVRMenu = menuDetection.isIVRMenu;
-
-    if (isIVRMenu || callState.awaitingCompleteMenu) {
-      const extractionResult =
-        await aiDetectionService.extractMenuOptions(finalSpeech);
-      const menuOptions = extractionResult.menuOptions;
-      const isIncomplete = !extractionResult.isComplete;
-
-      if (isIncomplete) {
-        if (menuOptions.length > 0) {
-          try {
-            let allMenuOptions = menuOptions;
-            if (
-              callState.partialMenuOptions &&
-              callState.partialMenuOptions.length > 0
-            ) {
-              allMenuOptions = [
-                ...callState.partialMenuOptions,
-                ...menuOptions,
-              ];
-              const seen = new Set<string>();
-              allMenuOptions = allMenuOptions.filter(
-                (opt: { digit: string; option: string }) => {
-                  const key = `${opt.digit}-${opt.option}`;
-                  if (seen.has(key)) return false;
-                  seen.add(key);
-                  return true;
-                }
-              );
-            }
-
-            const aiDecision =
-              await aiDTMFService.understandCallPurposeAndPressDTMF(
-                finalSpeech,
-                {
-                  callPurpose: config.callPurpose,
-                  customInstructions: config.customInstructions,
-                },
-                allMenuOptions
-              );
-
-            if (aiDecision.shouldPress && aiDecision.digit) {
-              const matchedOption = allMenuOptions.find(
-                (opt: { digit: string; option: string }) =>
-                  opt.digit === aiDecision.digit
-              );
-
-              callStateManager.updateCallState(callSid, {
-                partialMenuOptions: [],
-                awaitingCompleteMenu: false,
-                lastMenuOptions: allMenuOptions,
-                menuLevel: (callState.menuLevel || 0) + 1,
-              });
-              callHistoryService.addIVRMenu(callSid, allMenuOptions);
-
-              const digitToPress = aiDecision.digit;
-              console.log(
-                `🔢 Pressed DTMF: ${digitToPress} - AI matched: ${matchedOption?.option || aiDecision.matchedOption}`
-              );
-
-              const consecutivePresses = callState.consecutiveDTMFPresses || [];
-              const lastPress = consecutivePresses[consecutivePresses.length - 1];
-              let updatedConsecutivePresses: { digit: string; count: number }[];
-
-              if (lastPress && lastPress.digit === digitToPress) {
-                updatedConsecutivePresses = [
-                  ...consecutivePresses.slice(0, -1),
-                  { digit: digitToPress, count: lastPress.count + 1 },
-                ];
-              } else {
-                updatedConsecutivePresses = [
-                  ...consecutivePresses,
-                  { digit: digitToPress, count: 1 },
-                ];
-                if (updatedConsecutivePresses.length > 5) {
-                  updatedConsecutivePresses = updatedConsecutivePresses.slice(-5);
-                }
-              }
-
-              callStateManager.updateCallState(callSid, {
-                lastPressedDTMF: digitToPress,
-                lastMenuForDTMF: allMenuOptions,
-                consecutiveDTMFPresses: updatedConsecutivePresses,
-              });
-
-              callHistoryService
-                .addDTMF(
-                  callSid,
-                  digitToPress,
-                  `AI matched: ${aiDecision.matchedOption || matchedOption?.option}`
-                )
-                .catch(err => console.error('Error adding DTMF:', err));
-
-              response.pause({ length: 2 });
-              setTimeout(async () => {
-                await twilioService.sendDTMF(callSid, digitToPress);
-              }, 2000);
-              response.redirect(
-                `${baseUrl}/voice/process-dtmf?Digits=${digitToPress}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}&customInstructions=${encodeURIComponent(config.customInstructions || '')}`
-              );
-              return { twiml: response.toString(), shouldSend: true };
-            }
-          } catch (error: unknown) {
-            const err = error as Error;
-            console.error(
-              '❌ Error checking incomplete menu with AI:',
-              err.message
-            );
-          }
-        }
-
-        callStateManager.updateCallState(callSid, {
-          partialMenuOptions: menuOptions,
-          awaitingCompleteMenu: true,
-        });
-
-        const menuSummary =
-          menuOptions.length > 0
-            ? `[IVR Menu incomplete - found: ${menuOptions.map((o: { digit: string; option: string }) => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
-            : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
-        callHistoryService
-          .addConversation(callSid, 'system', menuSummary)
-          .catch(err => console.error('Error adding conversation:', err));
-
-        const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl({ baseUrl, config }),
-          method: 'POST',
-          enhanced: true,
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        return { twiml: response.toString(), shouldSend: true };
-      }
-
-      let allMenuOptions = menuOptions;
-      if (
-        callState.partialMenuOptions &&
-        callState.partialMenuOptions.length > 0
-      ) {
-        allMenuOptions = [...callState.partialMenuOptions, ...menuOptions];
-        const seen = new Set<string>();
-        allMenuOptions = allMenuOptions.filter(
-          (opt: { digit: string; option: string }) => {
-            const key = `${opt.digit}-${opt.option}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-          }
-        );
-        callStateManager.updateCallState(callSid, {
-          partialMenuOptions: [],
-          awaitingCompleteMenu: false,
-        });
-      }
-
-      callHistoryService.addIVRMenu(callSid, allMenuOptions);
-
-      const previousMenus = callState.previousMenus || [];
-      const loopCheck = await aiDetectionService.detectLoop(
-        allMenuOptions,
-        previousMenus
-      );
-      if (loopCheck.isLoop && loopCheck.confidence > 0.7) {
+    // ── 6. Transfer request ──────────────────────────────────────────────────
+    if (result.transferRequested) {
+      if (!testMode) {
         console.log(
-          `🔄 Loop detected (confidence: ${loopCheck.confidence}): ${loopCheck.reason}`
+          `🔄 Transfer detected (confidence: ${result.transferConfidence}): ${result.transferReason}`
         );
+      }
 
-        if (callState.lastPressedDTMF) {
-          console.log(
-            `⏸️  Loop detected, already pressed ${callState.lastPressedDTMF} for similar menu. Waiting for system response instead of pressing again...`
+      if (!callState.humanConfirmed) {
+        callStateManager.updateCallState(callSid, {
+          awaitingHumanConfirmation: true,
+        });
+        if (!testMode) {
+          const sayAttributes = createSayAttributes(config);
+          response.say(
+            sayAttributes as Parameters<typeof response.say>[0],
+            'Am I speaking with a real person or is this the automated system?'
           );
           const gatherAttributes = createGatherAttributes(config, {
             action: buildProcessSpeechUrl({ baseUrl, config }),
@@ -412,115 +322,197 @@ export async function processSpeech({
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
           });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
-          return { twiml: response.toString(), shouldSend: true };
+          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
         }
-
-        const consecutivePresses = callState.consecutiveDTMFPresses || [];
-        if (consecutivePresses.length > 0) {
-          const lastPress = consecutivePresses[consecutivePresses.length - 1];
-          if (lastPress.count >= 3) {
-            console.log(
-              `⏸️  Same digit (${lastPress.digit}) pressed ${lastPress.count} times consecutively. Waiting for system response...`
-            );
-            const gatherAttributes = createGatherAttributes(config, {
-              action: buildProcessSpeechUrl({ baseUrl, config }),
-              method: 'POST',
-              enhanced: true,
-              timeout: DEFAULT_SPEECH_TIMEOUT,
-            });
-            response.gather(
-              gatherAttributes as Parameters<typeof response.gather>[0]
-            );
-            return { twiml: response.toString(), shouldSend: true };
-          }
-        }
+        return {
+          twiml: response.toString(),
+          shouldSend: !testMode,
+          processingResult: result,
+        };
       }
 
-      const updatedPreviousMenus = [...previousMenus, allMenuOptions];
+      if (!testMode) {
+        callHistoryService
+          .addTransfer(callSid, config.transferNumber, true)
+          .catch(err => console.error('Error adding transfer:', err));
+
+        const sayAttributes = createSayAttributes(config);
+        response.say(
+          sayAttributes as Parameters<typeof response.say>[0],
+          'Hold on, please.'
+        );
+        response.pause({ length: 1 });
+        const dial = response.dial({
+          action: `${baseUrl}/voice/transfer-status`,
+          method: 'POST',
+          timeout: 30,
+        });
+        (dial as any).answerOnMedia = true;
+        dial.number(config.transferNumber);
+      }
+      return {
+        twiml: response.toString(),
+        shouldSend: !testMode,
+        processingResult: result,
+      };
+    }
+
+    // ── 7. IVR menu ──────────────────────────────────────────────────────────
+    let shouldProcessAsMenu = result.isIVRMenu;
+    if (!result.isIVRMenu && callState.awaitingCompleteMenu) {
       callStateManager.updateCallState(callSid, {
-        lastMenuOptions: allMenuOptions,
-        previousMenus: updatedPreviousMenus,
+        awaitingCompleteMenu: false,
+        partialMenuOptions: [],
+      });
+    } else if (callState.awaitingCompleteMenu) {
+      shouldProcessAsMenu = true;
+    }
+
+    if (shouldProcessAsMenu) {
+      const { menuOptions, isMenuComplete, dtmfDecision, shouldPreventDTMF } = result;
+
+      if (!isMenuComplete) {
+        // Incomplete menu — try to press early if we have enough options
+        if (menuOptions.length > 0 && dtmfDecision.shouldPress && dtmfDecision.digit) {
+          const digit = dtmfDecision.digit;
+          if (!testMode) {
+            console.log(`🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`);
+          }
+
+          callStateManager.updateCallState(callSid, {
+            partialMenuOptions: [],
+            awaitingCompleteMenu: false,
+            lastMenuOptions: menuOptions,
+            menuLevel: (callState.menuLevel || 0) + 1,
+            lastPressedDTMF: digit,
+            lastMenuForDTMF: menuOptions,
+            consecutiveDTMFPresses: updateConsecutivePresses(callState, digit),
+          });
+
+          if (!testMode) {
+            callHistoryService.addIVRMenu(callSid, menuOptions);
+            callHistoryService
+              .addDTMF(callSid, digit, `AI matched: ${dtmfDecision.matchedOption}`)
+              .catch(err => console.error('Error adding DTMF:', err));
+
+            response.pause({ length: 2 });
+            setTimeout(async () => {
+              await twilioService.sendDTMF(callSid, digit);
+            }, 2000);
+            response.redirect(
+              `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}&customInstructions=${encodeURIComponent(config.customInstructions || '')}`
+            );
+          }
+          return {
+            twiml: response.toString(),
+            shouldSend: !testMode,
+            processingResult: result,
+            digitPressed: digit,
+          };
+        }
+
+        // Accumulate and wait for the rest of the menu
+        callStateManager.updateCallState(callSid, {
+          partialMenuOptions: menuOptions,
+          awaitingCompleteMenu: true,
+        });
+
+        if (!testMode) {
+          const menuSummary =
+            menuOptions.length > 0
+              ? `[IVR Menu incomplete - found: ${menuOptions.map(o => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
+              : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
+          callHistoryService
+            .addConversation(callSid, 'system', menuSummary)
+            .catch(err => console.error('Error adding conversation:', err));
+          const gatherAttributes = createGatherAttributes(config, {
+            action: buildProcessSpeechUrl({ baseUrl, config }),
+            method: 'POST',
+            enhanced: true,
+            timeout: DEFAULT_SPEECH_TIMEOUT,
+          });
+          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+        }
+        return {
+          twiml: response.toString(),
+          shouldSend: !testMode,
+          processingResult: result,
+        };
+      }
+
+      // Complete menu
+      if (!testMode) {
+        callHistoryService.addIVRMenu(callSid, menuOptions);
+      }
+      callStateManager.updateCallState(callSid, {
+        lastMenuOptions: menuOptions,
+        previousMenus: [...(callState.previousMenus || []), menuOptions],
         menuLevel: (callState.menuLevel || 0) + 1,
+        partialMenuOptions: [],
+        awaitingCompleteMenu: false,
       });
 
-      const aiDecision =
-        await aiDTMFService.understandCallPurposeAndPressDTMF(
-          speechResult,
-          {
-            callPurpose: config.callPurpose,
-            customInstructions: config.customInstructions,
-          },
-          allMenuOptions
-        );
-
-      let digitToPress: string | null = null;
-      if (aiDecision.shouldPress && aiDecision.digit) {
-        digitToPress = aiDecision.digit;
-        console.log(
-          `🔢 Pressed DTMF: ${digitToPress} - AI matched: ${aiDecision.matchedOption}`
-        );
-      } else {
-        callHistoryService
-          .addConversation(
-            callSid,
-            'system',
-            `[AI: No suitable option - ${aiDecision.reason}]`
-          )
-          .catch(err => console.error('Error adding conversation:', err));
+      // Loop prevention — don't press if we'd just be cycling
+      if (shouldPreventDTMF) {
+        if (!testMode && callState.lastPressedDTMF) {
+          console.log(
+            `⏸️  Loop detected, already pressed ${callState.lastPressedDTMF} for similar menu. Waiting...`
+          );
+          const gatherAttributes = createGatherAttributes(config, {
+            action: buildProcessSpeechUrl({ baseUrl, config }),
+            method: 'POST',
+            enhanced: true,
+            timeout: DEFAULT_SPEECH_TIMEOUT,
+          });
+          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+        }
+        return {
+          twiml: response.toString(),
+          shouldSend: !testMode,
+          processingResult: result,
+        };
       }
 
-      if (digitToPress) {
-        const reason =
-          aiDecision && aiDecision.matchedOption
-            ? `AI selected: ${aiDecision.matchedOption}`
-            : 'Selected best option';
-
-        const consecutivePresses = callState.consecutiveDTMFPresses || [];
-        const lastPress = consecutivePresses[consecutivePresses.length - 1];
-        let updatedConsecutivePresses: { digit: string; count: number }[];
-
-        if (lastPress && lastPress.digit === digitToPress) {
-          updatedConsecutivePresses = [
-            ...consecutivePresses.slice(0, -1),
-            { digit: digitToPress, count: lastPress.count + 1 },
-          ];
-        } else {
-          updatedConsecutivePresses = [
-            ...consecutivePresses,
-            { digit: digitToPress, count: 1 },
-          ];
-          if (updatedConsecutivePresses.length > 5) {
-            updatedConsecutivePresses = updatedConsecutivePresses.slice(-5);
-          }
+      if (dtmfDecision.shouldPress && dtmfDecision.digit) {
+        const digit = dtmfDecision.digit;
+        if (!testMode) {
+          console.log(`🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`);
         }
 
         callStateManager.updateCallState(callSid, {
-          lastPressedDTMF: digitToPress,
-          lastMenuForDTMF: allMenuOptions,
-          consecutiveDTMFPresses: updatedConsecutivePresses,
+          lastPressedDTMF: digit,
+          lastMenuForDTMF: menuOptions,
+          consecutiveDTMFPresses: updateConsecutivePresses(callState, digit),
         });
 
-        callHistoryService
-          .addDTMF(callSid, digitToPress, reason)
-          .catch(err => console.error('Error adding DTMF:', err));
+        if (!testMode) {
+          callHistoryService
+            .addDTMF(callSid, digit, `AI selected: ${dtmfDecision.matchedOption}`)
+            .catch(err => console.error('Error adding DTMF:', err));
 
-        response.pause({ length: 2 });
-        setTimeout(async () => {
-          await twilioService.sendDTMF(callSid, digitToPress!);
-        }, 2000);
-        response.redirect(
-          `${baseUrl}/voice/process-dtmf?Digits=${digitToPress}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
-        );
-        return { twiml: response.toString(), shouldSend: true };
-      } else {
+          response.pause({ length: 2 });
+          setTimeout(async () => {
+            await twilioService.sendDTMF(callSid, digit);
+          }, 2000);
+          response.redirect(
+            `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
+          );
+        }
+        return {
+          twiml: response.toString(),
+          shouldSend: !testMode,
+          processingResult: result,
+          digitPressed: digit,
+        };
+      }
+
+      // No matching option — wait silently
+      if (!testMode) {
         callHistoryService
           .addConversation(
             callSid,
             'system',
-            '[No matching option found - waiting silently]'
+            `[AI: No suitable option - ${dtmfDecision.reason}]`
           )
           .catch(err => console.error('Error adding conversation:', err));
         const gatherAttributes = createGatherAttributes(config, {
@@ -529,25 +521,28 @@ export async function processSpeech({
           enhanced: true,
           timeout: DEFAULT_SPEECH_TIMEOUT,
         });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        return { twiml: response.toString(), shouldSend: true };
+        response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
       }
+      return {
+        twiml: response.toString(),
+        shouldSend: !testMode,
+        processingResult: result,
+      };
     }
 
+    // ── 8. Human confirmation (after being asked "real person or automated?") ─
     const humanConfirmation =
       await aiDetectionService.detectHumanConfirmation(finalSpeech);
-    const isHumanConfirmation =
+    const isHumanConfirmed =
       humanConfirmation.isHuman && humanConfirmation.confidence > 0.7;
 
-    if (callState.awaitingHumanConfirmation || isHumanConfirmation) {
-      if (isHumanConfirmation) {
-        callStateManager.updateCallState(callSid, {
-          humanConfirmed: true,
-          awaitingHumanConfirmation: false,
-        });
+    if (callState.awaitingHumanConfirmation && isHumanConfirmed) {
+      callStateManager.updateCallState(callSid, {
+        humanConfirmed: true,
+        awaitingHumanConfirmation: false,
+      });
 
+      if (!testMode) {
         callHistoryService
           .addTransfer(callSid, config.transferNumber, true)
           .catch(err => console.error('Error adding transfer:', err));
@@ -558,7 +553,6 @@ export async function processSpeech({
           'Thank you. Hold on, please.'
         );
         response.pause({ length: 1 });
-
         const dial = response.dial({
           action: `${baseUrl}/voice/transfer-status`,
           method: 'POST',
@@ -566,34 +560,18 @@ export async function processSpeech({
         });
         (dial as TwiMLDialAttributes).answerOnMedia = true;
         dialNumber(dial, config.transferNumber);
-
-        return { twiml: response.toString(), shouldSend: true };
       }
+      return {
+        twiml: response.toString(),
+        shouldSend: !testMode,
+        processingResult: result,
+      };
     }
 
-    if (callState.awaitingCompleteMenu) {
-      callHistoryService
-        .addConversation(
-          callSid,
-          'system',
-          '[Waiting for complete menu - remaining silent]'
-        )
-        .catch(err => console.error('Error adding conversation:', err));
-      const gatherAttributes = createGatherAttributes(config, {
-        action: buildProcessSpeechUrl({ baseUrl, config }),
-        method: 'POST',
-        enhanced: true,
-        timeout: DEFAULT_SPEECH_TIMEOUT,
-      });
-      response.gather(
-        gatherAttributes as Parameters<typeof response.gather>[0]
-      );
-      return { twiml: response.toString(), shouldSend: true };
-    }
-
+    // ── 9. AI conversational response ────────────────────────────────────────
     const conversationHistory = callState.conversationHistory || [];
-
     let aiResponse: string;
+
     try {
       const aiPromise = aiService.generateResponse(
         config as TransferConfig,
@@ -601,8 +579,7 @@ export async function processSpeech({
         isFirstCall,
         conversationHistory.map(h => ({ type: h.type, text: h.text || '' }))
       );
-
-      const timeoutPromise = new Promise<string>((_, reject) => {
+      const timeoutPromise = new Promise<string>((_, reject) =>
         setTimeout(
           () =>
             reject(
@@ -611,70 +588,71 @@ export async function processSpeech({
               )
             ),
           DEFAULT_SPEECH_TIMEOUT * 1000
-        );
-      });
-
+        )
+      );
       aiResponse = await Promise.race([aiPromise, timeoutPromise]);
 
-      if (
-        aiResponse &&
-        aiResponse.trim().toLowerCase() !== 'silent' &&
-        aiResponse.trim().length > 0
-      ) {
-        console.log('🤖', aiResponse);
-      } else if (
-        !aiResponse ||
-        aiResponse.trim().toLowerCase() === 'silent'
-      ) {
-        console.log('🤖 Silent (no response generated)');
+      if (!testMode) {
+        if (
+          aiResponse &&
+          aiResponse.trim().toLowerCase() !== 'silent' &&
+          aiResponse.trim().length > 0
+        ) {
+          console.log('🤖', aiResponse);
+        } else {
+          console.log('🤖 Silent (no response generated)');
+        }
       }
     } catch (error: unknown) {
       const err = error as Error;
-      console.error('❌ AI service error:', err.message);
+      if (!testMode) {
+        console.error('❌ AI service error:', err.message);
+      }
       aiResponse = 'silent';
     }
 
-    callStateManager.addToHistory(callSid, {
-      type: 'system',
-      text: speechResult,
-    });
+    callStateManager.addToHistory(callSid, { type: 'system', text: speechResult });
 
     if (
       aiResponse &&
       aiResponse.trim().toLowerCase() !== 'silent' &&
       aiResponse.trim().length > 0
     ) {
-      callStateManager.addToHistory(callSid, {
-        type: 'ai',
-        text: aiResponse,
-      });
+      callStateManager.addToHistory(callSid, { type: 'ai', text: aiResponse });
+      if (!testMode) {
+        callHistoryService
+          .addConversation(callSid, 'ai', aiResponse)
+          .catch(err => console.error('Error adding conversation:', err));
 
-      callHistoryService
-        .addConversation(callSid, 'ai', aiResponse)
-        .catch(err => console.error('Error adding conversation:', err));
-
-      const sayAttributes = createSayAttributes(config);
-      response.say(
-        sayAttributes as Parameters<typeof response.say>[0],
-        aiResponse
-      );
+        const sayAttributes = createSayAttributes(config);
+        response.say(
+          sayAttributes as Parameters<typeof response.say>[0],
+          aiResponse
+        );
+      }
     }
 
-    const gatherAttributes = createGatherAttributes(config, {
-      action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
-      method: 'POST',
-      enhanced: true,
-      timeout: DEFAULT_SPEECH_TIMEOUT,
-    });
-    response.gather(
-      gatherAttributes as Parameters<typeof response.gather>[0]
-    );
+    if (!testMode) {
+      const gatherAttributes = createGatherAttributes(config, {
+        action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
+        method: 'POST',
+        enhanced: true,
+        timeout: DEFAULT_SPEECH_TIMEOUT,
+      });
+      response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+    }
 
-    return { twiml: response.toString(), shouldSend: true };
+    return {
+      twiml: response.toString(),
+      shouldSend: !testMode,
+      processingResult: result,
+      aiResponse,
+    };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : String(error);
-    console.error('❌ Error in processSpeech:', errorMessage);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (!testMode) {
+      console.error('❌ Error in processSpeech:', errorMessage);
+    }
 
     const errorResponse = new twilio.twiml.VoiceResponse();
     errorResponse.say(
@@ -682,7 +660,6 @@ export async function processSpeech({
       'I apologize, but an application error has occurred. Please try again later.'
     );
     errorResponse.hangup();
-    return { twiml: errorResponse.toString(), shouldSend: true };
+    return { twiml: errorResponse.toString(), shouldSend: !testMode };
   }
 }
-
