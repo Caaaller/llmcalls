@@ -75,13 +75,7 @@ class AIService {
     // Check if this is a transfer-only config
     const config = scenarioOrConfig as TransferConfig;
     if (config.transferNumber || config.callPurpose) {
-      console.log('📝 AI Service - Config received:');
-      console.log(
-        '  customInstructions:',
-        config.customInstructions || '(none)'
-      );
-      console.log('  callPurpose:', config.callPurpose || '(none)');
-
+      console.log(`📝 AI Service config: purpose="${config.callPurpose || '(none)'}", customInstructions=${config.customInstructions ? 'yes' : 'no'}`);
       const conversationContext = this.buildTransferContext(
         speechResult,
         isFirstCall,
@@ -93,18 +87,6 @@ class AIService {
         isFirstCall
       );
 
-      // Log a snippet of the prompt to verify customInstructions are included
-      if (config.customInstructions) {
-        const promptSnippet = promptResult.system
-          .substring(
-            promptResult.system.indexOf('[Additional call-specific guidelines]')
-          )
-          .substring(0, 200);
-        console.log(
-          '📝 Prompt snippet (custom instructions section):',
-          promptSnippet
-        );
-      }
       prompt = promptResult;
       model = config.aiSettings?.model || 'gpt-4o';
       maxTokens = config.aiSettings?.maxTokens || 150;
@@ -199,11 +181,7 @@ Respond with ONLY "YES" if this is a real human, or "NO" if it's an automated sy
     const isConfirmed: boolean =
       response === 'YES' || (response?.startsWith('YES') ?? false);
 
-    console.log('🤖 AI Transfer Confirmation:', {
-      speech: speechResult.substring(0, 100),
-      aiResponse: response,
-      isRealHuman: isConfirmed,
-    });
+    console.log(`AI human confirmation: ${isConfirmed ? 'YES' : 'NO'} (response="${response}")`);
 
     return isConfirmed;
   }

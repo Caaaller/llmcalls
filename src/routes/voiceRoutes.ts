@@ -17,6 +17,7 @@ import twilioService from '../services/twilioService';
 import { TransferConfig } from '../services/aiService';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
 import { toError } from '../utils/errorUtils';
+import { logOnError } from '../utils/logOnError';
 
 const router = express.Router();
 
@@ -205,7 +206,6 @@ function getBaseUrl(req: Request): string {
  */
 router.post('/', (req: Request, res: Response): void => {
   try {
-    console.log('📞 /voice endpoint called');
     const callSid = req.body.CallSid;
     const baseUrl = getBaseUrl(req);
 
@@ -223,27 +223,27 @@ router.post('/', (req: Request, res: Response): void => {
       customInstructions: (req.query.customInstructions as string) || '',
     });
 
-    console.log('📞 Call received - Transfer-Only Mode');
-    console.log('Call SID:', callSid);
-    console.log('Transfer Number:', config.transferNumber);
-    console.log('Call Purpose:', config.callPurpose);
+    console.log(
+      `📞 Call started: ${callSid} -> ${config.transferNumber} (purpose: ${config.callPurpose})`
+    );
 
     callStateManager.updateCallState(callSid, {
       transferConfig: config as TransferConfigType,
-      previousMenus: [], // Initialize for AI loop detection
+      previousMenus: [],
       holdStartTime: null,
-      customInstructions: config.customInstructions, // Store for persistence
+      customInstructions: config.customInstructions,
     });
 
-    callHistoryService
-      .startCall(callSid, {
+    logOnError(
+      callHistoryService.startCall(callSid, {
         to: req.body.To || req.body.Called,
         from: req.body.From || req.body.Caller,
         transferNumber: config.transferNumber,
         callPurpose: config.callPurpose,
         customInstructions: config.customInstructions,
-      })
-      .catch(err => console.error('Error starting call history:', err));
+      }),
+      'Error starting call history'
+    );
 
     const response = new twilio.twiml.VoiceResponse();
     const gatherAttributes = createGatherAttributes(config, {
@@ -256,9 +256,7 @@ router.post('/', (req: Request, res: Response): void => {
       enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
     });
-    console.log('🎤 Setting up initial gather - listening for speech...');
-    console.log('  Timeout:', gatherAttributes.timeout, 'seconds');
-    console.log('  SpeechTimeout:', gatherAttributes.speechTimeout);
+    console.log(`🎤 Setting up initial gather (timeout: ${gatherAttributes.timeout}s, speechTimeout: ${gatherAttributes.speechTimeout})`);
     response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 
     const sayAttributes = createSayAttributes(config);
@@ -291,24 +289,22 @@ router.post('/', (req: Request, res: Response): void => {
 router.post(
   '/process-speech',
   async (req: Request, res: Response): Promise<void> => {
-    console.log('📥 /process-speech endpoint called');
     const response = new twilio.twiml.VoiceResponse();
 
     try {
-      console.log('📥 Extracting request data...');
       const callSid = req.body.CallSid;
       const speechResult = req.body.SpeechResult || '';
       const isFirstCall = req.query.firstCall === 'true';
-
-      console.log('📥 Getting base URL...');
       const baseUrl = getBaseUrl(req);
-      console.log('📥 Base URL:', baseUrl);
 
-      console.log('📥 Creating config...');
+      console.log(`🎤 Speech received: "${speechResult}" (${speechResult.length} chars, firstCall: ${isFirstCall})`);
+
       const callState = callStateManager.getCallState(callSid);
       // Use stored customInstructions from call state if available, otherwise from query params
       const customInstructionsFromState = callState.customInstructions;
-      const customInstructionsFromQuery = req.query.customInstructions as string | undefined;
+      const customInstructionsFromQuery = req.query.customInstructions as
+        | string
+        | undefined;
       const finalCustomInstructions =
         customInstructionsFromQuery || customInstructionsFromState || '';
 
@@ -331,18 +327,9 @@ router.post(
           customInstructions: finalCustomInstructions,
         });
       }
-      console.log('📥 Config created');
-      console.log(
-        '📥 Custom instructions:',
-        config.customInstructions || '(none)'
-      );
-
-      console.log('🎤 Received speech:', speechResult);
-      console.log('  Speech length:', speechResult?.length || 0, 'characters');
-      // Note: finalSpeech will be set below after merge logic
-      console.log('  Call SID:', callSid);
-      console.log('  Is first call:', isFirstCall);
-
+      if (finalCustomInstructions) {
+        console.log('📝 Custom instructions:', finalCustomInstructions);
+      }
       if (!callSid) {
         throw new Error('Call SID is missing');
       }
@@ -360,13 +347,8 @@ router.post(
       // check if the merged speech is still incomplete (it might need more segments)
       let finalSpeech = speechResult;
       if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
-        console.log('📝 Merging partial speech with continuation...');
-        console.log(`  Previous: "${callState.lastSpeech}"`);
-        console.log(`  New: "${speechResult}"`);
-        // Merge: combine previous partial speech with new speech
         finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
-        console.log(`  Merged: "${finalSpeech}"`);
-        // Don't set awaitingCompleteSpeech: false yet - let the incomplete check below determine if we need more
+        console.log(`📝 Merged partial speech: "${finalSpeech}"`);
       }
 
       const previousSpeech = callState.lastSpeech || '';
@@ -378,18 +360,20 @@ router.post(
       );
       if (termination.shouldTerminate) {
         console.log(
-          `🛑 ${termination.message} (confidence: ${termination.confidence})`
+          `🛑 Termination detected: ${termination.message} (confidence: ${termination.confidence})`
         );
 
-        callHistoryService
-          .addTermination(
+        logOnError(
+          callHistoryService.addTermination(
             callSid,
             termination.reason || termination.message || ''
-          )
-          .catch(err => console.error('Error adding termination:', err));
-        callHistoryService
-          .endCall(callSid, 'terminated')
-          .catch(err => console.error('Error ending call:', err));
+          ),
+          'Error adding termination'
+        );
+        logOnError(
+          callHistoryService.endCall(callSid, 'terminated'),
+          'Error ending call'
+        );
 
         const sayAttributes = createSayAttributes(config);
         response.say(
@@ -428,10 +412,7 @@ router.post(
           await aiDetectionService.detectIncompleteSpeech(finalSpeech);
         if (incompleteCheck.isIncomplete && incompleteCheck.confidence > 0.7) {
           console.log(
-            `⚠️ Incomplete speech detected (confidence: ${incompleteCheck.confidence}) - ${incompleteCheck.reason}`
-          );
-          console.log(
-            `⏳ Waiting for more speech (attempt ${incompleteSpeechWaitCount + 1}/${maxIncompleteWaits}, suggested wait: ${incompleteCheck.suggestedWaitTime || 5}s)`
+            `⏳ Incomplete speech (attempt ${incompleteSpeechWaitCount + 1}/${maxIncompleteWaits}, confidence: ${incompleteCheck.confidence}) - ${incompleteCheck.reason}`
           );
 
           // Store partial speech and wait for more
@@ -455,24 +436,15 @@ router.post(
           res.type('text/xml');
           res.send(response.toString());
           return;
-        } else {
-          // Speech appears complete - continue with normal processing
-          console.log(
-            `✅ Speech appears complete (confidence: ${1 - (incompleteCheck.confidence || 0)}) - continuing with processing`
-          );
         }
-      } else if (incompleteSpeechWaitCount >= maxIncompleteWaits) {
-        console.log(
-          `⚠️ Reached maximum incomplete speech waits (${maxIncompleteWaits}), processing speech as-is`
-        );
+      }
+
+      if (incompleteSpeechWaitCount >= maxIncompleteWaits) {
+        console.log(`⚠️ Max incomplete speech waits reached (${maxIncompleteWaits}), processing as-is`);
       } else if (isIncompleteCheckIVRMenu) {
-        console.log(
-          `📋 Detected IVR menu, treating speech as complete (IVR menus can span multiple segments)`
-        );
+        console.log('📋 Detected IVR menu, treating speech as complete');
       } else if (finalSpeech.length >= 500) {
-        console.log(
-          `⚠️ Speech already very long (${finalSpeech.length} chars), processing as-is to prevent infinite merging`
-        );
+        console.log(`⚠️ Speech very long (${finalSpeech.length} chars), processing as-is`);
       }
 
       // Use finalSpeech (merged if needed) for all subsequent processing
@@ -482,9 +454,10 @@ router.post(
         awaitingCompleteSpeech: false,
         incompleteSpeechWaitCount: 0, // Reset when processing
       });
-      callHistoryService
-        .addConversation(callSid, 'user', finalSpeech)
-        .catch(err => console.error('Error adding conversation:', err));
+      logOnError(
+        callHistoryService.addConversation(callSid, 'user', finalSpeech),
+        'Error adding conversation'
+      );
 
       // Check for transfer requests FIRST (before IVR menu processing)
       // Use AI-powered transfer detection with finalSpeech
@@ -492,7 +465,7 @@ router.post(
         await aiDetectionService.detectTransferRequest(finalSpeech);
       if (transferDetection.wantsTransfer) {
         console.log(
-          `🔄 Transfer request detected (confidence: ${transferDetection.confidence}) - ${transferDetection.reason}`
+          `🔄 Transfer request detected (confidence: ${transferDetection.confidence})`
         );
 
         const needsConfirmation = !callState.humanConfirmed;
@@ -506,9 +479,10 @@ router.post(
 
         console.log(`🔄 Transferring to ${config.transferNumber}`);
 
-        callHistoryService
-          .addTransfer(callSid, config.transferNumber, true)
-          .catch(err => console.error('Error adding transfer:', err));
+        logOnError(
+          callHistoryService.addTransfer(callSid, config.transferNumber, true),
+          'Error adding transfer'
+        );
 
         const sayAttributes = createSayAttributes(config);
         response.say(
@@ -532,7 +506,6 @@ router.post(
 
       if (callState.awaitingCompleteMenu) {
         console.log('📋 Checking if speech continues incomplete menu...');
-        // Use AI to detect if speech continues menu
         const menuDetection =
           await aiDetectionService.detectIVRMenu(finalSpeech);
         const isContinuingMenu = menuDetection.isIVRMenu;
@@ -540,9 +513,10 @@ router.post(
         if (isContinuingMenu) {
           console.log('✅ Speech continues menu - merging options...');
         } else {
-          console.log(
-            '⚠️ Speech does not continue menu - clearing awaiting flag'
-          );
+          console.log('⚠️ Speech does not continue menu - clearing awaiting flag');
+        }
+
+        if (!isContinuingMenu) {
           callStateManager.updateCallState(callSid, {
             awaitingCompleteMenu: false,
             partialMenuOptions: [],
@@ -553,36 +527,25 @@ router.post(
       // Use AI-powered IVR menu detection
       const menuDetection = await aiDetectionService.detectIVRMenu(finalSpeech);
       const isIVRMenu = menuDetection.isIVRMenu;
-      console.log('📋 Checking for IVR menu...');
-      console.log(
-        `  isIVRMenu: ${isIVRMenu} (confidence: ${menuDetection.confidence})`
-      );
-      console.log('  awaitingCompleteMenu:', callState.awaitingCompleteMenu);
 
       if (isIVRMenu || callState.awaitingCompleteMenu) {
-        console.log('📋 IVR Menu detected - processing menu options');
-        // Use AI-powered menu extraction
+        console.log(
+          `📋 IVR menu detected (confidence: ${menuDetection.confidence})`
+        );
         const extractionResult =
           await aiDetectionService.extractMenuOptions(finalSpeech);
         const menuOptions = extractionResult.menuOptions;
         console.log(
-          '📋 Extracted menu options:',
-          JSON.stringify(menuOptions, null, 2)
-        );
-        console.log(
-          `  Confidence: ${extractionResult.confidence}, Complete: ${extractionResult.isComplete}`
+          `📋 Extracted ${menuOptions.length} options: ${JSON.stringify(menuOptions)}, complete: ${extractionResult.isComplete}`
         );
 
         const isIncomplete = !extractionResult.isComplete;
-        console.log('📋 Is incomplete menu:', isIncomplete);
 
         if (isIncomplete) {
           // Even if menu appears incomplete, use AI to check if we have a good match
           // Custom instructions take priority, otherwise check if option matches "speak with a representative"
           if (menuOptions.length > 0) {
-            console.log(
-              '🤖 Checking incomplete menu options with AI for early match...'
-            );
+            console.log('🤖 Checking incomplete menu options with AI for early match...');
             try {
               // Merge with any previous partial options for context
               let allMenuOptions = menuOptions;
@@ -621,9 +584,8 @@ router.post(
                     opt.digit === aiDecision.digit
                 );
                 console.log(
-                  `✅ AI found good match in incomplete menu: Press ${aiDecision.digit} for ${matchedOption?.option || aiDecision.matchedOption} - proceeding immediately`
+                  `✅ AI early match: Press ${aiDecision.digit} for ${matchedOption?.option || aiDecision.matchedOption}`
                 );
-                console.log(`   Reason: ${aiDecision.reason}`);
 
                 callStateManager.updateCallState(callSid, {
                   partialMenuOptions: [],
@@ -634,17 +596,15 @@ router.post(
                 callHistoryService.addIVRMenu(callSid, allMenuOptions);
 
                 const digitToPress = aiDecision.digit;
-                console.log(
-                  `✅ Pressing DTMF ${digitToPress} (AI confirmed match)`
-                );
 
-                callHistoryService
-                  .addDTMF(
+                logOnError(
+                  callHistoryService.addDTMF(
                     callSid,
                     digitToPress,
                     `AI matched: ${aiDecision.matchedOption || matchedOption?.option}`
-                  )
-                  .catch(err => console.error('Error adding DTMF:', err));
+                  ),
+                  'Error adding DTMF'
+                );
 
                 response.pause({ length: 2 });
                 setTimeout(async () => {
@@ -657,9 +617,7 @@ router.post(
                 res.send(response.toString());
                 return;
               } else {
-                console.log(
-                  `⚠️ AI did not find a match in incomplete menu - waiting for more options`
-                );
+                console.log('⚠️ AI did not find a match in incomplete menu - waiting for more options');
               }
             } catch (error: unknown) {
               const err = error as Error;
@@ -672,10 +630,7 @@ router.post(
           }
 
           console.log(
-            '⚠️ Menu appears incomplete - waiting for complete menu...'
-          );
-          console.log(
-            `   Found only ${menuOptions.length} option(s), waiting for more...`
+            `⚠️ Incomplete menu (${menuOptions.length} options) - waiting for more`
           );
 
           callStateManager.updateCallState(callSid, {
@@ -687,9 +642,10 @@ router.post(
             menuOptions.length > 0
               ? `[IVR Menu incomplete - found: ${menuOptions.map((o: { digit: string; option: string }) => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
               : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
-          callHistoryService
-            .addConversation(callSid, 'system', menuSummary)
-            .catch(err => console.error('Error adding conversation:', err));
+          logOnError(
+            callHistoryService.addConversation(callSid, 'system', menuSummary),
+            'Error adding conversation'
+          );
 
           const gatherAttributes = createGatherAttributes(config, {
             action: buildProcessSpeechUrl({ baseUrl, config }),
@@ -737,7 +693,7 @@ router.post(
         );
         if (loopCheck.isLoop && loopCheck.confidence > 0.7) {
           console.log(
-            `🔄 ${loopCheck.reason} - Acting immediately (confidence: ${loopCheck.confidence})`
+            `🔄 Loop detected (confidence: ${loopCheck.confidence}) - ${loopCheck.reason}`
           );
           // Use AI DTMF service to select best option when loop detected
           const aiDecision =
@@ -763,13 +719,16 @@ router.post(
 
           if (bestOption) {
             const digitToPress = bestOption.digit;
-            console.log(
-              `✅ Pressing DTMF ${digitToPress} immediately (loop detected)`
-            );
+            console.log(`✅ DTMF ${digitToPress} (loop detected)`);
 
-            callHistoryService
-              .addDTMF(callSid, digitToPress, 'Loop detected - immediate press')
-              .catch(err => console.error('Error adding DTMF:', err));
+            logOnError(
+              callHistoryService.addDTMF(
+                callSid,
+                digitToPress,
+                'Loop detected - immediate press'
+              ),
+              'Error adding DTMF'
+            );
 
             response.pause({ length: 0.5 });
             setTimeout(async () => {
@@ -803,39 +762,35 @@ router.post(
             allMenuOptions
           );
 
-        // Use AI DTMF decision - no static fallback, rely entirely on AI
         let digitToPress: string | null = null;
         if (aiDecision.shouldPress && aiDecision.digit) {
           digitToPress = aiDecision.digit;
           console.log(
-            `✅ AI selected: Press ${digitToPress} (${aiDecision.matchedOption}) - ${aiDecision.reason}`
+            `✅ AI selected: Press ${digitToPress} (${aiDecision.matchedOption})`
           );
         } else {
-          console.log(
-            `⚠️ AI determined no suitable option found - ${aiDecision.reason}`
-          );
-          callHistoryService
-            .addConversation(
+          console.log(`⚠️ AI: no suitable option - ${aiDecision.reason}`);
+          logOnError(
+            callHistoryService.addConversation(
               callSid,
               'system',
               `[AI: No suitable option - ${aiDecision.reason}]`
-            )
-            .catch(err => console.error('Error adding conversation:', err));
+            ),
+            'Error adding conversation'
+          );
           digitToPress = null;
         }
 
         if (digitToPress) {
-          console.log(
-            `⏳ Waiting for silence before pressing ${digitToPress}...`
-          );
-
+          console.log(`⏳ Waiting for silence before pressing ${digitToPress}...`);
           const reason =
             aiDecision && aiDecision.matchedOption
               ? `AI selected: ${aiDecision.matchedOption}`
               : 'Selected best option';
-          callHistoryService
-            .addDTMF(callSid, digitToPress, reason)
-            .catch(err => console.error('Error adding DTMF:', err));
+          logOnError(
+            callHistoryService.addDTMF(callSid, digitToPress, reason),
+            'Error adding DTMF'
+          );
 
           response.pause({ length: 2 });
           setTimeout(async () => {
@@ -849,13 +804,14 @@ router.post(
           return;
         } else {
           console.log('⚠️ No matching option found - waiting silently');
-          callHistoryService
-            .addConversation(
+          logOnError(
+            callHistoryService.addConversation(
               callSid,
               'system',
               '[No matching option found - waiting silently]'
-            )
-            .catch(err => console.error('Error adding conversation:', err));
+            ),
+            'Error adding conversation'
+          );
           const gatherAttributes = createGatherAttributes(config, {
             action: buildProcessSpeechUrl({ baseUrl, config }),
             method: 'POST',
@@ -880,7 +836,7 @@ router.post(
       if (callState.awaitingHumanConfirmation || isHumanConfirmation) {
         if (isHumanConfirmation) {
           console.log(
-            `✅ Human confirmed - transferring (confidence: ${humanConfirmation.confidence}) - ${humanConfirmation.reason}`
+            `✅ Human confirmed (confidence: ${humanConfirmation.confidence}) - transferring`
           );
           callStateManager.updateCallState(callSid, {
             humanConfirmed: true,
@@ -902,16 +858,15 @@ router.post(
       }
 
       if (callState.awaitingCompleteMenu) {
-        console.log(
-          '⚠️ Still awaiting complete menu - remaining silent, waiting for more options'
-        );
-        callHistoryService
-          .addConversation(
+        console.log('⚠️ Still awaiting complete menu - remaining silent');
+        logOnError(
+          callHistoryService.addConversation(
             callSid,
             'system',
             '[Waiting for complete menu - remaining silent]'
-          )
-          .catch(err => console.error('Error adding conversation:', err));
+          ),
+          'Error adding conversation'
+        );
         const gatherAttributes = createGatherAttributes(config, {
           action: buildProcessSpeechUrl({ baseUrl, config }),
           method: 'POST',
@@ -927,15 +882,7 @@ router.post(
       }
 
       const conversationHistory = callState.conversationHistory || [];
-      console.log('🤖 Calling AI service...');
-      console.log('  Speech:', finalSpeech);
-      console.log('  Is first call:', isFirstCall);
-      console.log('  Conversation history length:', conversationHistory.length);
-      console.log(
-        '  Custom instructions:',
-        config.customInstructions || '(none)'
-      );
-      console.log('  Call purpose:', config.callPurpose || '(none)');
+      console.log(`🤖 Calling AI service (speech: "${finalSpeech.substring(0, 80)}${finalSpeech.length > 80 ? '...' : ''}", firstCall: ${isFirstCall}, history: ${conversationHistory.length}, purpose: ${config.callPurpose || '(none)'})`);
 
       let aiResponse: string;
       try {
@@ -960,14 +907,11 @@ router.post(
         });
 
         aiResponse = await Promise.race([aiPromise, timeoutPromise]);
-        console.log('✅ OpenAI response received:', aiResponse);
+        console.log('✅ AI response:', aiResponse);
       } catch (error: unknown) {
         const err = toError(error);
-        console.error('❌ AI service error:', err.message);
-        console.error('  Error stack:', err.stack);
-        // Fallback: remain silent on AI error
+        console.error('❌ AI service error:', err.message, err.stack);
         aiResponse = 'silent';
-        console.log('⚠️ Using fallback: remaining silent due to AI error');
       }
 
       callStateManager.addToHistory(callSid, {
@@ -985,9 +929,10 @@ router.post(
           text: aiResponse,
         });
 
-        callHistoryService
-          .addConversation(callSid, 'ai', aiResponse)
-          .catch(err => console.error('Error adding conversation:', err));
+        logOnError(
+          callHistoryService.addConversation(callSid, 'ai', aiResponse),
+          'Error adding conversation'
+        );
 
         const sayAttributes = createSayAttributes(config);
         response.say(
@@ -995,10 +940,15 @@ router.post(
           aiResponse
         );
       } else {
-        console.log('🤫 AI chose to remain silent - not speaking');
-        callHistoryService
-          .addConversation(callSid, 'system', '[AI remained silent]')
-          .catch(err => console.error('Error adding conversation:', err));
+        console.log('🤫 AI chose silence');
+        logOnError(
+          callHistoryService.addConversation(
+            callSid,
+            'system',
+            '[AI remained silent]'
+          ),
+          'Error adding conversation'
+        );
       }
 
       const gatherAttributes = createGatherAttributes(config, {
@@ -1007,30 +957,15 @@ router.post(
         enhanced: true,
         timeout: DEFAULT_SPEECH_TIMEOUT,
       });
-      console.log('🎤 Setting up gather for next speech segment...');
-      console.log('  Timeout:', gatherAttributes.timeout, 'seconds');
-      console.log('  SpeechTimeout:', gatherAttributes.speechTimeout);
+      console.log(`🎤 Setting up gather for next speech segment (timeout: ${gatherAttributes.timeout}s)`);
       response.gather(
         gatherAttributes as Parameters<typeof response.gather>[0]
       );
 
-      console.log(
-        '📤 Sending TwiML response with gather action:',
-        gatherAttributes.action
-      );
       res.type('text/xml');
       res.send(response.toString());
-      console.log('✅ TwiML response sent');
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
       console.error('❌ Error in /process-speech:', error);
-      console.error('Error message:', errorMessage);
-      console.error('Error stack:', errorStack);
-      console.error('Call SID:', req.body.CallSid);
-      console.error('Speech Result:', req.body.SpeechResult);
-      console.error('Query params:', req.query);
 
       const errorResponse = new twilio.twiml.VoiceResponse();
       errorResponse.say(
@@ -1048,18 +983,16 @@ router.post(
  * Process DTMF - handle DTMF key presses
  */
 router.post('/process-dtmf', (req: Request, res: Response) => {
-  console.log('📥 /process-dtmf endpoint called');
-  console.log('Request body Digits:', req.body.Digits);
-  console.log('Request query Digits:', req.query.Digits);
-
   const digits = req.body.Digits || req.query.Digits;
+  console.log(`🔢 DTMF processed: ${digits}`);
   const baseUrl = getBaseUrl(req);
-  console.log('Base URL:', baseUrl);
 
   const callSid = req.body.CallSid;
   const callState = callStateManager.getCallState(callSid);
   const customInstructionsFromState = callState.customInstructions;
-  const customInstructionsFromQuery = req.query.customInstructions as string | undefined;
+  const customInstructionsFromQuery = req.query.customInstructions as
+    | string
+    | undefined;
   const finalCustomInstructions =
     customInstructionsFromQuery || customInstructionsFromState || '';
 
@@ -1080,9 +1013,6 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
     });
   }
 
-  console.log('🔢 DTMF processed:', digits);
-  console.log('Call SID:', req.body.CallSid);
-
   const response = new twilio.twiml.VoiceResponse();
   const gatherAttributes = createGatherAttributes(config, {
     action: buildProcessSpeechUrl({ baseUrl, config }),
@@ -1092,13 +1022,8 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   });
   response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 
-  console.log(
-    '📤 Sending TwiML response with gather action:',
-    gatherAttributes.action
-  );
   res.type('text/xml');
   res.send(response.toString());
-  console.log('✅ TwiML response sent from /process-dtmf');
 });
 
 /**
@@ -1107,21 +1032,20 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
 router.post('/call-status', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
-  console.log('📞 Call status update:', callStatus, 'for CallSid:', callSid);
+  console.log(`📞 Call status update: ${callStatus} for ${callSid}`);
 
-  // Map Twilio call statuses to our internal statuses
   if (callSid && callStatus) {
     if (callStatus === 'completed') {
-      callHistoryService
-        .endCall(callSid, 'completed')
-        .catch(err => console.error('Error ending call:', err));
+      logOnError(
+        callHistoryService.endCall(callSid, 'completed'),
+        'Error ending call'
+      );
     } else if (isCallEnded(callStatus)) {
-      callHistoryService
-        .endCall(callSid, 'failed')
-        .catch(err => console.error('Error ending call:', err));
+      logOnError(
+        callHistoryService.endCall(callSid, 'failed'),
+        'Error ending call'
+      );
     }
-    // Note: 'ringing', 'in-progress', 'queued' are intermediate states
-    // We don't update status for these as the call is still active
   }
 
   res.status(200).send('OK');
@@ -1133,28 +1057,28 @@ router.post('/call-status', (req: Request, res: Response) => {
 router.post('/transfer-status', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
-  console.log('🔄 Transfer status:', callStatus);
+  console.log(`🔄 Transfer status: ${callStatus} for ${callSid}`);
 
   if (callSid && callStatus) {
-    // Update transfer event success status based on call status
     if (callStatus === 'completed') {
-      callHistoryService
-        .updateTransferStatus(callSid, true)
-        .catch(err => console.error('Error updating transfer status:', err));
+      logOnError(
+        callHistoryService.updateTransferStatus(callSid, true),
+        'Error updating transfer status'
+      );
     } else if (isCallEnded(callStatus)) {
-      callHistoryService
-        .updateTransferStatus(callSid, false)
-        .catch(err => console.error('Error updating transfer status:', err));
+      logOnError(
+        callHistoryService.updateTransferStatus(callSid, false),
+        'Error updating transfer status'
+      );
     }
 
-    // End the call if transfer completed or failed
     if (isCallEnded(callStatus)) {
-      // Map to internal status - only 'completed' or 'failed' are valid for endCall
       const internalStatus: 'completed' | 'failed' =
         callStatus === 'completed' ? 'completed' : 'failed';
-      callHistoryService
-        .endCall(callSid, internalStatus)
-        .catch(err => console.error('Error ending call:', err));
+      logOnError(
+        callHistoryService.endCall(callSid, internalStatus),
+        'Error ending call'
+      );
     }
   }
 

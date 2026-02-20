@@ -91,7 +91,6 @@ router.get(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error('Error fetching call history:', error);
       res.status(500).json({
         success: false,
         error: errorMessage,
@@ -163,14 +162,10 @@ router.post(
   authenticate,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      console.log('📞 POST /api/calls/initiate');
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
-
       const { to, from, transferNumber, callPurpose, customInstructions } =
         req.body;
 
       if (!to) {
-        console.log('❌ Missing required field: to');
         res.status(400).json({
           success: false,
           error: 'Missing required field: to',
@@ -187,7 +182,7 @@ router.post(
         customInstructions: customInstructions || '',
       });
 
-      console.log('📋 Call configuration:', {
+      console.log('📋 Resolved config:', {
         transferNumber: config.transferNumber,
         callPurpose: config.callPurpose,
         hasCustomInstructions: !!config.customInstructions,
@@ -207,10 +202,6 @@ router.post(
         const detectedProtocol = forwardedProto || protocol;
 
         if (detectedHost && detectedHost.includes('localhost')) {
-          console.log('❌ Cannot use localhost URL');
-          console.log(
-            '💡 Tip: Set TWIML_URL or BASE_URL in .env, or access the app through ngrok'
-          );
           res.status(500).json({
             success: false,
             error:
@@ -220,12 +211,7 @@ router.post(
         }
 
         baseUrl = `${detectedProtocol}://${detectedHost}`;
-        console.log('🔍 Auto-detected base URL from request:', baseUrl);
-        console.log(
-          '💡 Tip: Set TWIML_URL or BASE_URL in .env for more reliable URL detection'
-        );
-      } else {
-        console.log('✅ Using configured base URL from environment:', baseUrl);
+        console.log('Auto-detected base URL from request:', baseUrl);
       }
 
       if (baseUrl.endsWith('/voice')) {
@@ -241,14 +227,6 @@ router.post(
       }
       const twimlUrl = `${baseUrl}/voice?${params.toString()}`;
 
-      console.log('🔗 TwiML URL:', twimlUrl);
-      console.log(
-        '📞 Initiating call to:',
-        to,
-        'from:',
-        from || process.env.TWILIO_PHONE_NUMBER || 'default'
-      );
-
       // Set up status callback URL to track call status changes
       const statusCallbackUrl = `${baseUrl}/voice/call-status`;
 
@@ -262,10 +240,6 @@ router.post(
         }
       );
 
-      console.log('✅ Call initiated successfully');
-      console.log('Call SID:', call.sid);
-      console.log('Call status:', call.status);
-
       await callHistoryService.startCall(call.sid, {
         to: call.to,
         from: call.from,
@@ -273,8 +247,6 @@ router.post(
         callPurpose: config.callPurpose,
         customInstructions: config.customInstructions,
       });
-
-      console.log('📝 Call history started for:', call.sid);
 
       res.json({
         success: true,
