@@ -138,10 +138,9 @@ Respond ONLY with JSON:
       }
 
       const response: DTMFDecision = JSON.parse(content);
-      console.log(`   🤖 AI Analysis:`);
-      console.log(`      Call Purpose: ${response.callPurpose}`);
-      console.log(`      Matched Option: ${response.matchedOption || 'none'}`);
-      console.log(`      Reason: ${response.reason}`);
+      console.log(
+        `AI DTMF decision: digit=${response.digit} matched="${response.matchedOption}" reason="${response.reason}"`
+      );
       return response;
     } catch (error) {
       const err = error as Error;

@@ -27,7 +27,7 @@ class CallHistoryService {
    */
   async startCall(callSid: string, metadata: CallMetadata = {}): Promise<void> {
     if (!isMongoAvailable()) {
-      console.log('⚠️  MongoDB not connected. Call history will not be saved.');
+      console.warn('MongoDB not connected. Call history will not be saved.');
       return;
     }
 

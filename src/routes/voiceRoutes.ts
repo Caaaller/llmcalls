@@ -54,20 +54,21 @@ router.post('/', (req: Request, res: Response): void => {
 
     callStateManager.updateCallState(callSid, {
       transferConfig: config as TransferConfigType,
-      previousMenus: [], // Initialize for AI loop detection
+      previousMenus: [],
       holdStartTime: null,
-      customInstructions: config.customInstructions, // Store for persistence
+      customInstructions: config.customInstructions,
     });
 
-    callHistoryService
-      .startCall(callSid, {
+    logOnError(
+      callHistoryService.startCall(callSid, {
         to: req.body.To || req.body.Called,
         from: req.body.From || req.body.Caller,
         transferNumber: config.transferNumber,
         callPurpose: config.callPurpose,
         customInstructions: config.customInstructions,
-      })
-      .catch(err => console.error('Error starting call history:', err));
+      }),
+      'Error starting call history'
+    );
 
     const response = new twilio.twiml.VoiceResponse();
     const gatherAttributes = createGatherAttributes(config, {
@@ -156,6 +157,7 @@ router.post(
  */
 router.post('/process-dtmf', (req: Request, res: Response) => {
   const digits = req.body.Digits || req.query.Digits;
+  console.log(`🔢 DTMF processed: ${digits}`);
   const baseUrl = getBaseUrl(req);
 
   const callSid = req.body.CallSid;
@@ -207,19 +209,18 @@ router.post('/call-status', (req: Request, res: Response) => {
   const callSid = req.body.CallSid;
   const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
 
-  // Map Twilio call statuses to our internal statuses
   if (callSid && callStatus) {
     if (callStatus === 'completed') {
-      callHistoryService
-        .endCall(callSid, 'completed')
-        .catch(err => console.error('Error ending call:', err));
+      logOnError(
+        callHistoryService.endCall(callSid, 'completed'),
+        'Error ending call'
+      );
     } else if (isCallEnded(callStatus)) {
-      callHistoryService
-        .endCall(callSid, 'failed')
-        .catch(err => console.error('Error ending call:', err));
+      logOnError(
+        callHistoryService.endCall(callSid, 'failed'),
+        'Error ending call'
+      );
     }
-    // Note: 'ringing', 'in-progress', 'queued' are intermediate states
-    // We don't update status for these as the call is still active
   }
 
   res.status(200).send('OK');
@@ -233,25 +234,25 @@ router.post('/transfer-status', (req: Request, res: Response) => {
   const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
 
   if (callSid && callStatus) {
-    // Update transfer event success status based on call status
     if (callStatus === 'completed') {
-      callHistoryService
-        .updateTransferStatus(callSid, true)
-        .catch(err => console.error('Error updating transfer status:', err));
+      logOnError(
+        callHistoryService.updateTransferStatus(callSid, true),
+        'Error updating transfer status'
+      );
     } else if (isCallEnded(callStatus)) {
-      callHistoryService
-        .updateTransferStatus(callSid, false)
-        .catch(err => console.error('Error updating transfer status:', err));
+      logOnError(
+        callHistoryService.updateTransferStatus(callSid, false),
+        'Error updating transfer status'
+      );
     }
 
-    // End the call if transfer completed or failed
     if (isCallEnded(callStatus)) {
-      // Map to internal status - only 'completed' or 'failed' are valid for endCall
       const internalStatus: 'completed' | 'failed' =
         callStatus === 'completed' ? 'completed' : 'failed';
-      callHistoryService
-        .endCall(callSid, internalStatus)
-        .catch(err => console.error('Error ending call:', err));
+      logOnError(
+        callHistoryService.endCall(callSid, internalStatus),
+        'Error ending call'
+      );
     }
   }
 
