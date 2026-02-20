@@ -39,3 +39,7 @@ plans/
 # Misc
 *.pem
 *.key
+
+# Worktrees
+worktrees/
+
