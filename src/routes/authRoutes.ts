@@ -75,6 +75,7 @@ router.post('/signup', async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Error creating user';
+    console.error('Signup error:', error);
     res.status(500).json({
       success: false,
       error: errorMessage,
@@ -140,6 +141,7 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Error logging in';
+    console.error('Login error:', error);
     res.status(500).json({
       success: false,
       error: errorMessage,
@@ -175,6 +177,7 @@ router.get(
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Error fetching user';
+      console.error('Get user error:', error);
       res.status(500).json({
         success: false,
         error: errorMessage,

@@ -49,8 +49,10 @@ class CallHistoryService {
       });
 
       await callHistory.save();
+      console.log(`📞 Started tracking call: ${callSid}`);
     } catch (error: unknown) {
       if (isDuplicateKeyError(getMongoErrorCode(error))) {
+        console.log(`📞 Call ${callSid} already exists, updating...`);
         await CallHistory.findOneAndUpdate(
           { callSid },
           {

@@ -146,22 +146,49 @@ app.use(errorHandler);
 
 // Connect to MongoDB and start server
 async function startServer(): Promise<void> {
+  console.log(`Environment: ${process.env.NODE_ENV ?? 'development'}`);
+  console.log(`Port: ${port} | Node ${process.version} | PID ${process.pid}`);
+  console.log(`Working directory: ${process.cwd()}`);
+
+  // Environment variables check
+  console.log('Environment Variables Check:');
+  console.log(`  MONGODB_URI: ${process.env.MONGODB_URI ? 'SET (masked)' : 'NOT SET'}`);
+  console.log(`  MONGO_URL: ${process.env.MONGO_URL ? 'SET (masked)' : 'NOT SET'}`);
+  console.log(`  DATABASE_URL: ${process.env.DATABASE_URL ? 'SET (masked)' : 'NOT SET'}`);
+  console.log(`  MONGOHOST: ${process.env.MONGOHOST ? 'SET' : 'NOT SET'}`);
+
+  // MongoDB connection setup
   const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URL;
   if (mongoUri) {
-    connect().catch(() => {});
+    const maskedUri = mongoUri.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@');
+    console.log(`MongoDB URI found: ${maskedUri}`);
+    const connectionStartTime = Date.now();
+
+    connect()
+      .then(() => {
+        const connectionTime = Date.now() - connectionStartTime;
+        console.log(`MongoDB connection successful (took ${connectionTime}ms)`);
+      })
+      .catch(err => {
+        const connectionTime = Date.now() - connectionStartTime;
+        console.error(
+          `MongoDB connection failed after ${connectionTime}ms:`,
+          err instanceof Error ? err.message : String(err)
+        );
+        console.log('Server will continue, but database operations will fail.');
+      });
   } else {
     console.warn('No MongoDB URI set - database operations will fail');
   }
 
-  console.log(`Environment: ${process.env.NODE_ENV ?? 'development'}`);
-  console.log(`Node ${process.version} | PID ${process.pid}`);
-
+  const serverStartTime = Date.now();
   app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port}`);
+    const startupTime = Date.now() - serverStartTime;
+    console.log(`Server running on port ${port} (startup: ${startupTime}ms)`);
   });
 
   process.on('uncaughtException', (err: Error) => {
-    console.error('Uncaught exception:', err.message);
+    console.error('Uncaught exception:', err.message, err.stack);
   });
 
   process.on('unhandledRejection', (reason: unknown) => {

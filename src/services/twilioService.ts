@@ -70,6 +70,7 @@ class TwilioService {
         ...options,
       });
 
+      console.log(`Call created: ${call.sid} (${call.status}) to=${to}`);
       return call;
     } catch (error: unknown) {
       const err = toError(error);

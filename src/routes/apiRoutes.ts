@@ -182,6 +182,12 @@ router.post(
         customInstructions: customInstructions || '',
       });
 
+      console.log('📋 Resolved config:', {
+        transferNumber: config.transferNumber,
+        callPurpose: config.callPurpose,
+        hasCustomInstructions: !!config.customInstructions,
+      });
+
       let baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
 
       if (!baseUrl) {

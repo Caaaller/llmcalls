@@ -75,6 +75,7 @@ class AIService {
     // Check if this is a transfer-only config
     const config = scenarioOrConfig as TransferConfig;
     if (config.transferNumber || config.callPurpose) {
+      console.log(`📝 AI Service config: purpose="${config.callPurpose || '(none)'}", customInstructions=${config.customInstructions ? 'yes' : 'no'}`);
       const conversationContext = this.buildTransferContext(
         speechResult,
         isFirstCall,
