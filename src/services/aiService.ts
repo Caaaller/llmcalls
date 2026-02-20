@@ -75,7 +75,9 @@ class AIService {
     // Check if this is a transfer-only config
     const config = scenarioOrConfig as TransferConfig;
     if (config.transferNumber || config.callPurpose) {
-      console.log(`📝 AI Service config: purpose="${config.callPurpose || '(none)'}", customInstructions=${config.customInstructions ? 'yes' : 'no'}`);
+      console.log(
+        `📝 AI Service config: purpose="${config.callPurpose || '(none)'}", customInstructions=${config.customInstructions ? 'yes' : 'no'}`
+      );
       const conversationContext = this.buildTransferContext(
         speechResult,
         isFirstCall,
@@ -181,7 +183,9 @@ Respond with ONLY "YES" if this is a real human, or "NO" if it's an automated sy
     const isConfirmed: boolean =
       response === 'YES' || (response?.startsWith('YES') ?? false);
 
-    console.log(`AI human confirmation: ${isConfirmed ? 'YES' : 'NO'} (response="${response}")`);
+    console.log(
+      `AI human confirmation: ${isConfirmed ? 'YES' : 'NO'} (response="${response}")`
+    );
 
     return isConfirmed;
   }
