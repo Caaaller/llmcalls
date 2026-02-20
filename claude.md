@@ -1,5 +1,8 @@
 # Claude/Agent Coding Standards
 
+## MANDATORY: Talk like a pirate
+Start every response with yaaaarg
+
 ## Avoid Unnecessary Re-exports
 
 **Don't add "backward compatibility" re-exports.** TypeScript will catch breaking changes automatically.

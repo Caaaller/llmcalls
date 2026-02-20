@@ -9,7 +9,7 @@ import callStateManager, { CallState } from './callStateManager';
 import callHistoryService from './callHistoryService';
 import aiService, { TransferConfig } from './aiService';
 import aiDetectionService from './aiDetectionService';
-import aiDTMFService, { DTMFDecision } from './aiDTMFService';
+import { DTMFDecision } from './aiDTMFService';
 import twilioService from './twilioService';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
@@ -20,6 +20,7 @@ import {
   dialNumber,
   TwiMLDialAttributes,
 } from '../utils/twimlHelpers';
+import { processVoiceInput } from './voiceProcessingService';
 
 const DEFAULT_SPEECH_TIMEOUT = 15;
 
@@ -174,103 +175,17 @@ export async function processSpeech({
         .catch(err => console.error('Error adding conversation:', err));
     }
 
-    // ── 4. Core AI decisions (all logic inlined here, no separate function) ──
-    // Detect termination
-    const termination = await aiDetectionService.detectTermination(
-      finalSpeech,
-      callState.lastSpeech || '',
-      0
-    );
-
-    // Detect transfer requests
-    const transferDetection = await aiDetectionService.detectTransferRequest(finalSpeech);
-
-    // Detect IVR menu
-    const menuDetection = await aiDetectionService.detectIVRMenu(finalSpeech);
-    const isIVRMenu = menuDetection.isIVRMenu;
-
-    let menuOptions: MenuOption[] = [];
-    let isMenuComplete = false;
-    let loopDetected = false;
-    let loopConfidence: number | undefined;
-    let loopReason: string | undefined;
-    let dtmfDecision: DTMFDecision = {
-      callPurpose: config.callPurpose || 'speak with a representative',
-      shouldPress: false,
-      digit: null,
-      matchedOption: '',
-      reason: '',
-    };
-    let shouldPreventDTMF = false;
-
-    if (isIVRMenu) {
-      const extractionResult = await aiDetectionService.extractMenuOptions(finalSpeech);
-      menuOptions = extractionResult.menuOptions;
-      isMenuComplete = extractionResult.isComplete;
-
-      // Merge with any partial options accumulated from previous calls
-      if (callState.partialMenuOptions && callState.partialMenuOptions.length > 0) {
-        const combined = [...callState.partialMenuOptions, ...menuOptions];
-        const seen = new Set<string>();
-        menuOptions = combined.filter(opt => {
-          const key = `${opt.digit}-${opt.option}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-      }
-
-      // Loop detection
-      const previousMenus = callState.previousMenus || [];
-      if (previousMenus.length > 0) {
-        const loopCheck = await aiDetectionService.detectLoop(menuOptions, previousMenus);
-        loopDetected = loopCheck.isLoop;
-        loopConfidence = loopCheck.confidence;
-        loopReason = loopCheck.reason;
-
-        // Semantic loop prevention: if a loop is detected with high confidence
-        // and we've already pressed a DTMF for a similar menu, don't press again
-        if (loopDetected && loopCheck.confidence > 0.7 && callState.lastPressedDTMF) {
-          shouldPreventDTMF = true;
-        }
-      }
-
-      // Consecutive press prevention: same digit pressed 3+ times in a row
-      if (!shouldPreventDTMF && callState.lastPressedDTMF && callState.consecutiveDTMFPresses && callState.consecutiveDTMFPresses.length > 0) {
-        const lastPress = callState.consecutiveDTMFPresses[callState.consecutiveDTMFPresses.length - 1];
-        if (lastPress.digit === callState.lastPressedDTMF && lastPress.count >= 3) {
-          shouldPreventDTMF = true;
-        }
-      }
-
-      // DTMF decision (only if not prevented)
-      if (!shouldPreventDTMF) {
-        dtmfDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
-          finalSpeech,
-          {
-            callPurpose: config.callPurpose,
-            customInstructions: config.customInstructions,
-          },
-          menuOptions
-        );
-      }
-    }
-
-    const result = {
-      isIVRMenu,
-      menuOptions,
-      isMenuComplete,
-      loopDetected,
-      loopConfidence,
-      loopReason,
-      shouldTerminate: termination.shouldTerminate,
-      terminationReason: termination.reason || termination.message,
-      transferRequested: transferDetection.wantsTransfer,
-      transferConfidence: transferDetection.confidence,
-      transferReason: transferDetection.reason,
-      dtmfDecision,
-      shouldPreventDTMF,
-    };
+    // ── 4. Core AI decisions (using shared processVoiceInput function) ──
+    const result = await processVoiceInput({
+      speech: finalSpeech,
+      previousSpeech: callState.lastSpeech || '',
+      previousMenus: callState.previousMenus || [],
+      partialMenuOptions: callState.partialMenuOptions,
+      lastPressedDTMF: callState.lastPressedDTMF,
+      lastMenuForDTMF: callState.lastMenuForDTMF,
+      consecutiveDTMFPresses: callState.consecutiveDTMFPresses || [],
+      config,
+    });
 
     // ── 5. Termination ───────────────────────────────────────────────────────
     if (result.shouldTerminate) {
