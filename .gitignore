@@ -33,9 +33,6 @@ Thumbs.db
 coverage/
 .nyc_output/
 
-# Plans
-plans/
-
 # Misc
 *.pem
 *.key
