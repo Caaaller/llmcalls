@@ -50,14 +50,14 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
     e.preventDefault();
     setError('');
 
-    // Validate form data
-    if (!formData.email || !formData.password) {
+    const trimmedEmail = formData.email?.trim();
+    if (!trimmedEmail || !formData.password) {
       setError('Please enter both email and password');
       return;
     }
 
     loginMutation.mutate({
-      email: formData.email.trim(),
+      email: trimmedEmail,
       password: formData.password,
     });
   };

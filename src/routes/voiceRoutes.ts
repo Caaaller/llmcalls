@@ -29,6 +29,12 @@ const router = express.Router();
  */
 const DEFAULT_SPEECH_TIMEOUT = 15;
 
+function redactForLog(value: string | undefined): string {
+  if (value == null || value === '') return '';
+  if (process.env.NODE_ENV === 'production') return '[REDACTED]';
+  return value;
+}
+
 
 /**
  * Initial voice webhook - called when call starts
@@ -157,7 +163,7 @@ router.post(
  */
 router.post('/process-dtmf', (req: Request, res: Response) => {
   const digits = req.body.Digits || req.query.Digits;
-  console.log(`🔢 DTMF processed: ${digits}`);
+  console.log(`🔢 DTMF processed: ${redactForLog(digits)}`);
   const baseUrl = getBaseUrl(req);
 
   const callSid = req.body.CallSid;
@@ -186,7 +192,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   }
 
   if (digits) {
-    console.log('🔢 Pressed DTMF:', digits);
+    console.log('🔢 Pressed DTMF:', redactForLog(digits));
   }
 
   const response = new twilio.twiml.VoiceResponse();

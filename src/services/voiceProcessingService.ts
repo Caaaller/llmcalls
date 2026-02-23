@@ -27,9 +27,10 @@ export interface VoiceProcessingResult {
 
 export interface VoiceProcessingContext {
   speech: string;
-  previousSpeech?: string;          // For richer termination detection context
+  previousSpeech?: string;
+  silenceDurationMs?: number;
   previousMenus: MenuOption[][];
-  partialMenuOptions?: MenuOption[]; // Accumulated options from previous incomplete menus
+  partialMenuOptions?: MenuOption[];
   lastPressedDTMF?: string;
   lastMenuForDTMF?: MenuOption[];
   consecutiveDTMFPresses?: { digit: string; count: number }[];
@@ -46,6 +47,7 @@ export async function processVoiceInput(
   const {
     speech,
     previousSpeech = '',
+    silenceDurationMs = 0,
     previousMenus,
     partialMenuOptions = [],
     lastPressedDTMF,
@@ -53,11 +55,10 @@ export async function processVoiceInput(
     config,
   } = context;
 
-  // 1. Detect termination
   const termination = await aiDetectionService.detectTermination(
     speech,
     previousSpeech,
-    0
+    silenceDurationMs / 1000
   );
 
   // 2. Detect transfer requests

@@ -146,7 +146,7 @@ When asked for information (by a representative OR an automated system), provide
 - If asked for an email, immediately say: "${userEmail}"
 - If asked for an account number or any other information, provide it instantly if you have it, or say you don't have that information if you don't.
 - CRITICAL: When an automated system asks for a phone number, DO NOT press star or skip. Instead, SPEAK the phone number clearly: "${userPhone}"
-- Speak clearly and at an even, quick pace when providing numbers orally to prevent the system from thinking you've finished speaking.
+- For pacing and clarity when speaking numbers orally, see [Providing numbers orally] above.
 
 ${conversationContext}`;
 

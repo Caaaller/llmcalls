@@ -98,17 +98,31 @@ export async function processSpeech({
   const response = new twilio.twiml.VoiceResponse();
 
   try {
+    if (!callSid) throw new Error('Call SID is missing');
+
     // ── 1. State & config setup ──────────────────────────────────────────────
     const callState = callStateManager.getCallState(callSid);
+    const existing = callState.transferConfig;
     const finalCustomInstructions =
-      customInstructions || callState.customInstructions || '';
+      customInstructions ||
+      existing?.customInstructions ||
+      callState.customInstructions ||
+      '';
 
     const config = transferConfig.createConfig({
-      transferNumber: transferNumber || process.env.TRANSFER_PHONE_NUMBER,
-      userPhone: userPhone || process.env.USER_PHONE_NUMBER,
-      userEmail: userEmail || process.env.USER_EMAIL,
+      transferNumber:
+        transferNumber ||
+        existing?.transferNumber ||
+        process.env.TRANSFER_PHONE_NUMBER,
+      userPhone:
+        userPhone || existing?.userPhone || process.env.USER_PHONE_NUMBER,
+      userEmail:
+        userEmail || existing?.userEmail || process.env.USER_EMAIL,
       callPurpose:
-        callPurpose || process.env.CALL_PURPOSE || 'speak with a representative',
+        callPurpose ||
+        existing?.callPurpose ||
+        process.env.CALL_PURPOSE ||
+        'speak with a representative',
       customInstructions: finalCustomInstructions,
     });
 
@@ -117,8 +131,6 @@ export async function processSpeech({
         customInstructions: finalCustomInstructions,
       });
     }
-
-    if (!callSid) throw new Error('Call SID is missing');
 
     if (!callState.previousMenus) {
       callStateManager.updateCallState(callSid, { previousMenus: [] });
@@ -311,8 +323,10 @@ export async function processSpeech({
               .catch(err => console.error('Error adding DTMF:', err));
 
             response.pause({ length: 2 });
-            setTimeout(async () => {
-              await twilioService.sendDTMF(callSid, digit);
+            setTimeout(() => {
+              twilioService.sendDTMF(callSid, digit).catch(err =>
+                console.error('Send DTMF failed:', err)
+              );
             }, 2000);
             response.redirect(
               `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}&customInstructions=${encodeURIComponent(config.customInstructions || '')}`
@@ -406,8 +420,10 @@ export async function processSpeech({
             .catch(err => console.error('Error adding DTMF:', err));
 
           response.pause({ length: 2 });
-          setTimeout(async () => {
-            await twilioService.sendDTMF(callSid, digit);
+          setTimeout(() => {
+            twilioService.sendDTMF(callSid, digit).catch(err =>
+              console.error('Send DTMF failed:', err)
+            );
           }, 2000);
           response.redirect(
             `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
@@ -526,7 +542,7 @@ export async function processSpeech({
       aiResponse = 'silent';
     }
 
-    callStateManager.addToHistory(callSid, { type: 'system', text: speechResult });
+    callStateManager.addToHistory(callSid, { type: 'user', text: finalSpeech });
 
     if (
       aiResponse &&

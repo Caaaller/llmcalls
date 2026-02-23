@@ -73,6 +73,9 @@ export function dialNumber(
 export function getBaseUrl(req: { protocol?: string; get?: (header: string) => string | undefined; hostname?: string }): string {
   const protocol = req.protocol || 'https';
   const host = req.get?.('host') || req.hostname;
+  if (!host) {
+    throw new Error('getBaseUrl: host is missing (req.get("host") and req.hostname are undefined)');
+  }
   return `${protocol}://${host}`;
 }
 
