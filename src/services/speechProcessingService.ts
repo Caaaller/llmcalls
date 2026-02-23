@@ -150,7 +150,11 @@ export async function processSpeech({
     const incompleteSpeechWaitCount = callState.incompleteSpeechWaitCount || 0;
     const maxIncompleteWaits = 2;
 
-    if (incompleteSpeechWaitCount < maxIncompleteWaits && finalSpeech.length < 500) {
+    if (
+      !testMode &&
+      incompleteSpeechWaitCount < maxIncompleteWaits &&
+      finalSpeech.length < 500
+    ) {
       const incompleteCheck =
         await aiDetectionService.detectIncompleteSpeech(finalSpeech);
       if (incompleteCheck.isIncomplete && incompleteCheck.confidence > 0.7) {
