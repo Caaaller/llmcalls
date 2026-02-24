@@ -20,14 +20,27 @@ async function main() {
     process.exit(1);
   }
 
-  try {
-    const report = await promptEvaluationService.runAllTests({
-      transferNumber: process.env.TRANSFER_PHONE_NUMBER || '720-584-6358',
-      userPhone: process.env.USER_PHONE || '720-584-6358',
-      userEmail: process.env.USER_EMAIL || 'oliverullman@gmail.com',
-    });
+  const config = {
+    transferNumber: process.env.TRANSFER_PHONE_NUMBER || '720-584-6358',
+    userPhone: process.env.USER_PHONE || '720-584-6358',
+    userEmail: process.env.USER_EMAIL || 'oliverullman@gmail.com',
+  };
 
+  try {
+    console.log('📋 Running prompt evaluation tests (single-step and multi-step in parallel)...\n');
+    const [report, multiStepReport] = await Promise.all([
+      promptEvaluationService.runAllTests(config),
+      promptEvaluationService.runAllMultiStepTests(config),
+    ]);
+
+    console.log('📋 Standard prompt evaluation results:\n');
     promptEvaluationService.printReport(report);
+    console.log('\n\n📋 Multi-step loop detection results:\n');
+    promptEvaluationService.printMultiStepReport(multiStepReport);
+
+    if (report.failed > 0 || multiStepReport.failed > 0) {
+      process.exit(1);
+    }
   } catch (error) {
     console.error('❌ Error running prompt evaluations:', error);
     process.exit(1);

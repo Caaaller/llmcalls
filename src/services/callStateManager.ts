@@ -31,6 +31,9 @@ export interface CallState {
   customInstructions?: string;
   awaitingCompleteSpeech?: boolean; // Track if we're waiting for more speech
   incompleteSpeechWaitCount?: number; // Track how many times we've waited for incomplete speech
+  lastPressedDTMF?: string; // Track last DTMF pressed
+  lastMenuForDTMF?: MenuOption[]; // Track menu options when last DTMF was pressed
+  consecutiveDTMFPresses?: { digit: string; count: number }[]; // Track consecutive presses of same digit
 }
 
 /**

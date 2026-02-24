@@ -26,12 +26,36 @@ export interface CallEvaluationMetrics {
   };
 }
 
+interface QueryFilter {
+  startTime?: {
+    $gte?: Date;
+    $lte?: Date;
+  };
+}
+
 class EvaluationService {
   /**
    * Check if MongoDB is available
    */
   private isMongoAvailable(): boolean {
     return isDbConnected();
+  }
+
+  /**
+   * Build query filter for date range
+   */
+  private buildDateRangeFilter(startDate?: Date, endDate?: Date): QueryFilter {
+    const queryFilter: QueryFilter = {};
+    if (startDate || endDate) {
+      queryFilter.startTime = {};
+      if (startDate) {
+        queryFilter.startTime.$gte = startDate;
+      }
+      if (endDate) {
+        queryFilter.startTime.$lte = endDate;
+      }
+    }
+    return queryFilter;
   }
 
   /**
@@ -49,22 +73,7 @@ class EvaluationService {
 
     try {
       // Build query filter
-      interface QueryFilter {
-        startTime?: {
-          $gte?: Date;
-          $lte?: Date;
-        };
-      }
-      const queryFilter: QueryFilter = {};
-      if (startDate || endDate) {
-        queryFilter.startTime = {};
-        if (startDate) {
-          queryFilter.startTime.$gte = startDate;
-        }
-        if (endDate) {
-          queryFilter.startTime.$lte = endDate;
-        }
-      }
+      const queryFilter = this.buildDateRangeFilter(startDate, endDate);
 
       // Get all calls in the period
       const allCalls = await CallHistory.find(queryFilter).lean();
@@ -182,22 +191,7 @@ class EvaluationService {
     }
 
     try {
-      interface QueryFilter {
-        startTime?: {
-          $gte?: Date;
-          $lte?: Date;
-        };
-      }
-      const queryFilter: QueryFilter = {};
-      if (startDate || endDate) {
-        queryFilter.startTime = {};
-        if (startDate) {
-          queryFilter.startTime.$gte = startDate;
-        }
-        if (endDate) {
-          queryFilter.startTime.$lte = endDate;
-        }
-      }
+      const queryFilter = this.buildDateRangeFilter(startDate, endDate);
 
       const calls = await CallHistory.find(queryFilter).lean();
 
