@@ -1,0 +1,58 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@tanstack/react-query": "^5.56.2",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^13.5.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-scripts": "5.0.1",
+    "web-vitals": "^2.1.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.30",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@typescript-eslint/eslint-plugin": "^5.62.0",
+    "@typescript-eslint/parser": "^5.62.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "prettier": "^3.8.1",
+    "typescript": "4.9.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "echo 'ESLint is handled by react-scripts. Run npm start to see linting errors.'",
+    "lint:fix": "echo 'ESLint is handled by react-scripts. Fix errors shown in the terminal.'",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\" \"public/**/*.json\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\" \"public/**/*.json\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

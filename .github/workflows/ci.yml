@@ -22,37 +22,26 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Install backend dependencies
-        run: npm ci
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
 
       - name: Lint
-        run: npm run lint
+        run: pnpm -r lint
         env:
           ESLINT_USE_FLAT_CONFIG: false
 
       - name: Check formatting
-        run: |
-          npm run format:check
-          cd frontend && npm run format:check
+        run: pnpm -r format:check
 
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Type check
-        run: npx tsc --noEmit
-
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: ./frontend
-        run: npm run build
+      - name: Build
+        run: pnpm -r build
         env:
           CI: false
 
-      # Add tests here when available
+      # Tests require OPENAI_API_KEY — add secret and uncomment to enable
       # - name: Run tests
-      #   run: npm test
+      #   run: pnpm --filter backend test
