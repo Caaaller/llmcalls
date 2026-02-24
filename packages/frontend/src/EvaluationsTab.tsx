@@ -304,6 +304,3 @@ function EvaluationsTab() {
 }
 
 export default EvaluationsTab;
-
-
-

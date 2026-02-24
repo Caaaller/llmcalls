@@ -280,7 +280,9 @@ export const api = {
   // Call endpoints
   calls: {
     history: (limit: number = 50) =>
-      apiFetch<CallHistoryResponse>(`/api/calls/history${buildQueryString({ limit })}`),
+      apiFetch<CallHistoryResponse>(
+        `/api/calls/history${buildQueryString({ limit })}`
+      ),
     get: (callSid: string) =>
       apiFetch<CallDetailsResponse>(`/api/calls/${callSid}`),
     initiate: (data: InitiateCallPayload) =>

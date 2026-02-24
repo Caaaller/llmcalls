@@ -44,9 +44,9 @@ function App() {
 
   const [prompt, setPrompt] = useState<string>('');
   const [saved, setSaved] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'settings' | 'history' | 'evaluations'>(
-    'settings'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'settings' | 'history' | 'evaluations'
+  >('settings');
   const [showSignup, setShowSignup] = useState<boolean>(false);
   const queryClient = useQueryClient();
 
