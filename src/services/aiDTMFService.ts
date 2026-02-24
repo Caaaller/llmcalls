@@ -52,7 +52,8 @@ class AIDTMFService {
           shouldPress: false,
           digit: null,
           matchedOption: '',
-          reason: 'No menu options extracted - speech may be incomplete or a fragment',
+          reason:
+            'No menu options extracted - speech may be incomplete or a fragment',
         };
       }
 

@@ -35,7 +35,6 @@ function redactForLog(value: string | undefined): string {
   return value;
 }
 
-
 /**
  * Initial voice webhook - called when call starts
  */

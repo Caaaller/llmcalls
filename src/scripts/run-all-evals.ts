@@ -27,7 +27,9 @@ async function main() {
   };
 
   try {
-    console.log('📋 Running prompt evaluation tests (single-step and multi-step in parallel)...\n');
+    console.log(
+      '📋 Running prompt evaluation tests (single-step and multi-step in parallel)...\n'
+    );
     const [report, multiStepReport] = await Promise.all([
       promptEvaluationService.runAllTests(config),
       promptEvaluationService.runAllMultiStepTests(config),

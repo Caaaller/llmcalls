@@ -195,7 +195,8 @@ class PromptEvaluationService {
 
         if (
           testCase.expectedBehavior.terminationReason &&
-          processingResult.terminationReason !== testCase.expectedBehavior.terminationReason
+          processingResult.terminationReason !==
+            testCase.expectedBehavior.terminationReason
         ) {
           errors.push(
             `Termination reason mismatch: expected ${testCase.expectedBehavior.terminationReason}, got ${processingResult.terminationReason}`
@@ -208,10 +209,11 @@ class PromptEvaluationService {
         testCase.expectedBehavior.shouldPressDTMF !== undefined ||
         testCase.expectedBehavior.expectedDigit !== undefined
       ) {
-        if (testCase.expectedBehavior.shouldPressDTMF === true && !processingResult.isIVRMenu) {
-          errors.push(
-            `Expected IVR menu but menu was not detected`
-          );
+        if (
+          testCase.expectedBehavior.shouldPressDTMF === true &&
+          !processingResult.isIVRMenu
+        ) {
+          errors.push(`Expected IVR menu but menu was not detected`);
         }
 
         if (
@@ -226,7 +228,8 @@ class PromptEvaluationService {
 
         if (
           testCase.expectedBehavior.expectedDigit !== undefined &&
-          processingResult.dtmfDecision.digit !== testCase.expectedBehavior.expectedDigit
+          processingResult.dtmfDecision.digit !==
+            testCase.expectedBehavior.expectedDigit
         ) {
           errors.push(
             `DTMF digit mismatch: expected ${testCase.expectedBehavior.expectedDigit}, got ${processingResult.dtmfDecision.digit}`
@@ -244,8 +247,9 @@ class PromptEvaluationService {
         if (result.aiResponse) {
           // Validate that AI doesn't say "Silent." (per prompt instructions)
           const responseLower = result.aiResponse.toLowerCase().trim();
-          const isSilentWord = responseLower === 'silent.' || responseLower === 'silent';
-          
+          const isSilentWord =
+            responseLower === 'silent.' || responseLower === 'silent';
+
           if (isSilentWord) {
             errors.push(
               `AI should not say "Silent." - per prompt: "If you are being silent, do not say the word 'Silent'. Simply don't say anything". Response: "${result.aiResponse}"`
@@ -347,7 +351,10 @@ class PromptEvaluationService {
         stepDetails.terminationDetected = processingResult.shouldTerminate;
 
         // Validate IVR menu detection
-        if (step.expectedBehavior.shouldPressDTMF === true && !processingResult.isIVRMenu) {
+        if (
+          step.expectedBehavior.shouldPressDTMF === true &&
+          !processingResult.isIVRMenu
+        ) {
           stepErrors.push(
             `Expected IVR menu at step ${i + 1}, but menu was not detected`
           );
@@ -356,7 +363,8 @@ class PromptEvaluationService {
         // Validate loop detection
         if (
           step.expectedBehavior.shouldDetectLoop !== undefined &&
-          processingResult.loopDetected !== step.expectedBehavior.shouldDetectLoop
+          processingResult.loopDetected !==
+            step.expectedBehavior.shouldDetectLoop
         ) {
           stepErrors.push(
             `Loop detection mismatch at step ${i + 1}: expected ${step.expectedBehavior.shouldDetectLoop}, got ${processingResult.loopDetected} (confidence: ${processingResult.loopConfidence})`
@@ -365,7 +373,10 @@ class PromptEvaluationService {
 
         // Validate termination detection
         if (step.expectedBehavior.shouldTerminate !== undefined) {
-          if (processingResult.shouldTerminate !== step.expectedBehavior.shouldTerminate) {
+          if (
+            processingResult.shouldTerminate !==
+            step.expectedBehavior.shouldTerminate
+          ) {
             stepErrors.push(
               `Termination detection mismatch at step ${i + 1}: expected shouldTerminate=${step.expectedBehavior.shouldTerminate}, got ${processingResult.shouldTerminate}`
             );
@@ -375,7 +386,10 @@ class PromptEvaluationService {
             step.expectedBehavior.terminationReason !== undefined &&
             processingResult.shouldTerminate
           ) {
-            if (processingResult.terminationReason !== step.expectedBehavior.terminationReason) {
+            if (
+              processingResult.terminationReason !==
+              step.expectedBehavior.terminationReason
+            ) {
               stepErrors.push(
                 `Termination reason mismatch at step ${i + 1}: expected ${step.expectedBehavior.terminationReason}, got ${processingResult.terminationReason}`
               );
@@ -402,10 +416,9 @@ class PromptEvaluationService {
           } else {
             // Normal case - check if decision matches expectation
             // Account for loop prevention: if shouldPreventDTMF is true, shouldPress should be false
-            const actualShouldPress =
-              processingResult.shouldPreventDTMF
-                ? false
-                : processingResult.dtmfDecision.shouldPress;
+            const actualShouldPress = processingResult.shouldPreventDTMF
+              ? false
+              : processingResult.dtmfDecision.shouldPress;
             if (actualShouldPress !== expectedShouldPress) {
               stepErrors.push(
                 `DTMF decision mismatch at step ${i + 1}: expected shouldPress=${expectedShouldPress}, got ${actualShouldPress}`
@@ -438,7 +451,8 @@ class PromptEvaluationService {
           lastMenuForDTMF = processingResult.menuOptions;
 
           // Track consecutive DTMF presses
-          const lastPress = consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
+          const lastPress =
+            consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
           if (lastPress && lastPress.digit === digitPressed) {
             consecutiveDTMFPresses = [
               ...consecutiveDTMFPresses.slice(0, -1),
@@ -479,7 +493,6 @@ class PromptEvaluationService {
     };
   }
 
-
   /**
    * Run all multi-step test cases
    */
@@ -509,7 +522,6 @@ class PromptEvaluationService {
     };
   }
 
-
   /**
    * Print multi-step evaluation report to console
    */
@@ -538,7 +550,9 @@ class PromptEvaluationService {
       result.stepResults.forEach((stepResult, stepIndex) => {
         const stepStatus = stepResult.passed ? '✅' : '❌';
         console.log(`\n   Step ${stepIndex + 1}: ${stepStatus}`);
-        console.log(`     Speech: "${stepResult.speech.substring(0, 100)}${stepResult.speech.length > 100 ? '...' : ''}"`);
+        console.log(
+          `     Speech: "${stepResult.speech.substring(0, 100)}${stepResult.speech.length > 100 ? '...' : ''}"`
+        );
 
         if (stepResult.details.menuOptions) {
           console.log(
@@ -559,7 +573,10 @@ class PromptEvaluationService {
           );
         }
 
-        if (stepResult.details.previousMenus && stepResult.details.previousMenus.length > 0) {
+        if (
+          stepResult.details.previousMenus &&
+          stepResult.details.previousMenus.length > 0
+        ) {
           console.log(
             `     Previous Menus: ${stepResult.details.previousMenus.length} menu(s) seen before`
           );

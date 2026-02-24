@@ -36,27 +36,38 @@ interface StepExpectedBehavior {
   terminationReason?: 'voicemail' | 'closed_no_menu' | 'dead_end' | null;
 }
 
-export function expectedFromSingleStepBehavior(eb: SingleStepExpectedBehavior): EvalExpected {
+export function expectedFromSingleStepBehavior(
+  eb: SingleStepExpectedBehavior
+): EvalExpected {
   const expected: EvalExpected = {};
-  if (eb.shouldTransfer !== undefined) expected.transferRequested = eb.shouldTransfer;
-  if (eb.shouldTerminate !== undefined) expected.shouldTerminate = eb.shouldTerminate;
-  if (eb.terminationReason !== undefined) expected.terminationReason = eb.terminationReason;
-  if (eb.shouldPressDTMF !== undefined) expected.shouldPress = eb.shouldPressDTMF;
+  if (eb.shouldTransfer !== undefined)
+    expected.transferRequested = eb.shouldTransfer;
+  if (eb.shouldTerminate !== undefined)
+    expected.shouldTerminate = eb.shouldTerminate;
+  if (eb.terminationReason !== undefined)
+    expected.terminationReason = eb.terminationReason;
+  if (eb.shouldPressDTMF !== undefined)
+    expected.shouldPress = eb.shouldPressDTMF;
   if (eb.expectedDigit !== undefined) expected.digit = eb.expectedDigit;
   if (eb.shouldPressDTMF === true) expected.isIVRMenu = true;
   return expected;
 }
 
-export function expectedFromStepBehavior(eb: StepExpectedBehavior): EvalExpected {
+export function expectedFromStepBehavior(
+  eb: StepExpectedBehavior
+): EvalExpected {
   const expected: EvalExpected = {};
-  if (eb.shouldTerminate !== undefined) expected.shouldTerminate = eb.shouldTerminate;
-  if (eb.terminationReason !== undefined) expected.terminationReason = eb.terminationReason;
+  if (eb.shouldTerminate !== undefined)
+    expected.shouldTerminate = eb.shouldTerminate;
+  if (eb.terminationReason !== undefined)
+    expected.terminationReason = eb.terminationReason;
   // loopDetected not asserted: heuristic/LLM variance causes flaky failures; DTMF (shouldPress/digit) is the stable contract
   if (eb.shouldNotPressAgain) {
     expected.shouldPreventDTMF = true;
     expected.shouldPress = false;
   } else {
-    if (eb.shouldPressDTMF !== undefined) expected.shouldPress = eb.shouldPressDTMF;
+    if (eb.shouldPressDTMF !== undefined)
+      expected.shouldPress = eb.shouldPressDTMF;
     if (eb.expectedDigit !== undefined) expected.digit = eb.expectedDigit;
   }
   if (eb.shouldPressDTMF === true) expected.isIVRMenu = true;

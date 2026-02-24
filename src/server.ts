@@ -84,7 +84,7 @@ app.get('/health', (_req: Request, res: Response) => {
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
   const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
-  
+
   // Serve static files from frontend build
   app.use(express.static(frontendBuildPath));
 
@@ -97,7 +97,9 @@ if (process.env.NODE_ENV === 'production') {
       req.path.startsWith('/voice') ||
       req.path.startsWith('/health')
     ) {
-      console.log(`   ⚠️  Catch-all skipping: ${req.method} ${req.path} (API route)`);
+      console.log(
+        `   ⚠️  Catch-all skipping: ${req.method} ${req.path} (API route)`
+      );
       return next(); // Let it fall through to 404 handler if route doesn't exist
     }
     // Only handle GET requests for the catch-all

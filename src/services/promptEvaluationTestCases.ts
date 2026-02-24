@@ -3,7 +3,10 @@
  * Kept separate from promptEvaluationService so logic and data can change independently.
  */
 
-import type { PromptTestCase, MultiStepTestCase } from './promptEvaluationService';
+import type {
+  PromptTestCase,
+  MultiStepTestCase,
+} from './promptEvaluationService';
 import type { TransferConfig } from './aiService';
 
 const DEFAULT_CALL_PURPOSE: Partial<TransferConfig> = {
@@ -159,8 +162,7 @@ const singleStepCases: {
     },
     {
       name: 'DTMF - Customer Service Match',
-      description:
-        'Should match call purpose to customer service menu option',
+      description: 'Should match call purpose to customer service menu option',
       speech: 'Press 1 for customer service, press 2 for billing',
       config: {
         callPurpose: 'customer service inquiry',
@@ -305,7 +307,7 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
     steps: [
       {
         speech:
-          "Thank you for calling the NYU langone faculty group. Practice billing office. If you are calling to make a payment or discuss payment options, press 1 to inquire about the status of prior authorization,",
+          'Thank you for calling the NYU langone faculty group. Practice billing office. If you are calling to make a payment or discuss payment options, press 1 to inquire about the status of prior authorization,',
         expectedBehavior: {
           shouldPressDTMF: false, // Incomplete menu, should wait
         },
@@ -349,8 +351,7 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   },
   {
     name: 'Loop Detection - Incomplete Menu Repeating',
-    description:
-      'Tests when incomplete menu keeps repeating without option 5',
+    description: 'Tests when incomplete menu keeps repeating without option 5',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
@@ -436,7 +437,8 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
         },
       },
       {
-        speech: 'Are you calling about your DirecTV satellite or streaming service?',
+        speech:
+          'Are you calling about your DirecTV satellite or streaming service?',
         expectedBehavior: {
           shouldPressDTMF: false, // Human question, should respond verbally
         },

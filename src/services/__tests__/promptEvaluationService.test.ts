@@ -14,7 +14,10 @@ import {
   expectedFromStepBehavior,
   actualFromResult,
 } from './promptEvalHelpers';
-import { SINGLE_STEP_TEST_CASES, MULTI_STEP_TEST_CASES } from '../promptEvaluationTestCases';
+import {
+  SINGLE_STEP_TEST_CASES,
+  MULTI_STEP_TEST_CASES,
+} from '../promptEvaluationTestCases';
 import type { TransferConfig } from '../aiService';
 import type { PromptTestCase } from '../promptEvaluationService';
 import type { MenuOption } from '../../types/menu';
@@ -59,14 +62,18 @@ describe('Prompt evaluation – single-step', () => {
         const summary: Record<string, unknown> = {
           shouldSend: result.shouldSend,
           hasTwiml: Boolean(result.twiml),
-          hasAiResponse: Boolean((result as { aiResponse?: string }).aiResponse),
+          hasAiResponse: Boolean(
+            (result as { aiResponse?: string }).aiResponse
+          ),
         };
         throw new Error(
           `processingResult undefined for "${testCase.name}". Often caused by incomplete-speech early return or error. Result: ${JSON.stringify(summary)}`
         );
       }
       const pr = result.processingResult;
-      const expected = expectedFromSingleStepBehavior(testCase.expectedBehavior);
+      const expected = expectedFromSingleStepBehavior(
+        testCase.expectedBehavior
+      );
       const actual = actualFromResult(pr);
       expect(actual).toMatchObject(expected);
 
@@ -149,14 +156,18 @@ describe('Prompt evaluation – multi-step', () => {
           pr.dtmfDecision.digit !== null
         ) {
           const digitPressed = pr.dtmfDecision.digit;
-          const last = consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
+          const last =
+            consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
           if (last && last.digit === digitPressed) {
             consecutiveDTMFPresses = [
               ...consecutiveDTMFPresses.slice(0, -1),
               { digit: digitPressed, count: last.count + 1 },
             ];
           } else {
-            consecutiveDTMFPresses = [...consecutiveDTMFPresses, { digit: digitPressed, count: 1 }];
+            consecutiveDTMFPresses = [
+              ...consecutiveDTMFPresses,
+              { digit: digitPressed, count: 1 },
+            ];
             if (consecutiveDTMFPresses.length > 5) {
               consecutiveDTMFPresses = consecutiveDTMFPresses.slice(-5);
             }

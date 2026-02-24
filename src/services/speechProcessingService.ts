@@ -72,7 +72,10 @@ function updateConsecutivePresses(
   const last = existing[existing.length - 1];
 
   if (last && last.digit === digitToPress) {
-    return [...existing.slice(0, -1), { digit: digitToPress, count: last.count + 1 }];
+    return [
+      ...existing.slice(0, -1),
+      { digit: digitToPress, count: last.count + 1 },
+    ];
   }
 
   const updated = [...existing, { digit: digitToPress, count: 1 }];
@@ -116,8 +119,7 @@ export async function processSpeech({
         process.env.TRANSFER_PHONE_NUMBER,
       userPhone:
         userPhone || existing?.userPhone || process.env.USER_PHONE_NUMBER,
-      userEmail:
-        userEmail || existing?.userEmail || process.env.USER_EMAIL,
+      userEmail: userEmail || existing?.userEmail || process.env.USER_EMAIL,
       callPurpose:
         callPurpose ||
         existing?.callPurpose ||
@@ -170,7 +172,9 @@ export async function processSpeech({
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
           });
-          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
+          );
         }
         return {
           twiml: response.toString(),
@@ -206,7 +210,9 @@ export async function processSpeech({
     // ── 5. Termination ───────────────────────────────────────────────────────
     if (result.shouldTerminate) {
       if (!testMode) {
-        console.log(`🛑 Call Terminated: ${result.terminationReason || 'unknown'}`);
+        console.log(
+          `🛑 Call Terminated: ${result.terminationReason || 'unknown'}`
+        );
         callHistoryService
           .addTermination(callSid, result.terminationReason || '')
           .catch(err => console.error('Error adding termination:', err));
@@ -253,7 +259,9 @@ export async function processSpeech({
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
           });
-          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
+          );
         }
         return {
           twiml: response.toString(),
@@ -300,14 +308,21 @@ export async function processSpeech({
     }
 
     if (shouldProcessAsMenu) {
-      const { menuOptions, isMenuComplete, dtmfDecision, shouldPreventDTMF } = result;
+      const { menuOptions, isMenuComplete, dtmfDecision, shouldPreventDTMF } =
+        result;
 
       if (!isMenuComplete) {
         // Incomplete menu — try to press early if we have enough options
-        if (menuOptions.length > 0 && dtmfDecision.shouldPress && dtmfDecision.digit) {
+        if (
+          menuOptions.length > 0 &&
+          dtmfDecision.shouldPress &&
+          dtmfDecision.digit
+        ) {
           const digit = dtmfDecision.digit;
           if (!testMode) {
-            console.log(`🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`);
+            console.log(
+              `🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`
+            );
           }
 
           callStateManager.updateCallState(callSid, {
@@ -323,14 +338,18 @@ export async function processSpeech({
           if (!testMode) {
             callHistoryService.addIVRMenu(callSid, menuOptions);
             callHistoryService
-              .addDTMF(callSid, digit, `AI matched: ${dtmfDecision.matchedOption}`)
+              .addDTMF(
+                callSid,
+                digit,
+                `AI matched: ${dtmfDecision.matchedOption}`
+              )
               .catch(err => console.error('Error adding DTMF:', err));
 
             response.pause({ length: 2 });
             setTimeout(() => {
-              twilioService.sendDTMF(callSid, digit).catch(err =>
-                console.error('Send DTMF failed:', err)
-              );
+              twilioService
+                .sendDTMF(callSid, digit)
+                .catch(err => console.error('Send DTMF failed:', err));
             }, 2000);
             response.redirect(
               `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}&customInstructions=${encodeURIComponent(config.customInstructions || '')}`
@@ -364,7 +383,9 @@ export async function processSpeech({
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
           });
-          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
+          );
         }
         return {
           twiml: response.toString(),
@@ -397,7 +418,9 @@ export async function processSpeech({
             enhanced: true,
             timeout: DEFAULT_SPEECH_TIMEOUT,
           });
-          response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+          response.gather(
+            gatherAttributes as Parameters<typeof response.gather>[0]
+          );
         }
         return {
           twiml: response.toString(),
@@ -409,7 +432,9 @@ export async function processSpeech({
       if (dtmfDecision.shouldPress && dtmfDecision.digit) {
         const digit = dtmfDecision.digit;
         if (!testMode) {
-          console.log(`🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`);
+          console.log(
+            `🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`
+          );
         }
 
         callStateManager.updateCallState(callSid, {
@@ -420,14 +445,18 @@ export async function processSpeech({
 
         if (!testMode) {
           callHistoryService
-            .addDTMF(callSid, digit, `AI selected: ${dtmfDecision.matchedOption}`)
+            .addDTMF(
+              callSid,
+              digit,
+              `AI selected: ${dtmfDecision.matchedOption}`
+            )
             .catch(err => console.error('Error adding DTMF:', err));
 
           response.pause({ length: 2 });
           setTimeout(() => {
-            twilioService.sendDTMF(callSid, digit).catch(err =>
-              console.error('Send DTMF failed:', err)
-            );
+            twilioService
+              .sendDTMF(callSid, digit)
+              .catch(err => console.error('Send DTMF failed:', err));
           }, 2000);
           response.redirect(
             `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
@@ -456,7 +485,9 @@ export async function processSpeech({
           enhanced: true,
           timeout: DEFAULT_SPEECH_TIMEOUT,
         });
-        response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+        response.gather(
+          gatherAttributes as Parameters<typeof response.gather>[0]
+        );
       }
       return {
         twiml: response.toString(),
@@ -574,7 +605,9 @@ export async function processSpeech({
         enhanced: true,
         timeout: DEFAULT_SPEECH_TIMEOUT,
       });
-      response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+      response.gather(
+        gatherAttributes as Parameters<typeof response.gather>[0]
+      );
     }
 
     return {

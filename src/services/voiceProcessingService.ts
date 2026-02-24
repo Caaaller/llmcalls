@@ -84,7 +84,8 @@ export async function processVoiceInput(
   let shouldPreventDTMF = false;
 
   if (isIVRMenu) {
-    const extractionResult = await aiDetectionService.extractMenuOptions(speech);
+    const extractionResult =
+      await aiDetectionService.extractMenuOptions(speech);
     menuOptions = extractionResult.menuOptions;
     isMenuComplete = extractionResult.isComplete;
 
@@ -118,8 +119,13 @@ export async function processVoiceInput(
     }
 
     // Consecutive press prevention: same digit pressed 3+ times in a row
-    if (!shouldPreventDTMF && lastPressedDTMF && consecutiveDTMFPresses.length > 0) {
-      const lastPress = consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
+    if (
+      !shouldPreventDTMF &&
+      lastPressedDTMF &&
+      consecutiveDTMFPresses.length > 0
+    ) {
+      const lastPress =
+        consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
       if (lastPress.digit === lastPressedDTMF && lastPress.count >= 3) {
         shouldPreventDTMF = true;
       }
