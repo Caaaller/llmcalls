@@ -18,7 +18,7 @@ import authRoutes from './routes/authRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import twilio from 'twilio';
 
-const app = express();
+const app: express.Application = express();
 const port = parseInt(process.env.PORT || '3000', 10);
 
 // Trust proxy (needed for ngrok and other reverse proxies)

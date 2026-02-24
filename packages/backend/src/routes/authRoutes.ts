@@ -8,7 +8,7 @@ import mongoose from 'mongoose';
 import User from '../models/User';
 import { generateToken, authenticate, AuthRequest } from '../middleware/auth';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 /**
  * Sign up a new user

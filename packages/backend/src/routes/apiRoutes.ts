@@ -15,7 +15,7 @@ import { authenticate } from '../middleware/auth';
 import fs from 'fs';
 import path from 'path';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 /**
  * Get transfer configuration defaults

@@ -17,8 +17,9 @@ import {
   getBaseUrl,
 } from '../utils/twimlHelpers';
 import { processSpeech } from '../services/speechProcessingService';
+import { logOnError } from '../utils/logOnError';
 
-const router = express.Router();
+const router: express.Router = express.Router();
 
 // Constants
 /**
