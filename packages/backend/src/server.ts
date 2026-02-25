@@ -3,7 +3,7 @@
  * Clean, modular Express server
  */
 
-import 'dotenv/config';
+import './loadEnv';
 import express, {
   Request,
   Response,
