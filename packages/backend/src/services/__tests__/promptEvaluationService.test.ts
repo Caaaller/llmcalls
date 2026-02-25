@@ -1,12 +1,11 @@
 /**
  * Prompt evaluation tests (Jest).
  * Uses expect(actual).toMatchObject(expected) so Jest prints clear diffs on failure.
- *
- * Run: npm test (all tests) or npm run eval:prompts (this suite only).
- * Previous evals (run-all-evals.ts + service) remain available.
+ * Root .env is loaded via jest.setup.js; we import it explicitly here to ensure
+ * OPENAI_API_KEY is available before aiService/processSpeech are loaded.
  */
 
-import 'dotenv/config';
+import '../../../jest.setup';
 import { processSpeech } from '../speechProcessingService';
 import callStateManager from '../callStateManager';
 import {

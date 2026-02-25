@@ -197,6 +197,51 @@ const singleStepCases: {
         expectedDigit: '5',
       },
     },
+    {
+      name: 'DTMF - Wells Fargo Loan Number Prompt',
+      description:
+        'Should NOT press any DTMF when prompted only for loan number entry',
+      speech:
+        'To avoid waiting to get started, please enter your loan number followed by pound.',
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: {
+        shouldPressDTMF: false,
+      },
+    },
+    {
+      name: 'DTMF - Wells Fargo Loan Number Required',
+      description:
+        'Should NOT press any DTMF when loan number or SSN is required to access account',
+      speech:
+        'Your loan number or social security number is required to access your account. Using your loan number, press 1.',
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: {
+        shouldPressDTMF: false,
+      },
+    },
+    {
+      name: 'DTMF - Wells Fargo Representative Option',
+      description:
+        'Should press 2 when instructed to press 2 to reach an agent after loan-number prompts',
+      speech: 'Press 2 to speak with a representative.',
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: {
+        shouldPressDTMF: true,
+        expectedDigit: '2',
+      },
+    },
+    {
+      name: 'DTMF - Home Depot Representative Option',
+      description:
+        'Home Depot IVR: full numeric menu, should press 2 for help with orders / questions',
+      speech:
+        'For in-home services and installations press 1. For help with new or existing orders, product questions, or help with our website press 2. Press 3 for Home Depot protection plans, press 4.',
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: {
+        shouldPressDTMF: true,
+        expectedDigit: '2',
+      },
+    },
   ],
 
   termination: [
@@ -247,6 +292,17 @@ const singleStepCases: {
         'Should terminate when DirecTV says offices are closed with website redirect',
       speech:
         'Welcome to Direct TV. Our offices are currently closed. Please go to directv.com.',
+      expectedBehavior: {
+        shouldTerminate: true,
+        terminationReason: 'closed_no_menu',
+      },
+    },
+    {
+      name: 'Termination - Wells Fargo Closed Message',
+      description:
+        'Should terminate when Wells Fargo home mortgage says offices are closed with no human options',
+      speech:
+        'Thank you for calling Wells, Fargo. Home mortgage. Our offices are currently closed. No one is available to take your call. Please call us back during our regular business hours Monday through Friday. To hear our hours again, press 8.',
       expectedBehavior: {
         shouldTerminate: true,
         terminationReason: 'closed_no_menu',
