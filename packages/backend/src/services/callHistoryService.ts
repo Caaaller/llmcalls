@@ -309,6 +309,22 @@ class CallHistoryService {
   }
 
   /**
+   * Store recording URL for a call (called from Twilio recording-status webhook)
+   */
+  async setRecordingUrl(callSid: string, recordingUrl: string): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        { $set: { recordingUrl } }
+      );
+    } catch (error: unknown) {
+      console.error('❌ Error setting recording URL:', getErrorMessage(error));
+    }
+  }
+
+  /**
    * Get call history by callSid
    */
   async getCall(callSid: string) {
@@ -321,6 +337,26 @@ class CallHistoryService {
       console.error('❌ Error getting call:', getErrorMessage(error));
       return null;
     }
+  }
+
+  /**
+   * Get all DTMF digits pressed during a call (in order)
+   */
+  async getDTMFDigits(callSid: string): Promise<Array<string>> {
+    const call = await this.getCall(callSid);
+    if (!call?.dtmfPresses) return [];
+    return call.dtmfPresses.map(e => e.digit);
+  }
+
+  /**
+   * Check if a call had at least one successful transfer
+   */
+  async hasSuccessfulTransfer(callSid: string): Promise<boolean> {
+    const call = await this.getCall(callSid);
+    if (!call?.events) return false;
+    return call.events.some(
+      e => e.eventType === 'transfer' && e.success === true
+    );
   }
 
   /**

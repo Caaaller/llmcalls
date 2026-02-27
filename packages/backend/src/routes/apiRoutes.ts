@@ -85,6 +85,7 @@ router.get(
           conversationCount: call.conversation ? call.conversation.length : 0,
           dtmfCount: call.dtmfPresses ? call.dtmfPresses.length : 0,
           eventCount: call.events ? call.events.length : 0,
+          recordingUrl: call.recordingUrl ?? undefined,
         })),
         mongoConnected: isDbConnected(),
       });
@@ -130,6 +131,7 @@ router.get(
           conversation: call.conversation || [],
           dtmfPresses: call.dtmfPresses || [],
           events: call.events || [],
+          recordingUrl: call.recordingUrl ?? undefined,
         },
       });
     } catch (error) {
@@ -141,6 +143,53 @@ router.get(
       });
       return;
     }
+  }
+);
+
+/**
+ * Stream call recording (proxy with Twilio auth so the browser can play it)
+ */
+router.get(
+  '/calls/:callSid/recording',
+  authenticate,
+  async (req: Request, res: Response) => {
+    const { callSid } = req.params;
+    const call = await callHistoryService.getCall(callSid as string);
+    if (!call?.recordingUrl) {
+      return res.status(404).json({
+        success: false,
+        error: 'Call or recording not found',
+      });
+    }
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    if (!accountSid || !authToken) {
+      return res.status(503).json({
+        success: false,
+        error: 'Recording proxy not configured',
+      });
+    }
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const recordingResponse = await fetch(call.recordingUrl, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!recordingResponse.ok) {
+      return res.status(recordingResponse.status).json({
+        success: false,
+        error: 'Failed to fetch recording from Twilio',
+      });
+    }
+    const contentType =
+      recordingResponse.headers.get('content-type') || 'audio/mpeg';
+    res.setHeader('Content-Type', contentType);
+    const arrayBuffer = await recordingResponse.arrayBuffer();
+    if (!arrayBuffer.byteLength) {
+      return res.status(502).json({
+        success: false,
+        error: 'No recording body',
+      });
+    }
+    return res.send(Buffer.from(arrayBuffer));
   }
 );
 
@@ -229,6 +278,7 @@ router.post(
 
       // Set up status callback URL to track call status changes
       const statusCallbackUrl = `${baseUrl}/voice/call-status`;
+      const recordingCallbackUrl = `${baseUrl}/voice/recording-status`;
 
       const call = await twilioService.initiateCall(
         to,
@@ -237,6 +287,7 @@ router.post(
         {
           statusCallback: statusCallbackUrl,
           statusCallbackMethod: 'POST',
+          recordingStatusCallback: recordingCallbackUrl,
         }
       );
 

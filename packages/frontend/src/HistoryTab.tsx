@@ -10,6 +10,8 @@ import {
 
 function HistoryTab() {
   const [selectedCallSid, setSelectedCallSid] = useState<string | null>(null);
+  const [recordingLoading, setRecordingLoading] = useState(false);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
 
   // Fetch call history with auto-refresh
   const {
@@ -207,6 +209,41 @@ function HistoryTab() {
                   <strong>Call Purpose:</strong>{' '}
                   {selectedCall.metadata?.callPurpose || 'N/A'}
                 </div>
+                {selectedCall.recordingUrl && (
+                  <div className="info-row">
+                    <strong>Recording:</strong>{' '}
+                    <button
+                      type="button"
+                      className="btn-play-recording"
+                      disabled={recordingLoading}
+                      onClick={async () => {
+                        if (!selectedCallSid) return;
+                        setRecordingError(null);
+                        setRecordingLoading(true);
+                        try {
+                          const blobUrl =
+                            await api.calls.getRecordingUrl(selectedCallSid);
+                          const w = window.open('', '_blank');
+                          if (w) {
+                            w.document.write(
+                              `<!DOCTYPE html><html><head><title>Recording</title></head><body style="margin:1rem;font-family:sans-serif;"><audio src="${blobUrl}" controls autoplay></audio><p style="margin-top:0.5rem;"><a href="${blobUrl}" download="call-recording.mp3" style="color:#667eea;">Download recording</a></p></body></html>`
+                            );
+                            w.document.close();
+                          }
+                        } catch {
+                          setRecordingError('Failed to load recording');
+                        } finally {
+                          setRecordingLoading(false);
+                        }
+                      }}
+                    >
+                      {recordingLoading ? 'Loading…' : '▶ Play recording'}
+                    </button>
+                    {recordingError && (
+                      <span className="recording-error">{recordingError}</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* DTMF Presses */}

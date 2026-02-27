@@ -42,18 +42,17 @@ class AIDTMFService {
     menuOptions: MenuOption[] = []
   ): Promise<DTMFDecision> {
     try {
-      // If no menu options extracted, don't press (likely a fragment or incomplete menu)
+      // If no menu options extracted, press 1 as safest fallback
       if (menuOptions.length === 0) {
         return {
           callPurpose:
             (configOrScenario as TransferConfig).callPurpose ||
             (configOrScenario as TransferConfig).description ||
             'speak with a representative',
-          shouldPress: false,
-          digit: null,
-          matchedOption: '',
-          reason:
-            'No menu options extracted - speech may be incomplete or a fragment',
+          shouldPress: true,
+          digit: '1',
+          matchedOption: 'fallback - no menu detected',
+          reason: 'No menu options extracted - pressing 1 as safest fallback',
         };
       }
 
@@ -81,41 +80,33 @@ IVR Menu Speech: "${speech}"
 Available Menu Options:
 ${menuText}
 
+CRITICAL RULE: YOU MUST ALWAYS PRESS A DIGIT WHEN AN IVR MENU IS PRESENT.
+Do not wait for a "better" menu - it may never come.
+
 Matching Rules (in priority order):
-1. EXACT MATCH: If the call purpose exactly matches a menu option (e.g., "speak with a representative" matches "speak with a representative"), press that digit immediately.
-2. SEMANTIC MATCH: If the call purpose is semantically similar to a menu option (e.g., "customer service" matches "support", "representative" matches "operator"), press that digit.
-3. REPRESENTATIVE OPTIONS: If the call purpose is to "speak with a representative" or similar, prioritize menu options that mention: representative, operator, agent, customer service, support, or "all other questions".
-4. CONTINUATION QUESTIONS: If the menu is asking a yes/no or confirmation question that continues from a previous action (e.g., "Would you like to speak with an agent? Press 1 for yes, press 2 for no"), press the option that continues toward your goal (usually "yes" or "1" to proceed).
-5. EXPLICIT INSTRUCTION: If the menu explicitly says "press X" for something related to the call purpose, press that digit.
-6. PHONE NUMBER REQUESTS: If the menu asks for a phone number (e.g., "enter your phone number" or "press star if you don't know"), DO NOT press star. The AI will speak the phone number instead. Only press star if the menu explicitly requires it AND we don't have the phone number available.
-7. BEST AVAILABLE OPTION: If there is no perfect match but a complete menu is presented, evaluate if any option could reasonably lead to a representative:
-   - If options include "all other questions", "other", "more options", "otherwise", or similar general options, press that digit.
-   - If options include "yes/no" or "1/2" for service type questions, and one option seems more likely to lead to support, choose that.
-   - If the menu is complete but NONE of the options relate to the call purpose AND there's no "other"/"otherwise" option, DO NOT press anything - wait for a better menu.
-8. NO MATCH: Do NOT press if:
-   - The menu is clearly incomplete (e.g., "Press 1 for..." with no other options)
-   - The menu is complete but NONE of the options relate to your call purpose AND there's no "other"/"otherwise" option
-   - All options are for specific services that don't match your purpose (e.g., "sales" and "marketing" when you need "technical support")
+1. EXACT MATCH: If the call purpose exactly matches a menu option, press that digit.
+2. SEMANTIC MATCH: If similar (e.g., "customer service" matches "support"), press that digit.
+3. REPRESENTATIVE OPTIONS: Prioritize: representative, operator, agent, customer service, support, "all other questions".
+4. FALLBACK: If NO option matches your purpose, you MUST press the FIRST digit mentioned in the menu.
+   - Example: If menu says "Press 1 for X, Press 2 for Y" → press 1
+   - NEVER press 0 unless 0 is explicitly listed in the menu!
+   - The first digit is always the safest fallback
+5. CONTINUATION: If menu asks "press 1 for yes, press 2 for no", always press to continue.
 
-CRITICAL: Only press a digit when:
-- There's a match (exact or semantic) for your call purpose, OR
-- There's an "other"/"otherwise"/"all other questions" option, OR
-- You're in a loop and need to break it by pressing the best available option
-
-Important: When the call purpose is "speak with a representative" or similar, and a menu option mentions "representative", "operator", "agent", or "customer service", that is a MATCH. Press that digit.
-
-IMPORTANT: 
-- When custom instructions are provided, prioritize matching those over the generic call purpose.
-- When call purpose is "speak with a representative", be smart about recognizing options that lead to human agents (customer care, support, help, etc.) even if they don't explicitly say "representative".
-- Only press when there's a reasonable match or an "other"/"otherwise" option. Do not press just to progress if none of the options relate to your call purpose.
+ABSOLUTELY CRITICAL:
+- NEVER say "None of the options match" and refuse to press
+- NEVER wait for a "better" menu
+- ALWAYS press the FIRST available digit when no match
+- ALWAYS press something when menu options are present
+- If uncertain, press 0 (operator is usually the safest bet)
 
 Respond ONLY with JSON:
 {
-  "callPurpose": "what the user wants (e.g., order inquiry, delivery status, appointment booking, how to become a vendor)",
-  "shouldPress": true/false,
-  "digit": "1" or null,
-  "matchedOption": "which menu option matched",
-  "reason": "brief explanation of why this digit was chosen"
+  "callPurpose": "what the user wants",
+  "shouldPress": true,
+  "digit": "0" or "1" or "2" etc,
+  "matchedOption": "which menu option matched (or 'fallback to 0' or 'first option')",
+  "reason": "brief explanation"
 }`;
 
       const completion = await this.client.chat.completions.create({
@@ -146,12 +137,13 @@ Respond ONLY with JSON:
     } catch (error) {
       const err = error as Error;
       console.error('Error in AI DTMF decision:', err);
+      // Fallback: press 1 on error (safest fallback)
       return {
-        shouldPress: false,
-        digit: null,
-        reason: 'AI error',
+        shouldPress: true,
+        digit: '1',
+        reason: 'AI error - fallback to first option',
         callPurpose: 'unknown',
-        matchedOption: '',
+        matchedOption: 'fallback on error',
       };
     }
   }
