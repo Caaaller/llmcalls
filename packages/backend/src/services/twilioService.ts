@@ -96,6 +96,13 @@ class TwilioService {
   }
 
   /**
+   * Terminate a call by setting its status to completed
+   */
+  async terminateCall(callSid: string): Promise<void> {
+    await this.client.calls(callSid).update({ status: 'completed' });
+  }
+
+  /**
    * Generate Twilio Access Token for browser client
    */
   generateAccessToken(identity: string, _appName: string): string {

@@ -169,58 +169,6 @@ export interface BreakdownResponse {
   };
 }
 
-export interface LiveCallTestCase {
-  id: string;
-  name: string;
-  description: string;
-  phoneNumber: string;
-  callPurpose: string;
-  customInstructions?: string;
-  expectedOutcome: {
-    shouldReachHuman?: boolean;
-    maxDTMFPresses?: number;
-    expectedDigits?: string[];
-    maxDurationSeconds?: number;
-    minDurationSeconds?: number;
-  };
-}
-
-export interface LiveCallTestResult {
-  testCaseId: string;
-  testCaseName: string;
-  passed: boolean;
-  callSid?: string;
-  status?: string;
-  duration?: number;
-  dtmfPresses?: string[];
-  error?: string;
-  reachedHuman?: boolean;
-  assertions: Array<{
-    name: string;
-    passed: boolean;
-    message: string;
-  }>;
-}
-
-export interface LiveCallEvalReport {
-  id: string;
-  timestamp: Date | string;
-  totalTests: number;
-  passed: number;
-  failed: number;
-  results: LiveCallTestResult[];
-}
-
-export interface LiveCallEvalResponse {
-  success: boolean;
-  report: LiveCallEvalReport;
-}
-
-export interface TestCasesResponse {
-  success: boolean;
-  testCases: LiveCallTestCase[];
-}
-
 /**
  * Get authorization headers
  */
@@ -369,16 +317,5 @@ export const api = {
         `/api/evaluations/breakdown${buildQueryString(params || {})}`
       );
     },
-  },
-
-  // Live call evaluation endpoints
-  liveEval: {
-    getTestCases: () =>
-      apiFetch<TestCasesResponse>('/api/evals/live/test-cases'),
-    run: (testCaseIds?: string[] | 'quick', fromNumber?: string) =>
-      apiFetch<LiveCallEvalResponse>('/api/evals/live/run', {
-        method: 'POST',
-        body: JSON.stringify({ testCaseIds, fromNumber }),
-      }),
   },
 };

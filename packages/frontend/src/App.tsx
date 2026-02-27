@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './App.css';
 import HistoryTab from './HistoryTab';
 import EvaluationsTab from './EvaluationsTab';
-import LiveEvalTab from './LiveEvalTab';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import { api, type ApiConfigResponse } from './api/client';
@@ -46,7 +45,7 @@ function App() {
   const [prompt, setPrompt] = useState<string>('');
   const [saved, setSaved] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<
-    'settings' | 'history' | 'evaluations' | 'liveEval'
+    'settings' | 'history' | 'evaluations'
   >('settings');
   const [showSignup, setShowSignup] = useState<boolean>(false);
   const queryClient = useQueryClient();
@@ -342,12 +341,6 @@ function App() {
             📋 Call History
           </button>
           <button
-            className={`tab ${activeTab === 'liveEval' ? 'active' : ''}`}
-            onClick={() => setActiveTab('liveEval')}
-          >
-            📞 Live Eval
-          </button>
-          <button
             className={`tab ${activeTab === 'evaluations' ? 'active' : ''}`}
             onClick={() => setActiveTab('evaluations')}
           >
@@ -357,8 +350,6 @@ function App() {
 
         {activeTab === 'history' ? (
           <HistoryTab />
-        ) : activeTab === 'liveEval' ? (
-          <LiveEvalTab />
         ) : activeTab === 'evaluations' ? (
           <EvaluationsTab />
         ) : (

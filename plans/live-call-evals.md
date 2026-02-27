@@ -2,43 +2,32 @@
 
 ## Goal
 
-Create automated tests that dial real phone numbers and validate IVR navigation flows.
+Jest-based integration tests that dial real phone numbers and validate IVR navigation flows.
 
 ## Architecture
 
-### 1. Test Case Definition
+### Test Cases
 
-```typescript
-interface LiveCallTestCase {
-  id: string;
-  name: string;
-  phoneNumber: string; // Number to call
-  callPurpose: string; // e.g., "speak with a representative"
-  customInstructions?: string;
-  expectedOutcome: {
-    shouldReachHuman: boolean;
-    maxDTMFPresses?: number;
-    expectedDigits?: string[]; // Expected DTMF sequence
-    maxDurationSeconds?: number;
-  };
-}
+Defined in `packages/backend/src/services/liveCallTestCases.ts` with `LiveCallTestCase` interface.
+
+### Jest Test File
+
+`packages/backend/src/services/__tests__/liveCallEval.test.ts`
+
+- Uses `twilioService.initiateCall()` to make real calls
+- Polls `twilioService.getCallStatus()` until terminal status
+- Reads DTMF presses and transfer events from `callHistoryService.getCall()`
+- Asserts with Jest `expect()` (maxDTMFPresses, shouldReachHuman, duration, expectedDigits)
+- Per-test timeout based on `maxDurationSeconds`
+
+### Running
+
+```bash
+# Full suite
+npx jest liveCallEval
+
+# Quick (single test case)
+LIVE_EVAL_QUICK=1 npx jest liveCallEval
 ```
 
-### 2. Test Runner Service
-
-- `initiateCall()` - Start the call via Twilio
-- `monitorCall()` - Poll call status, track events
-- `collectResults()` - Gather DTMF presses, duration, outcome
-- `terminateCall()` - End the call if timeout
-
-### 3. Evaluation API
-
-- POST `/evals/run` - Run all test cases
-- GET `/evals/results` - Get past results
-
-## Implementation Plan
-
-1. Create `liveCallEvalService.ts` with test runner logic
-2. Create test case definitions for common scenarios
-3. Add API routes for running evals
-4. Add frontend UI to trigger evals and view results
+Required env vars: `TWIML_URL`/`BASE_URL`, `TWILIO_PHONE_NUMBER`, `TRANSFER_PHONE_NUMBER`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `MONGODB_URI`.

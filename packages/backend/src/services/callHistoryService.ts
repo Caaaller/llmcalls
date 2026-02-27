@@ -340,6 +340,26 @@ class CallHistoryService {
   }
 
   /**
+   * Get all DTMF digits pressed during a call (in order)
+   */
+  async getDTMFDigits(callSid: string): Promise<Array<string>> {
+    const call = await this.getCall(callSid);
+    if (!call?.dtmfPresses) return [];
+    return call.dtmfPresses.map(e => e.digit);
+  }
+
+  /**
+   * Check if a call had at least one successful transfer
+   */
+  async hasSuccessfulTransfer(callSid: string): Promise<boolean> {
+    const call = await this.getCall(callSid);
+    if (!call?.events) return false;
+    return call.events.some(
+      e => e.eventType === 'transfer' && e.success === true
+    );
+  }
+
+  /**
    * Get all calls
    */
   async getAllCalls(limit: number = 100) {

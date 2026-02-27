@@ -3,7 +3,21 @@
  * Pre-defined test scenarios for automated evaluation
  */
 
-import { LiveCallTestCase } from './liveCallEvalService';
+export interface LiveCallTestCase {
+  id: string;
+  name: string;
+  description: string;
+  phoneNumber: string;
+  callPurpose: string;
+  customInstructions?: string;
+  expectedOutcome: {
+    shouldReachHuman?: boolean;
+    maxDTMFPresses?: number;
+    expectedDigits?: string[];
+    maxDurationSeconds?: number;
+    minDurationSeconds?: number;
+  };
+}
 
 export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   {
