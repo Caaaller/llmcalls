@@ -11,6 +11,8 @@ export interface CallOptions {
   statusCallback?: string;
   statusCallbackMethod?: 'GET' | 'POST';
   method?: 'GET' | 'POST';
+  record?: boolean;
+  recordingStatusCallback?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -67,6 +69,7 @@ class TwilioService {
         method: 'POST',
         statusCallback: options.statusCallback,
         statusCallbackMethod: 'POST',
+        record: options.record ?? true,
         ...options,
       });
 

@@ -12,6 +12,11 @@ import callHistoryService from '../services/callHistoryService';
 import evaluationService from '../services/evaluationService';
 import { isDbConnected } from '../services/database';
 import { authenticate } from '../middleware/auth';
+import {
+  DEFAULT_TEST_CASES,
+  QUICK_TEST_CASES,
+} from '../services/liveCallTestCases';
+import liveCallEvalService from '../services/liveCallEvalService';
 import fs from 'fs';
 import path from 'path';
 
@@ -85,6 +90,7 @@ router.get(
           conversationCount: call.conversation ? call.conversation.length : 0,
           dtmfCount: call.dtmfPresses ? call.dtmfPresses.length : 0,
           eventCount: call.events ? call.events.length : 0,
+          recordingUrl: call.recordingUrl ?? undefined,
         })),
         mongoConnected: isDbConnected(),
       });
@@ -130,6 +136,7 @@ router.get(
           conversation: call.conversation || [],
           dtmfPresses: call.dtmfPresses || [],
           events: call.events || [],
+          recordingUrl: call.recordingUrl ?? undefined,
         },
       });
     } catch (error) {
@@ -141,6 +148,53 @@ router.get(
       });
       return;
     }
+  }
+);
+
+/**
+ * Stream call recording (proxy with Twilio auth so the browser can play it)
+ */
+router.get(
+  '/calls/:callSid/recording',
+  authenticate,
+  async (req: Request, res: Response) => {
+    const { callSid } = req.params;
+    const call = await callHistoryService.getCall(callSid as string);
+    if (!call?.recordingUrl) {
+      return res.status(404).json({
+        success: false,
+        error: 'Call or recording not found',
+      });
+    }
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    if (!accountSid || !authToken) {
+      return res.status(503).json({
+        success: false,
+        error: 'Recording proxy not configured',
+      });
+    }
+    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const recordingResponse = await fetch(call.recordingUrl, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!recordingResponse.ok) {
+      return res.status(recordingResponse.status).json({
+        success: false,
+        error: 'Failed to fetch recording from Twilio',
+      });
+    }
+    const contentType =
+      recordingResponse.headers.get('content-type') || 'audio/mpeg';
+    res.setHeader('Content-Type', contentType);
+    const arrayBuffer = await recordingResponse.arrayBuffer();
+    if (!arrayBuffer.byteLength) {
+      return res.status(502).json({
+        success: false,
+        error: 'No recording body',
+      });
+    }
+    return res.send(Buffer.from(arrayBuffer));
   }
 );
 
@@ -229,6 +283,7 @@ router.post(
 
       // Set up status callback URL to track call status changes
       const statusCallbackUrl = `${baseUrl}/voice/call-status`;
+      const recordingCallbackUrl = `${baseUrl}/voice/recording-status`;
 
       const call = await twilioService.initiateCall(
         to,
@@ -237,6 +292,7 @@ router.post(
         {
           statusCallback: statusCallbackUrl,
           statusCallbackMethod: 'POST',
+          recordingStatusCallback: recordingCallbackUrl,
         }
       );
 
@@ -382,6 +438,77 @@ router.get(
       });
     }
   })
+);
+
+/**
+ * Run live call evaluation tests
+ */
+router.post(
+  '/evals/live/run',
+  authenticate,
+  async (req: Request, res: Response) => {
+    try {
+      const baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
+      if (!baseUrl) {
+        res.status(500).json({
+          success: false,
+          error: 'TWIML_URL or BASE_URL not configured. Cannot run live calls.',
+        });
+        return;
+      }
+
+      const { testCaseIds, fromNumber } = req.body;
+
+      let testCasesToRun = DEFAULT_TEST_CASES;
+
+      if (testCaseIds && Array.isArray(testCaseIds)) {
+        testCasesToRun = DEFAULT_TEST_CASES.filter(tc =>
+          testCaseIds.includes(tc.id)
+        );
+      } else if (testCaseIds === 'quick') {
+        testCasesToRun = QUICK_TEST_CASES;
+      }
+
+      if (testCasesToRun.length === 0) {
+        res.status(400).json({
+          success: false,
+          error: 'No test cases found',
+        });
+        return;
+      }
+
+      const report = await liveCallEvalService.runAllTests(
+        testCasesToRun,
+        fromNumber
+      );
+
+      res.json({
+        success: true,
+        report,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      res.status(500).json({
+        success: false,
+        error: errorMessage,
+      });
+    }
+  }
+);
+
+/**
+ * Get available test cases
+ */
+router.get(
+  '/evals/live/test-cases',
+  authenticate,
+  (_req: Request, res: Response) => {
+    res.json({
+      success: true,
+      testCases: DEFAULT_TEST_CASES,
+    });
+  }
 );
 
 export default router;

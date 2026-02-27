@@ -309,6 +309,22 @@ class CallHistoryService {
   }
 
   /**
+   * Store recording URL for a call (called from Twilio recording-status webhook)
+   */
+  async setRecordingUrl(callSid: string, recordingUrl: string): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        { $set: { recordingUrl } }
+      );
+    } catch (error: unknown) {
+      console.error('❌ Error setting recording URL:', getErrorMessage(error));
+    }
+  }
+
+  /**
    * Get call history by callSid
    */
   async getCall(callSid: string) {

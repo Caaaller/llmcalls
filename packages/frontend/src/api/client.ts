@@ -64,6 +64,7 @@ export interface CallSummary {
   conversationCount?: number;
   dtmfCount?: number;
   eventCount?: number;
+  recordingUrl?: string;
 }
 
 export interface CallHistoryResponse {
@@ -166,6 +167,58 @@ export interface BreakdownResponse {
     withSuccessfulTransfers: number;
     averageDuration: number;
   };
+}
+
+export interface LiveCallTestCase {
+  id: string;
+  name: string;
+  description: string;
+  phoneNumber: string;
+  callPurpose: string;
+  customInstructions?: string;
+  expectedOutcome: {
+    shouldReachHuman?: boolean;
+    maxDTMFPresses?: number;
+    expectedDigits?: string[];
+    maxDurationSeconds?: number;
+    minDurationSeconds?: number;
+  };
+}
+
+export interface LiveCallTestResult {
+  testCaseId: string;
+  testCaseName: string;
+  passed: boolean;
+  callSid?: string;
+  status?: string;
+  duration?: number;
+  dtmfPresses?: string[];
+  error?: string;
+  reachedHuman?: boolean;
+  assertions: Array<{
+    name: string;
+    passed: boolean;
+    message: string;
+  }>;
+}
+
+export interface LiveCallEvalReport {
+  id: string;
+  timestamp: Date | string;
+  totalTests: number;
+  passed: number;
+  failed: number;
+  results: LiveCallTestResult[];
+}
+
+export interface LiveCallEvalResponse {
+  success: boolean;
+  report: LiveCallEvalReport;
+}
+
+export interface TestCasesResponse {
+  success: boolean;
+  testCases: LiveCallTestCase[];
 }
 
 /**
@@ -285,6 +338,15 @@ export const api = {
       ),
     get: (callSid: string) =>
       apiFetch<CallDetailsResponse>(`/api/calls/${callSid}`),
+    getRecordingUrl: async (callSid: string): Promise<string> => {
+      const url = `${API_URL}/api/calls/${callSid}/recording`;
+      const response = await fetch(url, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error('Failed to load recording');
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    },
     initiate: (data: InitiateCallPayload) =>
       apiFetch<{ success: boolean } & InitiateCallResponse>(
         '/api/calls/initiate',
@@ -307,5 +369,16 @@ export const api = {
         `/api/evaluations/breakdown${buildQueryString(params || {})}`
       );
     },
+  },
+
+  // Live call evaluation endpoints
+  liveEval: {
+    getTestCases: () =>
+      apiFetch<TestCasesResponse>('/api/evals/live/test-cases'),
+    run: (testCaseIds?: string[] | 'quick', fromNumber?: string) =>
+      apiFetch<LiveCallEvalResponse>('/api/evals/live/run', {
+        method: 'POST',
+        body: JSON.stringify({ testCaseIds, fromNumber }),
+      }),
   },
 };

@@ -30,12 +30,6 @@ const router: express.Router = express.Router();
  */
 const DEFAULT_SPEECH_TIMEOUT = 15;
 
-function redactForLog(value: string | undefined): string {
-  if (value == null || value === '') return '';
-  if (process.env.NODE_ENV === 'production') return '[REDACTED]';
-  return value;
-}
-
 /**
  * Initial voice webhook - called when call starts
  */
@@ -77,6 +71,12 @@ router.post('/', (req: Request, res: Response): void => {
     );
 
     const response = new twilio.twiml.VoiceResponse();
+    const recordingCallbackUrl = `${baseUrl}/voice/recording-status`;
+    response.start().recording({
+      recordingStatusCallback: recordingCallbackUrl,
+      recordingStatusCallbackEvent: ['completed'],
+      trim: 'do-not-trim',
+    } as any);
     const gatherAttributes = createGatherAttributes(config, {
       action: buildProcessSpeechUrl({
         baseUrl,
@@ -100,8 +100,7 @@ router.post('/', (req: Request, res: Response): void => {
     res.send(response.toString());
     return;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ Error in /voice endpoint:', errorMessage);
+    void (error instanceof Error ? error.message : String(error));
     const response = new twilio.twiml.VoiceResponse();
     response.say(
       { voice: 'alice', language: 'en-US' },
@@ -125,6 +124,17 @@ router.post(
       const isFirstCall = req.query.firstCall === 'true';
       const baseUrl = getBaseUrl(req);
 
+      console.log(
+        '[SPEECH_DEBUG] Raw Twilio',
+        JSON.stringify({
+          SpeechResultLength: speechResult.length,
+          SpeechResult: speechResult,
+          BodyKeys: Object.keys(req.body).filter(k =>
+            /speech|result|text|input/i.test(k)
+          ),
+        })
+      );
+
       const result = await processSpeech({
         callSid,
         speechResult,
@@ -142,9 +152,7 @@ router.post(
         res.send(result.twiml);
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error('❌ Error in /process-speech:', errorMessage);
+      void (error instanceof Error ? error.message : String(error));
 
       const errorResponse = new twilio.twiml.VoiceResponse();
       errorResponse.say(
@@ -162,8 +170,7 @@ router.post(
  * Process DTMF - handle DTMF key presses
  */
 router.post('/process-dtmf', (req: Request, res: Response) => {
-  const digits = req.body.Digits || req.query.Digits;
-  console.log(`🔢 DTMF processed: ${redactForLog(digits)}`);
+  void (req.body.Digits || req.query.Digits);
   const baseUrl = getBaseUrl(req);
 
   const callSid = req.body.CallSid;
@@ -191,9 +198,7 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
     });
   }
 
-  if (digits) {
-    console.log('🔢 Pressed DTMF:', redactForLog(digits));
-  }
+  // if (digits) { console.log('🔢 Pressed DTMF:', redactForLog(digits)); }
 
   const response = new twilio.twiml.VoiceResponse();
   const gatherAttributes = createGatherAttributes(config, {
@@ -206,6 +211,19 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
 
   res.type('text/xml');
   res.send(response.toString());
+});
+
+/**
+ * Recording status callback - Twilio POSTs when a call recording is completed
+ */
+router.post('/recording-status', async (req: Request, res: Response) => {
+  const callSid = req.body.CallSid;
+  const recordingUrl = req.body.RecordingUrl;
+  const recordingStatus = req.body.RecordingStatus;
+  if (callSid && recordingUrl && recordingStatus === 'completed') {
+    await callHistoryService.setRecordingUrl(callSid, recordingUrl);
+  }
+  res.status(200).send('OK');
 });
 
 /**

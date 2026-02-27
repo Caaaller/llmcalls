@@ -97,7 +97,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -170,7 +170,7 @@ Respond with JSON:
 If no options found, return empty array.`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -244,7 +244,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -307,7 +307,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -385,7 +385,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -469,7 +469,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -546,7 +546,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
