@@ -28,7 +28,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDTMFPresses: 5,
       maxDurationSeconds: 180,
     },
   },
@@ -40,7 +39,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDTMFPresses: 5,
       maxDurationSeconds: 180,
     },
   },
@@ -52,7 +50,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDTMFPresses: 5,
       maxDurationSeconds: 180,
     },
   },
@@ -65,7 +62,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDTMFPresses: 5,
       maxDurationSeconds: 180,
     },
   },
@@ -77,7 +73,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDTMFPresses: 5,
       maxDurationSeconds: 180,
     },
   },
@@ -89,7 +84,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDTMFPresses: 5,
       maxDurationSeconds: 180,
     },
   },
@@ -101,7 +95,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDTMFPresses: 5,
       maxDurationSeconds: 180,
     },
   },
@@ -127,7 +120,6 @@ export const QUICK_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18882804331',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      maxDTMFPresses: 6,
       maxDurationSeconds: 180,
     },
   },

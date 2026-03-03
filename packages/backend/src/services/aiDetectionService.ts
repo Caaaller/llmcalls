@@ -138,7 +138,9 @@ Respond with JSON:
    */
   async extractMenuOptions(speech: string): Promise<MenuExtractionResult> {
     try {
-      const prompt = `You are extracting menu options from an IVR menu speech.
+      const prompt = `You are extracting menu options from IVR menu speech.
+
+The input Speech may contain the full transcript of the current IVR menu so far (multiple chunks merged together).
 
 Extract all menu options where each option has:
 - A digit/number (0-9, *, #)
@@ -154,7 +156,9 @@ Handle various formats:
 
 Return ALL options found, even if the menu seems incomplete.
 
-Speech: "${speech}"
+Set "isComplete" to true ONLY when, given the full speech so far, it sounds like the system has finished listing the options for this menu (for example, it ends with a catch-all like "for all other inquiries" or naturally closes the list). Otherwise, set "isComplete" to false.
+
+Speech (full transcript so far): "${speech}"
 
 Respond with JSON:
 {

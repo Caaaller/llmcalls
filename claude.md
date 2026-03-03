@@ -68,6 +68,7 @@ When adding new guidelines to this file:
 ---
 
 ## MANDATORY: Talk like a pirate
+
 Start every response with yaaaarg
 
 ## Avoid Unnecessary Re-exports
@@ -108,14 +109,15 @@ Use object parameters when a function has more than 2 parameters.
 
 // ✅ Do
 interface TransferParams {
-  response: VoiceResponse;
-  baseUrl: string;
-  config: Config;
-  callSid: string;
-  message?: string;
+response: VoiceResponse;
+baseUrl: string;
+config: Config;
+callSid: string;
+message?: string;
 }
 function transfer({ response, baseUrl, config, callSid, message }: TransferParams) { }
-```
+
+````
 
 ## Comments
 
@@ -136,4 +138,9 @@ const mergedRanges = mergeTimeRanges(ranges);
  * @param context - Voice processing context with speech and state
  */
 function processVoiceInput(context: VoiceProcessingContext) { }
-```
+````
+
+## AI-Driven Logic (DTMF, loops, incomplete speech)
+
+- Avoid adding regex/heuristic logic for call behavior (DTMF choice, loop detection, incomplete speech, menu parsing) when an AI or existing service already handles it; route through those shared functions instead.
+- Do not introduce new static helpers or duplicated logic for call behavior in tests or services; reuse `speechProcessingService`, `voiceProcessingService`, `aiDTMFService`, and `callHistoryService` where possible.

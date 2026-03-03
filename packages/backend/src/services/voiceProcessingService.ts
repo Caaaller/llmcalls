@@ -55,14 +55,20 @@ export async function processVoiceInput(
     config,
   } = context;
 
+  // For IVR/menu-related analysis, use the merged transcript so far
+  const mergedMenuSpeech =
+    previousSpeech && previousSpeech.length > 0
+      ? `${previousSpeech} ${speech}`.trim()
+      : speech;
+
   const [termination, transferDetection, menuDetection] = await Promise.all([
     aiDetectionService.detectTermination(
       speech,
       previousSpeech,
       silenceDurationMs / 1000
     ),
-    aiDetectionService.detectTransferRequest(speech),
-    aiDetectionService.detectIVRMenu(speech),
+    aiDetectionService.detectTransferRequest(mergedMenuSpeech),
+    aiDetectionService.detectIVRMenu(mergedMenuSpeech),
   ]);
 
   const isIVRMenu = menuDetection.isIVRMenu;
@@ -82,9 +88,10 @@ export async function processVoiceInput(
   let shouldPreventDTMF = false;
 
   if (isIVRMenu) {
-    // First extract menu options, then run loop detection in parallel with DTMF decision
+    // First extract menu options from the merged transcript, then run loop detection
+    // in parallel with DTMF decision
     const extractionResult =
-      await aiDetectionService.extractMenuOptions(speech);
+      await aiDetectionService.extractMenuOptions(mergedMenuSpeech);
     const extractedMenuOptions = extractionResult.menuOptions;
     isMenuComplete = extractionResult.isComplete;
 
@@ -108,7 +115,7 @@ export async function processVoiceInput(
         ? aiDetectionService.detectLoop(mergedMenuOptions, previousMenus)
         : Promise.resolve({ isLoop: false, confidence: 0, reason: '' }),
       aiDTMFService.understandCallPurposeAndPressDTMF(
-        speech,
+        mergedMenuSpeech,
         {
           callPurpose: config.callPurpose,
           customInstructions: config.customInstructions,

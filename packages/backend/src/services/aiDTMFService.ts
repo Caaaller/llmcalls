@@ -87,18 +87,17 @@ Matching Rules (in priority order):
 1. EXACT MATCH: If the call purpose exactly matches a menu option, press that digit.
 2. SEMANTIC MATCH: If similar (e.g., "customer service" matches "support"), press that digit.
 3. REPRESENTATIVE OPTIONS: Prioritize: representative, operator, agent, customer service, support, "all other questions".
-4. FALLBACK: If NO option matches your purpose, you MUST press the FIRST digit mentioned in the menu.
-   - Example: If menu says "Press 1 for X, Press 2 for Y" → press 1
-   - NEVER press 0 unless 0 is explicitly listed in the menu!
-   - The first digit is always the safest fallback
+4. FALLBACK: If NO option matches your purpose:
+   - If digit 0 is present in the menu options, press 0 (operator / human is usually safest).
+   - Otherwise, press the FIRST digit mentioned in the menu.
+   - Example: If menu says "Press 1 for X, Press 2 for Y" and there is no 0 option → press 1
 5. CONTINUATION: If menu asks "press 1 for yes, press 2 for no", always press to continue.
 
 ABSOLUTELY CRITICAL:
 - NEVER say "None of the options match" and refuse to press
 - NEVER wait for a "better" menu
-- ALWAYS press the FIRST available digit when no match
 - ALWAYS press something when menu options are present
-- If uncertain, press 0 (operator is usually the safest bet)
+- If uncertain and 0 is available in the menu, prefer 0 (operator / human).
 
 Respond ONLY with JSON:
 {

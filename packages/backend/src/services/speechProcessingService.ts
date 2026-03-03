@@ -140,51 +140,10 @@ export async function processSpeech({
       console.log('👤', speechResult);
     }
 
-    // ── 2. Merge incomplete speech ───────────────────────────────────────────
+    // ── 2. Merge speech with any prior partial transcript (for menus, etc.) ──
     let finalSpeech = speechResult;
     if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
       finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
-    }
-
-    // ── 3. Fast incomplete-speech check (heuristic-based) ────────────────────────
-    const incompleteSpeechWaitCount = callState.incompleteSpeechWaitCount || 0;
-    const maxIncompleteWaits = 2;
-
-    const isLikelyIncomplete = (text: string): boolean => {
-      const lower = text.toLowerCase().trim();
-      const endsWithIncomplete =
-        /(may be|for|please|press|select|choose|dial|to|and)$/i.test(lower);
-      const hasNoEndingPunctuation = !/[.!?]$/.test(text.trim());
-      const isShort = text.trim().split(/\s+/).length < 5;
-      return endsWithIncomplete && hasNoEndingPunctuation && isShort;
-    };
-
-    if (
-      !testMode &&
-      incompleteSpeechWaitCount < maxIncompleteWaits &&
-      finalSpeech.length < 500 &&
-      isLikelyIncomplete(finalSpeech)
-    ) {
-      callStateManager.updateCallState(callSid, {
-        lastSpeech: finalSpeech,
-        awaitingCompleteSpeech: true,
-        incompleteSpeechWaitCount: incompleteSpeechWaitCount + 1,
-      });
-      if (!testMode) {
-        const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl({ baseUrl, config }),
-          method: 'POST',
-          enhanced: true,
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-      }
-      return {
-        twiml: response.toString(),
-        shouldSend: !testMode,
-      };
     }
 
     callStateManager.updateCallState(callSid, {
@@ -316,52 +275,7 @@ export async function processSpeech({
         result;
 
       if (!isMenuComplete) {
-        // Incomplete menu — try to press early if we have enough options
-        if (
-          menuOptions.length > 0 &&
-          dtmfDecision.shouldPress &&
-          dtmfDecision.digit
-        ) {
-          const digit = dtmfDecision.digit;
-          if (!testMode) {
-            console.log(
-              `🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`
-            );
-          }
-
-          callStateManager.updateCallState(callSid, {
-            partialMenuOptions: [],
-            awaitingCompleteMenu: false,
-            lastMenuOptions: menuOptions,
-            menuLevel: (callState.menuLevel || 0) + 1,
-            lastPressedDTMF: digit,
-            lastMenuForDTMF: menuOptions,
-            consecutiveDTMFPresses: updateConsecutivePresses(callState, digit),
-          });
-
-          if (!testMode) {
-            callHistoryService.addIVRMenu(callSid, menuOptions);
-            callHistoryService
-              .addDTMF(
-                callSid,
-                digit,
-                `AI matched: ${dtmfDecision.matchedOption}`
-              )
-              .catch(err => console.error('Error adding DTMF:', err));
-
-            response.redirect(
-              `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}&customInstructions=${encodeURIComponent(config.customInstructions || '')}`
-            );
-          }
-          return {
-            twiml: response.toString(),
-            shouldSend: !testMode,
-            processingResult: result,
-            digitPressed: digit,
-          };
-        }
-
-        // Accumulate and wait for the rest of the menu
+        // Menu is not complete yet – accumulate options and wait for more speech
         callStateManager.updateCallState(callSid, {
           partialMenuOptions: menuOptions,
           awaitingCompleteMenu: true,

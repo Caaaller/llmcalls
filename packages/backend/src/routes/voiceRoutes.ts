@@ -198,8 +198,6 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
     });
   }
 
-  // if (digits) { console.log('🔢 Pressed DTMF:', redactForLog(digits)); }
-
   const response = new twilio.twiml.VoiceResponse();
   const gatherAttributes = createGatherAttributes(config, {
     action: buildProcessSpeechUrl({ baseUrl, config }),
