@@ -11,6 +11,7 @@ import express, {
   ErrorRequestHandler,
 } from 'express';
 import path from 'path';
+import fs from 'fs';
 import { connect, disconnect } from './services/database';
 import voiceRoutes from './routes/voiceRoutes';
 import testIvrRoutes from './routes/testIvrRoutes';
@@ -84,34 +85,38 @@ app.get('/health', (_req: Request, res: Response) => {
   });
 });
 
-// Serve React frontend in production
-if (process.env.NODE_ENV === 'production') {
-  const frontendBuildPath = path.join(process.cwd(), 'frontend/build');
+// Serve React frontend in production only if build exists (e.g. full deploy with frontend built)
+const possibleFrontendPaths = [
+  path.join(process.cwd(), 'frontend/build'),
+  path.join(process.cwd(), 'packages/frontend/build'),
+];
+const frontendBuildPath = possibleFrontendPaths.find(p =>
+  fs.existsSync(path.join(p, 'index.html'))
+);
 
-  // Serve static files from frontend build
+if (process.env.NODE_ENV === 'production' && frontendBuildPath) {
   app.use(express.static(frontendBuildPath));
-
-  // Catch-all handler: send back React's index.html file for client-side routing
-  // IMPORTANT: This must come AFTER all API routes
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Don't serve React app for API routes, voice routes, or health check
     if (
       req.path.startsWith('/api') ||
       req.path.startsWith('/voice') ||
       req.path.startsWith('/health')
     ) {
-      console.log(
-        `   ⚠️  Catch-all skipping: ${req.method} ${req.path} (API route)`
-      );
-      return next(); // Let it fall through to 404 handler if route doesn't exist
+      return next();
     }
-    // Only handle GET requests for the catch-all
     if (req.method === 'GET') {
-      console.log(`   📄 Serving React app for: ${req.method} ${req.path}`);
       res.sendFile(path.join(frontendBuildPath, 'index.html'));
     } else {
       next();
     }
+  });
+  console.log('  ✅ Serving frontend from', frontendBuildPath);
+} else if (process.env.NODE_ENV === 'production') {
+  app.get('/', (_req: Request, res: Response) => {
+    res.json({
+      message: 'LLM Calls API',
+      docs: { health: '/health', api: '/api', voice: '/voice' },
+    });
   });
 } else {
   // Development: API info endpoint
