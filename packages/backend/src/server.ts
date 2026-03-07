@@ -86,9 +86,12 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // Serve React frontend in production only if build exists (e.g. full deploy with frontend built)
+// Try cwd-relative paths (repo root) and backend-relative path (when pnpm runs from packages/backend)
+const repoRootFromDist = path.join(__dirname, '..', '..', '..');
 const possibleFrontendPaths = [
   path.join(process.cwd(), 'frontend/build'),
   path.join(process.cwd(), 'packages/frontend/build'),
+  path.join(repoRootFromDist, 'packages/frontend/build'),
 ];
 const frontendBuildPath = possibleFrontendPaths.find(p =>
   fs.existsSync(path.join(p, 'index.html'))
