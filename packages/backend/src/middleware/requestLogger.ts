@@ -6,15 +6,25 @@
 
 import { Request, Response, NextFunction } from 'express';
 
+const MAX_VALUE_LENGTH = 120;
+
 /**
- * Converts any value into a log-friendly string.
- * Arrays and objects are JSON-stringified to preserve full content.
+ * Converts any value into a log-friendly string. Large arrays/objects are summarized to avoid console spam.
  */
 function formatValue(val: unknown): string {
   if (val === null || val === undefined) return '';
-  if (typeof val === 'string') return val;
+  if (typeof val === 'string')
+    return val.length <= MAX_VALUE_LENGTH
+      ? val
+      : val.slice(0, MAX_VALUE_LENGTH) + '…';
   if (typeof val === 'number' || typeof val === 'boolean') return String(val);
-  if (typeof val === 'object') return JSON.stringify(val);
+  if (Array.isArray(val)) return `array(${val.length})`;
+  if (typeof val === 'object') {
+    const s = JSON.stringify(val);
+    return s.length <= MAX_VALUE_LENGTH
+      ? s
+      : s.slice(0, MAX_VALUE_LENGTH) + '…';
+  }
   return String(val);
 }
 
@@ -83,7 +93,10 @@ export function requestLogger(
   const originalSend = res.send.bind(res);
   res.send = function (body: unknown) {
     if (typeof body === 'string' && body.includes('</Response>')) {
-      responseSummary = `twiml=${body}`;
+      responseSummary =
+        body.length <= MAX_VALUE_LENGTH
+          ? `twiml=${body}`
+          : `twiml=(${body.length} chars)`;
     }
     return originalSend(body as string);
   } as Response['send'];

@@ -55,18 +55,22 @@ export async function processVoiceInput(
     config,
   } = context;
 
-  const termination = await aiDetectionService.detectTermination(
-    speech,
-    previousSpeech,
-    silenceDurationMs / 1000
-  );
+  // For IVR/menu-related analysis, use the merged transcript so far
+  const mergedMenuSpeech =
+    previousSpeech && previousSpeech.length > 0
+      ? `${previousSpeech} ${speech}`.trim()
+      : speech;
 
-  // 2. Detect transfer requests
-  const transferDetection =
-    await aiDetectionService.detectTransferRequest(speech);
+  const [termination, transferDetection, menuDetection] = await Promise.all([
+    aiDetectionService.detectTermination(
+      speech,
+      previousSpeech,
+      silenceDurationMs / 1000
+    ),
+    aiDetectionService.detectTransferRequest(mergedMenuSpeech),
+    aiDetectionService.detectIVRMenu(mergedMenuSpeech),
+  ]);
 
-  // 3. Detect IVR menu
-  const menuDetection = await aiDetectionService.detectIVRMenu(speech);
   const isIVRMenu = menuDetection.isIVRMenu;
 
   let menuOptions: MenuOption[] = [];
@@ -84,38 +88,50 @@ export async function processVoiceInput(
   let shouldPreventDTMF = false;
 
   if (isIVRMenu) {
+    // First extract menu options from the merged transcript, then run loop detection
+    // in parallel with DTMF decision
     const extractionResult =
-      await aiDetectionService.extractMenuOptions(speech);
-    menuOptions = extractionResult.menuOptions;
+      await aiDetectionService.extractMenuOptions(mergedMenuSpeech);
+    const extractedMenuOptions = extractionResult.menuOptions;
     isMenuComplete = extractionResult.isComplete;
 
     // Merge with any partial options accumulated from previous calls
+    let mergedMenuOptions = extractedMenuOptions;
     if (partialMenuOptions.length > 0) {
-      const combined = [...partialMenuOptions, ...menuOptions];
+      const combined = [...partialMenuOptions, ...extractedMenuOptions];
       const seen = new Set<string>();
-      menuOptions = combined.filter(opt => {
+      mergedMenuOptions = combined.filter(opt => {
         const key = `${opt.digit}-${opt.option}`;
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
     }
+    menuOptions = mergedMenuOptions;
 
-    // Loop detection
-    if (previousMenus.length > 0) {
-      const loopCheck = await aiDetectionService.detectLoop(
-        menuOptions,
-        previousMenus
-      );
-      loopDetected = loopCheck.isLoop;
-      loopConfidence = loopCheck.confidence;
-      loopReason = loopCheck.reason;
+    // Run loop detection and DTMF decision in parallel
+    const [loopCheck, dtmfResult] = await Promise.all([
+      previousMenus.length > 0
+        ? aiDetectionService.detectLoop(mergedMenuOptions, previousMenus)
+        : Promise.resolve({ isLoop: false, confidence: 0, reason: '' }),
+      aiDTMFService.understandCallPurposeAndPressDTMF(
+        mergedMenuSpeech,
+        {
+          callPurpose: config.callPurpose,
+          customInstructions: config.customInstructions,
+        },
+        mergedMenuOptions
+      ),
+    ]);
 
-      // Semantic loop prevention: if a loop is detected with high confidence
-      // and we've already pressed a DTMF for a similar menu, don't press again
-      if (loopDetected && loopCheck.confidence > 0.7 && lastPressedDTMF) {
-        shouldPreventDTMF = true;
-      }
+    loopDetected = loopCheck.isLoop;
+    loopConfidence = loopCheck.confidence;
+    loopReason = loopCheck.reason;
+
+    // Semantic loop prevention: if a loop is detected with high confidence
+    // and we've already pressed a DTMF for a similar menu, don't press again
+    if (loopDetected && loopCheck.confidence > 0.7 && lastPressedDTMF) {
+      shouldPreventDTMF = true;
     }
 
     // Consecutive press prevention: same digit pressed 3+ times in a row
@@ -131,16 +147,9 @@ export async function processVoiceInput(
       }
     }
 
-    // DTMF decision (only if not prevented)
+    // Use DTMF result if not prevented
     if (!shouldPreventDTMF) {
-      dtmfDecision = await aiDTMFService.understandCallPurposeAndPressDTMF(
-        speech,
-        {
-          callPurpose: config.callPurpose,
-          customInstructions: config.customInstructions,
-        },
-        menuOptions
-      );
+      dtmfDecision = dtmfResult;
     }
   }
 

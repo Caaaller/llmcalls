@@ -58,6 +58,7 @@ export interface ICallHistory extends Document {
   conversation: ConversationEntry[];
   dtmfPresses: DTMFPress[];
   events: CallEvent[];
+  recordingUrl?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -154,6 +155,7 @@ const callHistorySchema = new Schema<ICallHistory>(
     conversation: [conversationSchema],
     dtmfPresses: [dtmfPressSchema],
     events: [eventSchema],
+    recordingUrl: String,
   },
   {
     timestamps: true,

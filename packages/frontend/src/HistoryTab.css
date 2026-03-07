@@ -220,6 +220,31 @@
   border-bottom: none;
 }
 
+.btn-play-recording {
+  padding: 6px 12px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn-play-recording:hover:not(:disabled) {
+  background: #5a6fd6;
+}
+
+.btn-play-recording:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.recording-error {
+  color: #dc3545;
+  font-size: 0.9rem;
+  margin-left: 8px;
+}
+
 .section {
   background: white;
   border-radius: 8px;

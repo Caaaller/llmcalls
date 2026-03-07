@@ -11,6 +11,8 @@ export interface CallOptions {
   statusCallback?: string;
   statusCallbackMethod?: 'GET' | 'POST';
   method?: 'GET' | 'POST';
+  record?: boolean;
+  recordingStatusCallback?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -67,6 +69,7 @@ class TwilioService {
         method: 'POST',
         statusCallback: options.statusCallback,
         statusCallbackMethod: 'POST',
+        record: options.record ?? true,
         ...options,
       });
 
@@ -90,6 +93,13 @@ class TwilioService {
       const err = toError(error);
       throw new Error(`Failed to get call status: ${err.message}`);
     }
+  }
+
+  /**
+   * Terminate a call by setting its status to completed
+   */
+  async terminateCall(callSid: string): Promise<void> {
+    await this.client.calls(callSid).update({ status: 'completed' });
   }
 
   /**

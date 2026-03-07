@@ -12,13 +12,14 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "eslint": "^10.0.2",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1"
   },
   "lint-staged": {
     "packages/backend/src/**/*.ts": [
-      "eslint --fix",
+      "pnpm --filter backend lint:fix",
       "prettier --write"
     ],
     "packages/frontend/src/**/*.{ts,tsx}": [

@@ -10,7 +10,6 @@ import callHistoryService from './callHistoryService';
 import aiService, { TransferConfig } from './aiService';
 import aiDetectionService from './aiDetectionService';
 import { DTMFDecision } from './aiDTMFService';
-import twilioService from './twilioService';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import {
@@ -19,10 +18,9 @@ import {
   createGatherAttributes,
   dialNumber,
   TwiMLDialAttributes,
+  DEFAULT_SPEECH_TIMEOUT,
 } from '../utils/twimlHelpers';
 import { processVoiceInput } from './voiceProcessingService';
-
-const DEFAULT_SPEECH_TIMEOUT = 15;
 
 export interface ProcessSpeechParams {
   callSid: string;
@@ -142,45 +140,10 @@ export async function processSpeech({
       console.log('👤', speechResult);
     }
 
-    // ── 2. Merge incomplete speech ───────────────────────────────────────────
+    // ── 2. Merge speech with any prior partial transcript (for menus, etc.) ──
     let finalSpeech = speechResult;
     if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
       finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
-    }
-
-    // ── 3. Incomplete-speech guard (fast path — avoids heavy AI calls) ───────
-    const incompleteSpeechWaitCount = callState.incompleteSpeechWaitCount || 0;
-    const maxIncompleteWaits = 2;
-
-    if (
-      !testMode &&
-      incompleteSpeechWaitCount < maxIncompleteWaits &&
-      finalSpeech.length < 500
-    ) {
-      const incompleteCheck =
-        await aiDetectionService.detectIncompleteSpeech(finalSpeech);
-      if (incompleteCheck.isIncomplete && incompleteCheck.confidence > 0.7) {
-        callStateManager.updateCallState(callSid, {
-          lastSpeech: finalSpeech,
-          awaitingCompleteSpeech: true,
-          incompleteSpeechWaitCount: incompleteSpeechWaitCount + 1,
-        });
-        if (!testMode) {
-          const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl({ baseUrl, config }),
-            method: 'POST',
-            enhanced: true,
-            timeout: DEFAULT_SPEECH_TIMEOUT,
-          });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
-        }
-        return {
-          twiml: response.toString(),
-          shouldSend: !testMode,
-        };
-      }
     }
 
     callStateManager.updateCallState(callSid, {
@@ -312,58 +275,7 @@ export async function processSpeech({
         result;
 
       if (!isMenuComplete) {
-        // Incomplete menu — try to press early if we have enough options
-        if (
-          menuOptions.length > 0 &&
-          dtmfDecision.shouldPress &&
-          dtmfDecision.digit
-        ) {
-          const digit = dtmfDecision.digit;
-          if (!testMode) {
-            console.log(
-              `🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`
-            );
-          }
-
-          callStateManager.updateCallState(callSid, {
-            partialMenuOptions: [],
-            awaitingCompleteMenu: false,
-            lastMenuOptions: menuOptions,
-            menuLevel: (callState.menuLevel || 0) + 1,
-            lastPressedDTMF: digit,
-            lastMenuForDTMF: menuOptions,
-            consecutiveDTMFPresses: updateConsecutivePresses(callState, digit),
-          });
-
-          if (!testMode) {
-            callHistoryService.addIVRMenu(callSid, menuOptions);
-            callHistoryService
-              .addDTMF(
-                callSid,
-                digit,
-                `AI matched: ${dtmfDecision.matchedOption}`
-              )
-              .catch(err => console.error('Error adding DTMF:', err));
-
-            response.pause({ length: 2 });
-            setTimeout(() => {
-              twilioService
-                .sendDTMF(callSid, digit)
-                .catch(err => console.error('Send DTMF failed:', err));
-            }, 2000);
-            response.redirect(
-              `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}&customInstructions=${encodeURIComponent(config.customInstructions || '')}`
-            );
-          }
-          return {
-            twiml: response.toString(),
-            shouldSend: !testMode,
-            processingResult: result,
-            digitPressed: digit,
-          };
-        }
-
-        // Accumulate and wait for the rest of the menu
+        // Menu is not complete yet – accumulate options and wait for more speech
         callStateManager.updateCallState(callSid, {
           partialMenuOptions: menuOptions,
           awaitingCompleteMenu: true,
@@ -452,12 +364,6 @@ export async function processSpeech({
             )
             .catch(err => console.error('Error adding DTMF:', err));
 
-          response.pause({ length: 2 });
-          setTimeout(() => {
-            twilioService
-              .sendDTMF(callSid, digit)
-              .catch(err => console.error('Send DTMF failed:', err));
-          }, 2000);
           response.redirect(
             `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
           );
@@ -535,47 +441,52 @@ export async function processSpeech({
     }
 
     // ── 9. AI conversational response ────────────────────────────────────────
-    const conversationHistory = callState.conversationHistory || [];
-    let aiResponse: string;
+    // Skip if DTMF was pressed - no need to speak, just listen for next menu
+    const skipAISpeaking = result.dtmfDecision?.shouldPress === true;
+    let aiResponse = skipAISpeaking ? 'silent' : undefined;
 
-    try {
-      const aiPromise = aiService.generateResponse(
-        config as TransferConfig,
-        finalSpeech,
-        isFirstCall,
-        conversationHistory.map(h => ({ type: h.type, text: h.text || '' }))
-      );
-      const timeoutPromise = new Promise<string>((_, reject) =>
-        setTimeout(
-          () =>
-            reject(
-              new Error(
-                `AI service timeout after ${DEFAULT_SPEECH_TIMEOUT} seconds`
-              )
-            ),
-          DEFAULT_SPEECH_TIMEOUT * 1000
-        )
-      );
-      aiResponse = await Promise.race([aiPromise, timeoutPromise]);
+    if (!skipAISpeaking) {
+      const conversationHistory = callState.conversationHistory || [];
 
-      if (!testMode) {
-        if (
-          aiResponse &&
-          aiResponse.trim().toLowerCase() !== 'silent' &&
-          aiResponse.trim().length > 0
-        ) {
-          console.log('🤖', aiResponse);
-        } else {
-          console.log('🤖 Silent (no response generated)');
+      try {
+        const aiPromise = aiService.generateResponse(
+          config as TransferConfig,
+          finalSpeech,
+          isFirstCall,
+          conversationHistory.map(h => ({ type: h.type, text: h.text || '' }))
+        );
+        const timeoutPromise = new Promise<string>((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error(
+                  `AI service timeout after ${DEFAULT_SPEECH_TIMEOUT} seconds`
+                )
+              ),
+            DEFAULT_SPEECH_TIMEOUT * 1000
+          )
+        );
+        aiResponse = await Promise.race([aiPromise, timeoutPromise]);
+
+        if (!testMode) {
+          if (
+            aiResponse &&
+            aiResponse.trim().toLowerCase() !== 'silent' &&
+            aiResponse.trim().length > 0
+          ) {
+            console.log('🤖', aiResponse);
+          } else {
+            console.log('🤖 Silent (no response generated)');
+          }
         }
+      } catch (error: unknown) {
+        const err = error as Error;
+        if (!testMode) {
+          console.error('❌ AI service error:', err.message);
+        }
+        aiResponse = 'silent';
       }
-    } catch (error: unknown) {
-      const err = error as Error;
-      if (!testMode) {
-        console.error('❌ AI service error:', err.message);
-      }
-      aiResponse = 'silent';
-    }
+    } // End skipAISpeaking condition
 
     callStateManager.addToHistory(callSid, { type: 'user', text: finalSpeech });
 

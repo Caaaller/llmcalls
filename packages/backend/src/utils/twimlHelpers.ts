@@ -7,7 +7,8 @@ import twilio from 'twilio';
 import { TwilioGatherInput, TwilioSayAttributes } from '../types/twilio-twiml';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
 
-const DEFAULT_SPEECH_TIMEOUT = 15;
+const DEFAULT_SPEECH_TIMEOUT = 6;
+export { DEFAULT_SPEECH_TIMEOUT };
 
 export interface TwiMLDialAttributes {
   answerOnMedia?: boolean;

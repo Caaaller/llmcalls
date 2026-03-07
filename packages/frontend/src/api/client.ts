@@ -64,6 +64,7 @@ export interface CallSummary {
   conversationCount?: number;
   dtmfCount?: number;
   eventCount?: number;
+  recordingUrl?: string;
 }
 
 export interface CallHistoryResponse {
@@ -285,6 +286,15 @@ export const api = {
       ),
     get: (callSid: string) =>
       apiFetch<CallDetailsResponse>(`/api/calls/${callSid}`),
+    getRecordingUrl: async (callSid: string): Promise<string> => {
+      const url = `${API_URL}/api/calls/${callSid}/recording`;
+      const response = await fetch(url, {
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) throw new Error('Failed to load recording');
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
+    },
     initiate: (data: InitiateCallPayload) =>
       apiFetch<{ success: boolean } & InitiateCallResponse>(
         '/api/calls/initiate',
