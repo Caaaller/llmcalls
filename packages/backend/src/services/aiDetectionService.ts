@@ -140,7 +140,7 @@ Respond with JSON:
     try {
       const prompt = `You are extracting menu options from IVR menu speech.
 
-The input Speech may contain the full transcript of the current IVR menu so far (multiple chunks merged together).
+The input Speech may contain the full transcript of the current IVR menu so far (multiple chunks merged together). Speech recognition often breaks IVR menus into partial chunks, so you may receive only the beginning or middle of a menu.
 
 Extract all menu options where each option has:
 - A digit/number (0-9, *, #)
@@ -156,7 +156,11 @@ Handle various formats:
 
 Return ALL options found, even if the menu seems incomplete.
 
-Set "isComplete" to true ONLY when, given the full speech so far, it sounds like the system has finished listing the options for this menu (for example, it ends with a catch-all like "for all other inquiries" or naturally closes the list). Otherwise, set "isComplete" to false.
+CRITICAL rules for "isComplete":
+- If only 1 menu option was extracted, set "isComplete" to FALSE. Real IVR menus virtually always have 2+ options. A single option strongly indicates you received a partial speech chunk.
+- If the speech begins mid-sentence or with a fragment (e.g., starts with "Services." or a department name without a greeting), it is likely a partial chunk — set "isComplete" to FALSE.
+- Set "isComplete" to TRUE only when you have extracted 2+ options AND the speech naturally concludes (e.g., ends with a catch-all like "for all other inquiries", "or press 0 for operator", or clearly finishes listing options).
+- When in doubt, set "isComplete" to FALSE. It is far better to wait for more speech than to act on incomplete information.
 
 Speech (full transcript so far): "${speech}"
 

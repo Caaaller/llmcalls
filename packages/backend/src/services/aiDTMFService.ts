@@ -21,6 +21,7 @@ export interface DTMFDecision {
   shouldPress: boolean;
   digit: string | null;
   matchedOption: string;
+  matchType: 'exact' | 'semantic' | 'fallback';
   reason: string;
 }
 
@@ -52,6 +53,7 @@ class AIDTMFService {
           shouldPress: true,
           digit: '1',
           matchedOption: 'fallback - no menu detected',
+          matchType: 'fallback',
           reason: 'No menu options extracted - pressing 1 as safest fallback',
         };
       }
@@ -105,8 +107,14 @@ Respond ONLY with JSON:
   "shouldPress": true,
   "digit": "0" or "1" or "2" etc,
   "matchedOption": "which menu option matched (or 'fallback to 0' or 'first option')",
+  "matchType": "exact" or "semantic" or "fallback",
   "reason": "brief explanation"
-}`;
+}
+
+matchType rules:
+- "exact": The call purpose directly matches a menu option word-for-word or near-exact (e.g., "card billing" matches "card billing")
+- "semantic": The call purpose is semantically related to a menu option (e.g., "credit card billing" matches "card services")
+- "fallback": No option matches the purpose; pressing 0/first digit as fallback`;
 
       const completion = await this.client.chat.completions.create({
         model: 'gpt-4o',
@@ -129,8 +137,11 @@ Respond ONLY with JSON:
       }
 
       const response: DTMFDecision = JSON.parse(content);
+      if (!response.matchType) {
+        response.matchType = 'fallback';
+      }
       console.log(
-        `AI DTMF decision: digit=${response.digit} matched="${response.matchedOption}" reason="${response.reason}"`
+        `AI DTMF decision: digit=${response.digit} matchType=${response.matchType} matched="${response.matchedOption}" reason="${response.reason}"`
       );
       return response;
     } catch (error) {
@@ -143,6 +154,7 @@ Respond ONLY with JSON:
         reason: 'AI error - fallback to first option',
         callPurpose: 'unknown',
         matchedOption: 'fallback on error',
+        matchType: 'fallback',
       };
     }
   }

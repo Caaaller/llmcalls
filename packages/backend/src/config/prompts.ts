@@ -8,9 +8,9 @@ export const promptConfig = {
    * First call context message
    */
   firstCallContext: (speechResult: string): string => {
-    return `The automated system said: "${speechResult}". 
-You are navigating their IVR system to reach a live representative.
-IMPORTANT: Only respond when necessary for navigation. Remain silent during menu prompts.`;
+    return `The automated system said: "${speechResult}".
+You are the CALLER navigating their phone system to reach a live representative.
+IMPORTANT: If this is just a greeting or introduction, remain SILENT and wait for the system to ask a question or present options. If the system asks what you need, state the call purpose naturally.`;
   },
 
   /**
@@ -21,7 +21,7 @@ IMPORTANT: Only respond when necessary for navigation. Remain silent during menu
     conversationHistory: string
   ): string => {
     return `Continuing navigation. The automated system said: "${speechResult}".${conversationHistory}
-Focus on navigation and reaching a live representative.`;
+You are the CALLER. Focus on navigation and reaching a live representative. If the system asks what you need, state the call purpose. If it's still talking, remain silent.`;
   },
 
   /**

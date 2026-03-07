@@ -13,6 +13,7 @@ import express, {
 import path from 'path';
 import { connect, disconnect } from './services/database';
 import voiceRoutes from './routes/voiceRoutes';
+import testIvrRoutes from './routes/testIvrRoutes';
 import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
 import { requestLogger } from './middleware/requestLogger';
@@ -63,6 +64,8 @@ app.use(requestLogger);
 console.log('📋 Registering routes...');
 app.use('/voice', voiceRoutes);
 console.log('  ✅ /voice routes registered');
+app.use('/voice/test-ivr', testIvrRoutes);
+console.log('  ✅ /voice/test-ivr routes registered');
 app.use('/api/auth', authRoutes);
 console.log('  ✅ /api/auth routes registered');
 app.use('/api', apiRoutes);

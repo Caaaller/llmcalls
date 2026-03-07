@@ -83,6 +83,7 @@ export async function processVoiceInput(
     shouldPress: false,
     digit: null,
     matchedOption: '',
+    matchType: 'fallback',
     reason: '',
   };
   let shouldPreventDTMF = false;

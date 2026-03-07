@@ -141,6 +141,7 @@ export async function processSpeech({
     }
 
     // ── 2. Merge speech with any prior partial transcript (for menus, etc.) ──
+    const previousSpeechForContext = callState.lastSpeech || '';
     let finalSpeech = speechResult;
     if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
       finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
@@ -161,7 +162,7 @@ export async function processSpeech({
     // ── 4. Core AI decisions (using shared processVoiceInput function) ──
     const result = await processVoiceInput({
       speech: finalSpeech,
-      previousSpeech: callState.lastSpeech || '',
+      previousSpeech: previousSpeechForContext,
       previousMenus: callState.previousMenus || [],
       partialMenuOptions: callState.partialMenuOptions,
       lastPressedDTMF: callState.lastPressedDTMF,
@@ -275,35 +276,43 @@ export async function processSpeech({
         result;
 
       if (!isMenuComplete) {
-        // Menu is not complete yet – accumulate options and wait for more speech
-        callStateManager.updateCallState(callSid, {
-          partialMenuOptions: menuOptions,
-          awaitingCompleteMenu: true,
-        });
+        const hasRealMatch =
+          dtmfDecision.shouldPress &&
+          dtmfDecision.digit &&
+          dtmfDecision.matchType !== 'fallback';
 
-        if (!testMode) {
-          const menuSummary =
-            menuOptions.length > 0
-              ? `[IVR Menu incomplete - found: ${menuOptions.map(o => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
-              : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
-          callHistoryService
-            .addConversation(callSid, 'system', menuSummary)
-            .catch(err => console.error('Error adding conversation:', err));
-          const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl({ baseUrl, config }),
-            method: 'POST',
-            enhanced: true,
-            timeout: DEFAULT_SPEECH_TIMEOUT,
+        if (!hasRealMatch) {
+          // No real match yet — accumulate options and wait for more speech
+          callStateManager.updateCallState(callSid, {
+            partialMenuOptions: menuOptions,
+            awaitingCompleteMenu: true,
           });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
+
+          if (!testMode) {
+            const menuSummary =
+              menuOptions.length > 0
+                ? `[IVR Menu incomplete - found: ${menuOptions.map(o => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
+                : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
+            callHistoryService
+              .addConversation(callSid, 'system', menuSummary)
+              .catch(err => console.error('Error adding conversation:', err));
+            const gatherAttributes = createGatherAttributes(config, {
+              action: buildProcessSpeechUrl({ baseUrl, config }),
+              method: 'POST',
+              enhanced: true,
+              timeout: DEFAULT_SPEECH_TIMEOUT,
+            });
+            response.gather(
+              gatherAttributes as Parameters<typeof response.gather>[0]
+            );
+          }
+          return {
+            twiml: response.toString(),
+            shouldSend: !testMode,
+            processingResult: result,
+          };
         }
-        return {
-          twiml: response.toString(),
-          shouldSend: !testMode,
-          processingResult: result,
-        };
+        // Menu incomplete but we have a real match — fall through to press DTMF
       }
 
       // Complete menu
@@ -353,6 +362,9 @@ export async function processSpeech({
           lastPressedDTMF: digit,
           lastMenuForDTMF: menuOptions,
           consecutiveDTMFPresses: updateConsecutivePresses(callState, digit),
+          lastSpeech: '',
+          partialMenuOptions: [],
+          awaitingCompleteMenu: false,
         });
 
         if (!testMode) {
@@ -364,6 +376,7 @@ export async function processSpeech({
             )
             .catch(err => console.error('Error adding DTMF:', err));
 
+          response.play({ digits: digit });
           response.redirect(
             `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
           );
