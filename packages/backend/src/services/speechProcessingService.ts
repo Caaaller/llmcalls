@@ -60,6 +60,22 @@ export interface ProcessSpeechResult {
 }
 
 /**
+ * Extract pure digits from an AI response (e.g., "90001", "720-584-6358" → "7205846358").
+ * Returns the digit string if the response is digit-only, or null if it contains words.
+ */
+function extractDTMFDigits(text: string): string | null {
+  const stripped = text.replace(/[\s\-().+]/g, '');
+  if (stripped.length >= 3 && /^\d+$/.test(stripped)) {
+    return stripped;
+  }
+  return null;
+}
+
+function formatDigitsForSpeech(digits: string): string {
+  return digits.split('').join(' ');
+}
+
+/**
  * Track how many times a digit has been pressed consecutively.
  */
 function updateConsecutivePresses(
@@ -159,17 +175,51 @@ export async function processSpeech({
         .catch(err => console.error('Error adding conversation:', err));
     }
 
-    // ── 4. Core AI decisions (using shared processVoiceInput function) ──
-    const result = await processVoiceInput({
-      speech: finalSpeech,
-      previousSpeech: previousSpeechForContext,
-      previousMenus: callState.previousMenus || [],
-      partialMenuOptions: callState.partialMenuOptions,
-      lastPressedDTMF: callState.lastPressedDTMF,
-      lastMenuForDTMF: callState.lastMenuForDTMF,
-      consecutiveDTMFPresses: callState.consecutiveDTMFPresses || [],
-      config,
-    });
+    // ── 4. Fire off ALL AI calls in parallel to minimize latency ──────────
+    // Instead of waiting for detection → then human check → then AI response
+    // (8-13s total), we run them ALL at once (~3-5s total).
+    const conversationHistory = callState.conversationHistory || [];
+    const aiResponsePromise = aiService
+      .generateResponse(
+        config as TransferConfig,
+        finalSpeech,
+        isFirstCall,
+        conversationHistory.map(h => ({ type: h.type, text: h.text || '' }))
+      )
+      .catch((err: Error) => {
+        if (!testMode) console.error('❌ AI service error:', err.message);
+        return 'silent';
+      });
+
+    const dataEntryModePromise = aiDetectionService
+      .detectDataEntryInputMode(finalSpeech)
+      .catch((err: Error) => {
+        if (!testMode) {
+          console.error('❌ Data entry mode detection error:', err.message);
+        }
+        return { mode: 'none', confidence: 0, reason: 'error' } as const;
+      });
+
+    const humanConfirmationPromise = callState.awaitingHumanConfirmation
+      ? aiDetectionService.detectHumanConfirmation(finalSpeech)
+      : Promise.resolve({ isHuman: false, confidence: 0 });
+
+    const [result, precomputedAiResponse, humanConfirmation, dataEntryMode] =
+      await Promise.all([
+        processVoiceInput({
+          speech: finalSpeech,
+          previousSpeech: previousSpeechForContext,
+          previousMenus: callState.previousMenus || [],
+          partialMenuOptions: callState.partialMenuOptions,
+          lastPressedDTMF: callState.lastPressedDTMF,
+          lastMenuForDTMF: callState.lastMenuForDTMF,
+          consecutiveDTMFPresses: callState.consecutiveDTMFPresses || [],
+          config,
+        }),
+        aiResponsePromise,
+        humanConfirmationPromise,
+        dataEntryModePromise,
+      ]);
 
     // ── 5. Termination ───────────────────────────────────────────────────────
     if (result.shouldTerminate) {
@@ -416,8 +466,6 @@ export async function processSpeech({
     }
 
     // ── 8. Human confirmation (after being asked "real person or automated?") ─
-    const humanConfirmation =
-      await aiDetectionService.detectHumanConfirmation(finalSpeech);
     const isHumanConfirmed =
       humanConfirmation.isHuman && humanConfirmation.confidence > 0.7;
 
@@ -453,53 +501,21 @@ export async function processSpeech({
       };
     }
 
-    // ── 9. AI conversational response ────────────────────────────────────────
-    // Skip if DTMF was pressed - no need to speak, just listen for next menu
+    // ── 9. AI conversational response (pre-computed in parallel) ───────────
     const skipAISpeaking = result.dtmfDecision?.shouldPress === true;
-    let aiResponse = skipAISpeaking ? 'silent' : undefined;
+    const aiResponse = skipAISpeaking ? 'silent' : precomputedAiResponse;
 
-    if (!skipAISpeaking) {
-      const conversationHistory = callState.conversationHistory || [];
-
-      try {
-        const aiPromise = aiService.generateResponse(
-          config as TransferConfig,
-          finalSpeech,
-          isFirstCall,
-          conversationHistory.map(h => ({ type: h.type, text: h.text || '' }))
-        );
-        const timeoutPromise = new Promise<string>((_, reject) =>
-          setTimeout(
-            () =>
-              reject(
-                new Error(
-                  `AI service timeout after ${DEFAULT_SPEECH_TIMEOUT} seconds`
-                )
-              ),
-            DEFAULT_SPEECH_TIMEOUT * 1000
-          )
-        );
-        aiResponse = await Promise.race([aiPromise, timeoutPromise]);
-
-        if (!testMode) {
-          if (
-            aiResponse &&
-            aiResponse.trim().toLowerCase() !== 'silent' &&
-            aiResponse.trim().length > 0
-          ) {
-            console.log('🤖', aiResponse);
-          } else {
-            console.log('🤖 Silent (no response generated)');
-          }
-        }
-      } catch (error: unknown) {
-        const err = error as Error;
-        if (!testMode) {
-          console.error('❌ AI service error:', err.message);
-        }
-        aiResponse = 'silent';
+    if (!testMode) {
+      if (
+        aiResponse &&
+        aiResponse.trim().toLowerCase() !== 'silent' &&
+        aiResponse.trim().length > 0
+      ) {
+        console.log('🤖', aiResponse);
+      } else {
+        console.log('🤖 Silent (no response generated)');
       }
-    } // End skipAISpeaking condition
+    }
 
     callStateManager.addToHistory(callSid, { type: 'user', text: finalSpeech });
 
@@ -508,6 +524,60 @@ export async function processSpeech({
       aiResponse.trim().toLowerCase() !== 'silent' &&
       aiResponse.trim().length > 0
     ) {
+      const dtmfDigits = extractDTMFDigits(aiResponse.trim());
+
+      if (dtmfDigits && !testMode) {
+        const mode = dataEntryMode.mode;
+
+        if (mode === 'speech') {
+          // System asked to SAY the number (ASR), not keypad entry.
+          callStateManager.addToHistory(callSid, {
+            type: 'ai',
+            text: `[Spoken digits: ${dtmfDigits}]`,
+          });
+          callHistoryService
+            .addConversation(callSid, 'ai', formatDigitsForSpeech(dtmfDigits))
+            .catch(err => console.error('Error adding conversation:', err));
+
+          const sayAttributes = createSayAttributes(config);
+          response.say(
+            sayAttributes as Parameters<typeof response.say>[0],
+            formatDigitsForSpeech(dtmfDigits)
+          );
+        } else {
+          // Default to DTMF when allowed/expected.
+          console.log(
+            `🔢 Data entry DTMF: ${dtmfDigits} (from AI response "${aiResponse.trim()}")`
+          );
+          callStateManager.addToHistory(callSid, {
+            type: 'ai',
+            text: `[DTMF data entry: ${dtmfDigits}]`,
+          });
+          callHistoryService
+            .addDTMF(callSid, dtmfDigits, 'AI data entry response')
+            .catch(err => console.error('Error adding DTMF:', err));
+
+          response.play({ digits: `w${dtmfDigits}` });
+        }
+
+        const gatherAttributes = createGatherAttributes(config, {
+          action: buildProcessSpeechUrl({ baseUrl, config }),
+          method: 'POST',
+          enhanced: true,
+          timeout: DEFAULT_SPEECH_TIMEOUT,
+        });
+        response.gather(
+          gatherAttributes as Parameters<typeof response.gather>[0]
+        );
+
+        return {
+          twiml: response.toString(),
+          shouldSend: true,
+          processingResult: result,
+          digitPressed: dtmfDigits,
+        };
+      }
+
       callStateManager.addToHistory(callSid, { type: 'ai', text: aiResponse });
       if (!testMode) {
         callHistoryService

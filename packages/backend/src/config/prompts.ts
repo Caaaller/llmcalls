@@ -9,8 +9,12 @@ export const promptConfig = {
    */
   firstCallContext: (speechResult: string): string => {
     return `The automated system said: "${speechResult}".
-You are the CALLER navigating their phone system to reach a live representative.
-IMPORTANT: If this is just a greeting or introduction, remain SILENT and wait for the system to ask a question or present options. If the system asks what you need, state the call purpose naturally.`;
+
+Does this contain a DIRECT QUESTION to you (yes/no question, request for info, "what are you calling about?", etc.)?
+- If YES → you MUST answer it. Do NOT stay silent on questions.
+- If NO (greeting, intro, disclaimer, promo) → output ONLY "silent".
+
+You are the CALLER, not the company.`;
   },
 
   /**
@@ -21,7 +25,15 @@ IMPORTANT: If this is just a greeting or introduction, remain SILENT and wait fo
     conversationHistory: string
   ): string => {
     return `Continuing navigation. The automated system said: "${speechResult}".${conversationHistory}
-You are the CALLER. Focus on navigation and reaching a live representative. If the system asks what you need, state the call purpose. If it's still talking, remain silent.`;
+
+Does this contain a DIRECT QUESTION or request for information from you?
+- "Is that right/correct?" → say "Yes" or "No"
+- "Say yes or no" → say "Yes" or "No"
+- Asking for phone/ZIP/account → provide it
+- Any question to you → ANSWER it. Do NOT stay silent on questions.
+- Not a question (hold msg, promo, processing, disclaimer) → output ONLY "silent".
+
+You are the CALLER, not the company.`;
   },
 
   /**

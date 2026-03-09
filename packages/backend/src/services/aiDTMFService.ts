@@ -82,7 +82,11 @@ IVR Menu Speech: "${speech}"
 Available Menu Options:
 ${menuText}
 
-CRITICAL RULE: YOU MUST ALWAYS PRESS A DIGIT WHEN AN IVR MENU IS PRESENT.
+EXCEPTION — DO NOT PRESS in these cases:
+1. PROMOTIONAL/OPTIONAL OFFERS: If the speech says something like "Press 1 [for some offer]. Otherwise remain on the line" or "Otherwise please stay on the line", this is a skippable promotion. Set shouldPress=false — the caller should remain on the line to reach the real menu.
+2. DATA ENTRY PROMPTS: If the speech asks for specific data (ZIP code, account number, date of birth, SSN), this is NOT a menu. Set shouldPress=false.
+
+FOR REAL IVR MENUS — YOU MUST ALWAYS PRESS A DIGIT.
 Do not wait for a "better" menu - it may never come.
 
 Matching Rules (in priority order):
@@ -95,7 +99,7 @@ Matching Rules (in priority order):
    - Example: If menu says "Press 1 for X, Press 2 for Y" and there is no 0 option → press 1
 5. CONTINUATION: If menu asks "press 1 for yes, press 2 for no", always press to continue.
 
-ABSOLUTELY CRITICAL:
+FOR REAL MENUS:
 - NEVER say "None of the options match" and refuse to press
 - NEVER wait for a "better" menu
 - ALWAYS press something when menu options are present

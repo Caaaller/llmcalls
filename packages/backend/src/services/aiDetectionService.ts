@@ -52,6 +52,12 @@ export interface IncompleteSpeechResult {
   suggestedWaitTime?: number; // seconds to wait for more speech
 }
 
+export interface DataEntryInputModeResult {
+  mode: 'dtmf' | 'speech' | 'none';
+  confidence: number;
+  reason: string;
+}
+
 class AIDetectionService {
   private client: OpenAI;
 
@@ -81,11 +87,11 @@ Examples of IVR menus:
 - "Select option 1 for customer service"
 - "Main menu: press 1 for orders, press 2 for returns"
 
-Examples of NON-IVR menus:
-- "Hello, how can I help you?"
-- "Thank you for calling"
-- "We are currently closed"
-- "Please hold"
+These are NOT IVR menus:
+- Greetings: "Hello, how can I help you?", "Thank you for calling"
+- Status: "We are currently closed", "Please hold"
+- Data entry prompts asking for specific info: "Please enter your ZIP code", "Enter your account number", "What is your date of birth?" — these ask for DATA, not a menu selection.
+- Promotional/optional offers with a skip option: "Press 1 to hear about our offer. Otherwise remain on the line." — this is a skippable promo, NOT a navigation menu. The caller should remain on the line to reach the real menu.
 
 Speech to analyze: "${speech}"
 
@@ -590,6 +596,61 @@ Respond with JSON:
         suggestedWaitTime: 5,
       };
     }
+  }
+
+  /**
+   * Detect whether the system expects DATA ENTRY via keypad tones (DTMF) or spoken response.
+   * This is critical for prompts like:
+   * - "Please ENTER your ZIP code" (DTMF)
+   * - "Please SAY your phone number" (speech)
+   */
+  async detectDataEntryInputMode(
+    speech: string
+  ): Promise<DataEntryInputModeResult> {
+    const prompt = `You are analyzing phone call speech to determine how the automated system expects the caller to provide a number.
+
+Classify the input mode:
+- "dtmf": The system expects keypad tones / DTMF entry (keywords: enter, key in, use your keypad, type, press digits).
+- "speech": The system expects a spoken response (keywords: say, speak, tell me).
+- "none": This is not a data-entry request for a number.
+
+Examples:
+- "Please ENTER the ZIP code where you have or want service." -> dtmf
+- "Please KEY IN your account number." -> dtmf
+- "SAY or enter your account number." -> dtmf (prefer dtmf when both are allowed)
+- "I'll need a phone number or account number. SAY phone number or account number." -> speech
+- "What is your ZIP code?" -> speech
+
+Speech: "${speech}"
+
+Respond with JSON:
+{
+  "mode": "dtmf" | "speech" | "none",
+  "confidence": 0.0-1.0,
+  "reason": "brief explanation"
+}`;
+
+    const completion = await this.client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are an expert at classifying IVR input modes (DTMF vs speech). Respond only with valid JSON.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 120,
+      temperature: 0.1,
+      response_format: { type: 'json_object' },
+    });
+
+    const content = completion.choices[0].message.content;
+    if (!content) {
+      throw new Error('No response from OpenAI');
+    }
+
+    return JSON.parse(content) as DataEntryInputModeResult;
   }
 }
 
