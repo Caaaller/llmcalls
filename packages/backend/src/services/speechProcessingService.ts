@@ -16,8 +16,6 @@ import {
   buildProcessSpeechUrl,
   createSayAttributes,
   createGatherAttributes,
-  dialNumber,
-  TwiMLDialAttributes,
   DEFAULT_SPEECH_TIMEOUT,
 } from '../utils/twimlHelpers';
 import { processVoiceInput } from './voiceProcessingService';
@@ -200,26 +198,20 @@ export async function processSpeech({
         return { mode: 'none', confidence: 0, reason: 'error' } as const;
       });
 
-    const humanConfirmationPromise = callState.awaitingHumanConfirmation
-      ? aiDetectionService.detectHumanConfirmation(finalSpeech)
-      : Promise.resolve({ isHuman: false, confidence: 0 });
-
-    const [result, precomputedAiResponse, humanConfirmation, dataEntryMode] =
-      await Promise.all([
-        processVoiceInput({
-          speech: finalSpeech,
-          previousSpeech: previousSpeechForContext,
-          previousMenus: callState.previousMenus || [],
-          partialMenuOptions: callState.partialMenuOptions,
-          lastPressedDTMF: callState.lastPressedDTMF,
-          lastMenuForDTMF: callState.lastMenuForDTMF,
-          consecutiveDTMFPresses: callState.consecutiveDTMFPresses || [],
-          config,
-        }),
-        aiResponsePromise,
-        humanConfirmationPromise,
-        dataEntryModePromise,
-      ]);
+    const [result, precomputedAiResponse, dataEntryMode] = await Promise.all([
+      processVoiceInput({
+        speech: finalSpeech,
+        previousSpeech: previousSpeechForContext,
+        previousMenus: callState.previousMenus || [],
+        partialMenuOptions: callState.partialMenuOptions,
+        lastPressedDTMF: callState.lastPressedDTMF,
+        lastMenuForDTMF: callState.lastMenuForDTMF,
+        consecutiveDTMFPresses: callState.consecutiveDTMFPresses || [],
+        config,
+      }),
+      aiResponsePromise,
+      dataEntryModePromise,
+    ]);
 
     // ── 5. Termination ───────────────────────────────────────────────────────
     if (result.shouldTerminate) {
@@ -255,36 +247,7 @@ export async function processSpeech({
         console.log(
           `🔄 Transfer detected (confidence: ${result.transferConfidence}): ${result.transferReason}`
         );
-      }
 
-      if (!callState.humanConfirmed) {
-        callStateManager.updateCallState(callSid, {
-          awaitingHumanConfirmation: true,
-        });
-        if (!testMode) {
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            'Am I speaking with a real person or is this the automated system?'
-          );
-          const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl({ baseUrl, config }),
-            method: 'POST',
-            enhanced: true,
-            timeout: DEFAULT_SPEECH_TIMEOUT,
-          });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
-        }
-        return {
-          twiml: response.toString(),
-          shouldSend: !testMode,
-          processingResult: result,
-        };
-      }
-
-      if (!testMode) {
         callHistoryService
           .addTransfer(callSid, config.transferNumber, true)
           .catch(err => console.error('Error adding transfer:', err));
@@ -465,43 +428,7 @@ export async function processSpeech({
       };
     }
 
-    // ── 8. Human confirmation (after being asked "real person or automated?") ─
-    const isHumanConfirmed =
-      humanConfirmation.isHuman && humanConfirmation.confidence > 0.7;
-
-    if (callState.awaitingHumanConfirmation && isHumanConfirmed) {
-      callStateManager.updateCallState(callSid, {
-        humanConfirmed: true,
-        awaitingHumanConfirmation: false,
-      });
-
-      if (!testMode) {
-        callHistoryService
-          .addTransfer(callSid, config.transferNumber, true)
-          .catch(err => console.error('Error adding transfer:', err));
-
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          'Thank you. Hold on, please.'
-        );
-        response.pause({ length: 1 });
-        const dial = response.dial({
-          action: `${baseUrl}/voice/transfer-status`,
-          method: 'POST',
-          timeout: 30,
-        });
-        (dial as TwiMLDialAttributes).answerOnMedia = true;
-        dialNumber(dial, config.transferNumber);
-      }
-      return {
-        twiml: response.toString(),
-        shouldSend: !testMode,
-        processingResult: result,
-      };
-    }
-
-    // ── 9. AI conversational response (pre-computed in parallel) ───────────
+    // ── 8. AI conversational response (pre-computed in parallel) ───────────
     const skipAISpeaking = result.dtmfDecision?.shouldPress === true;
     const aiResponse = skipAISpeaking ? 'silent' : precomputedAiResponse;
 

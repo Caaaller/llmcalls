@@ -121,7 +121,7 @@ matchType rules:
 - "fallback": No option matches the purpose; pressing 0/first digit as fallback`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5.4',
         messages: [
           {
             role: 'system',
@@ -130,7 +130,7 @@ matchType rules:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 200,
+        max_completion_tokens: 200,
         temperature: 0.3,
         response_format: { type: 'json_object' },
       });

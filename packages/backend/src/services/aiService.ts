@@ -90,7 +90,7 @@ class AIService {
       );
 
       prompt = promptResult;
-      model = config.aiSettings?.model || 'gpt-4o';
+      model = config.aiSettings?.model || 'gpt-5.4';
       maxTokens = config.aiSettings?.maxTokens || 150;
       temperature = config.aiSettings?.temperature || 0.7;
     } else {
@@ -105,7 +105,7 @@ class AIService {
         { role: 'system', content: prompt.system },
         { role: 'user', content: prompt.user || speechResult },
       ],
-      max_tokens: maxTokens,
+      max_completion_tokens: maxTokens,
       temperature: temperature,
     });
 
@@ -164,7 +164,7 @@ IMPORTANT:
 Respond with ONLY "YES" if this is a real human, or "NO" if it's an automated system.`;
 
     const completion = await this.client.chat.completions.create({
-      model: config.aiSettings?.model || 'gpt-4o',
+      model: config.aiSettings?.model || 'gpt-5.4',
       messages: [
         {
           role: 'system',
@@ -173,7 +173,7 @@ Respond with ONLY "YES" if this is a real human, or "NO" if it's an automated sy
         },
         { role: 'user', content: context },
       ],
-      max_tokens: 10,
+      max_completion_tokens: 10,
       temperature: 0.3, // Lower temperature for more consistent yes/no answers
     });
 

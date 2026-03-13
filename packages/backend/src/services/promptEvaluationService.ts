@@ -18,6 +18,7 @@ export interface PromptTestCase {
   name: string;
   description: string;
   speech: string;
+  previousSpeech?: string;
   config?: Partial<TransferConfig>;
   expectedBehavior: {
     shouldTransfer?: boolean;
@@ -139,8 +140,12 @@ class PromptEvaluationService {
     const details: PromptTestResult['details'] = {};
 
     try {
-      // Use processSpeech (same function as route handler) in test mode
       const testCallSid = `test-single-${testCase.name}`;
+      if (testCase.previousSpeech) {
+        callStateManager.updateCallState(testCallSid, {
+          lastSpeech: testCase.previousSpeech,
+        });
+      }
       const result = await processSpeech({
         callSid: testCallSid,
         speechResult: testCase.speech,

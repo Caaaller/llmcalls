@@ -103,7 +103,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -112,7 +112,7 @@ Respond with JSON:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 150,
+        max_completion_tokens: 150,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       });
@@ -184,7 +184,7 @@ Respond with JSON:
 If no options found, return empty array.`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -193,7 +193,7 @@ If no options found, return empty array.`;
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 300,
+        max_completion_tokens: 300,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       });
@@ -242,11 +242,16 @@ Transfer requests include:
 - "I'm now transferring you to [person/associate/representative]"
 - "Put me through to an agent"
 - "Transferring you to a [associate/representative/agent]"
+- System announcing routing to a human: "You will be directed to the next available representative"
+- "Please hold while we connect you to a representative"
+- "One moment while I transfer you"
+- "Let me connect you with an agent"
 
 NOT transfer requests:
 - IVR menu options like "Press 1 for customer service"
 - General greetings
 - Information statements
+- "To speak with a representative, press 0" (this is a MENU option, not an active transfer)
 
 Speech: "${speech}"
 
@@ -258,7 +263,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -267,7 +272,7 @@ Respond with JSON:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 150,
+        max_completion_tokens: 150,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       });
@@ -321,7 +326,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -330,7 +335,7 @@ Respond with JSON:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 150,
+        max_completion_tokens: 150,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       });
@@ -399,7 +404,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -408,7 +413,7 @@ Respond with JSON:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 200,
+        max_completion_tokens: 200,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       });
@@ -459,9 +464,9 @@ Terminate for:
    - "Please call back during business hours"
    - CRITICAL: If the speech explicitly states the office/business/warehouse/store is "currently closed", "now closed", or "closed", ALWAYS terminate, even if menu options are provided. Menu options when closed are typically for automated systems (payments, balances) which don't help reach a live representative.
 
-3. DEAD END: Call reached a dead end
-   - Previous speech indicated closed
-   - Current speech is empty/silent
+3. DEAD END: Call reached a dead end (ALL conditions must be met)
+   - Previous speech explicitly indicated business is closed
+   - Current speech is truly empty/silent (not a short fragment)
    - Silence duration >= 5 seconds
 
 Do NOT terminate for:
@@ -469,6 +474,8 @@ Do NOT terminate for:
 - IVR menus when business is open
 - Normal conversation
 - Hold music or waiting
+- Short or garbled speech fragments (e.g., "The.", "Hi", "Um") — these are speech recognition artifacts, NOT dead ends
+- Any non-empty speech when previous speech was a normal IVR menu (not closed/voicemail)
 
 Current speech: "${speech || '(silent)'}"
 Previous speech: "${previousSpeech || 'None'}"
@@ -483,7 +490,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -492,7 +499,7 @@ Respond with JSON:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 200,
+        max_completion_tokens: 200,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       });
@@ -560,7 +567,7 @@ Respond with JSON:
 }`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
@@ -569,7 +576,7 @@ Respond with JSON:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 150,
+        max_completion_tokens: 150,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       });
@@ -631,7 +638,7 @@ Respond with JSON:
 }`;
 
     const completion = await this.client.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [
         {
           role: 'system',
@@ -640,7 +647,7 @@ Respond with JSON:
         },
         { role: 'user', content: prompt },
       ],
-      max_tokens: 120,
+      max_completion_tokens: 120,
       temperature: 0.1,
       response_format: { type: 'json_object' },
     });
