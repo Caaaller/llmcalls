@@ -21,6 +21,7 @@ export interface DTMFDecision {
   shouldPress: boolean;
   digit: string | null;
   matchedOption: string;
+  matchType: 'exact' | 'semantic' | 'fallback';
   reason: string;
 }
 
@@ -52,6 +53,7 @@ class AIDTMFService {
           shouldPress: true,
           digit: '1',
           matchedOption: 'fallback - no menu detected',
+          matchType: 'fallback',
           reason: 'No menu options extracted - pressing 1 as safest fallback',
         };
       }
@@ -80,7 +82,11 @@ IVR Menu Speech: "${speech}"
 Available Menu Options:
 ${menuText}
 
-CRITICAL RULE: YOU MUST ALWAYS PRESS A DIGIT WHEN AN IVR MENU IS PRESENT.
+EXCEPTION — DO NOT PRESS in these cases:
+1. PROMOTIONAL/OPTIONAL OFFERS: If the speech says something like "Press 1 [for some offer]. Otherwise remain on the line" or "Otherwise please stay on the line", this is a skippable promotion. Set shouldPress=false — the caller should remain on the line to reach the real menu.
+2. DATA ENTRY PROMPTS: If the speech asks for specific data (ZIP code, account number, date of birth, SSN), this is NOT a menu. Set shouldPress=false.
+
+FOR REAL IVR MENUS — YOU MUST ALWAYS PRESS A DIGIT.
 Do not wait for a "better" menu - it may never come.
 
 Matching Rules (in priority order):
@@ -93,7 +99,7 @@ Matching Rules (in priority order):
    - Example: If menu says "Press 1 for X, Press 2 for Y" and there is no 0 option → press 1
 5. CONTINUATION: If menu asks "press 1 for yes, press 2 for no", always press to continue.
 
-ABSOLUTELY CRITICAL:
+FOR REAL MENUS:
 - NEVER say "None of the options match" and refuse to press
 - NEVER wait for a "better" menu
 - ALWAYS press something when menu options are present
@@ -105,11 +111,17 @@ Respond ONLY with JSON:
   "shouldPress": true,
   "digit": "0" or "1" or "2" etc,
   "matchedOption": "which menu option matched (or 'fallback to 0' or 'first option')",
+  "matchType": "exact" or "semantic" or "fallback",
   "reason": "brief explanation"
-}`;
+}
+
+matchType rules:
+- "exact": The call purpose directly matches a menu option word-for-word or near-exact (e.g., "card billing" matches "card billing")
+- "semantic": The call purpose is semantically related to a menu option (e.g., "credit card billing" matches "card services")
+- "fallback": No option matches the purpose; pressing 0/first digit as fallback`;
 
       const completion = await this.client.chat.completions.create({
-        model: 'gpt-4o',
+        model: 'gpt-5.4',
         messages: [
           {
             role: 'system',
@@ -118,7 +130,7 @@ Respond ONLY with JSON:
           },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 200,
+        max_completion_tokens: 200,
         temperature: 0.3,
         response_format: { type: 'json_object' },
       });
@@ -129,8 +141,11 @@ Respond ONLY with JSON:
       }
 
       const response: DTMFDecision = JSON.parse(content);
+      if (!response.matchType) {
+        response.matchType = 'fallback';
+      }
       console.log(
-        `AI DTMF decision: digit=${response.digit} matched="${response.matchedOption}" reason="${response.reason}"`
+        `AI DTMF decision: digit=${response.digit} matchType=${response.matchType} matched="${response.matchedOption}" reason="${response.reason}"`
       );
       return response;
     } catch (error) {
@@ -143,6 +158,7 @@ Respond ONLY with JSON:
         reason: 'AI error - fallback to first option',
         callPurpose: 'unknown',
         matchedOption: 'fallback on error',
+        matchType: 'fallback',
       };
     }
   }

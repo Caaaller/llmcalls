@@ -198,12 +198,21 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
     });
   }
 
+  const digit = (req.query.Digits as string) || req.body.Digits;
   const response = new twilio.twiml.VoiceResponse();
+
+  if (digit) {
+    console.log('[process-dtmf] Sending DTMF digit:', digit);
+    response.play({ digits: digit });
+  }
+
   const gatherAttributes = createGatherAttributes(config, {
     action: buildProcessSpeechUrl({ baseUrl, config }),
     method: 'POST',
     enhanced: true,
     timeout: DEFAULT_SPEECH_TIMEOUT,
+    input: ['dtmf', 'speech'],
+    numDigits: 1,
   });
   response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 

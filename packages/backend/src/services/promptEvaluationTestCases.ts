@@ -317,6 +317,17 @@ const singleStepCases: {
         shouldTerminate: false,
       },
     },
+    {
+      name: 'No Termination - Garbled Speech Fragment',
+      description:
+        'Should NOT terminate on short garbled speech fragments from speech recognition errors',
+      speech: 'The.',
+      previousSpeech:
+        'If you are interested in help purchasing a new product say sales or press 1. If you need support with a product you already own say support or press 2.',
+      expectedBehavior: {
+        shouldTerminate: false,
+      },
+    },
   ],
 
   callPurpose: [
