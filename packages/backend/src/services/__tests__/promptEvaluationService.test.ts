@@ -17,9 +17,12 @@ import {
   SINGLE_STEP_TEST_CASES,
   MULTI_STEP_TEST_CASES,
 } from '../promptEvaluationTestCases';
-import type { TransferConfig } from '../aiService';
+import type { TransferConfig } from '../../types/voiceProcessing';
 import type { PromptTestCase } from '../promptEvaluationService';
 import type { MenuOption } from '../../types/menu';
+
+const API_DELAY_MS = 300;
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const defaultConfig: TransferConfig = {
   transferNumber: process.env.TRANSFER_PHONE_NUMBER || '720-584-6358',
@@ -42,13 +45,10 @@ describe('Prompt evaluation – single-step', () => {
 
   SINGLE_STEP_TEST_CASES.forEach(testCase => {
     it(testCase.name, async () => {
+      await delay(API_DELAY_MS);
       const config = configFor(testCase);
       const testCallSid = `jest-single-${testCase.name}`;
-      if (testCase.previousSpeech) {
-        callStateManager.updateCallState(testCallSid, {
-          lastSpeech: testCase.previousSpeech,
-        });
-      }
+      // previousSpeech context is now handled by the unified AI via actionHistory
       const result = await processSpeech({
         callSid: testCallSid,
         speechResult: testCase.speech,
@@ -103,20 +103,18 @@ describe('Prompt evaluation – multi-step', () => {
     ];
     const isSkipped = flakyMultiStep.includes(testCase.name);
     (isSkipped ? it.skip : it)(testCase.name, async () => {
+      await delay(API_DELAY_MS);
       const config = { ...defaultConfig, ...testCase.config } as TransferConfig;
       let previousMenus: MenuOption[][] = [];
       let lastPressedDTMF: string | undefined;
-      let lastMenuForDTMF: MenuOption[] | undefined;
-      let consecutiveDTMFPresses: { digit: string; count: number }[] = [];
 
       for (let i = 0; i < testCase.steps.length; i++) {
+        if (i > 0) await delay(API_DELAY_MS);
         const step = testCase.steps[i];
         const testCallSid = `jest-${testCase.name}-${i}`;
         callStateManager.updateCallState(testCallSid, {
           previousMenus,
           lastPressedDTMF,
-          lastMenuForDTMF,
-          consecutiveDTMFPresses,
         });
 
         const result = await processSpeech({
@@ -151,32 +149,6 @@ describe('Prompt evaluation – multi-step', () => {
         const updatedState = callStateManager.getCallState(testCallSid);
         previousMenus = updatedState.previousMenus || [];
         lastPressedDTMF = updatedState.lastPressedDTMF;
-        lastMenuForDTMF = updatedState.lastMenuForDTMF;
-        consecutiveDTMFPresses = updatedState.consecutiveDTMFPresses || [];
-
-        if (
-          !pr.shouldPreventDTMF &&
-          pr.dtmfDecision.shouldPress &&
-          pr.dtmfDecision.digit !== null
-        ) {
-          const digitPressed = pr.dtmfDecision.digit;
-          const last =
-            consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
-          if (last && last.digit === digitPressed) {
-            consecutiveDTMFPresses = [
-              ...consecutiveDTMFPresses.slice(0, -1),
-              { digit: digitPressed, count: last.count + 1 },
-            ];
-          } else {
-            consecutiveDTMFPresses = [
-              ...consecutiveDTMFPresses,
-              { digit: digitPressed, count: 1 },
-            ];
-            if (consecutiveDTMFPresses.length > 5) {
-              consecutiveDTMFPresses = consecutiveDTMFPresses.slice(-5);
-            }
-          }
-        }
       }
 
       for (let i = 0; i < testCase.steps.length; i++) {
