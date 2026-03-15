@@ -7,7 +7,7 @@ import type {
   PromptTestCase,
   MultiStepTestCase,
 } from './promptEvaluationService';
-import type { TransferConfig } from './aiService';
+import type { TransferConfig } from '../types/voiceProcessing';
 
 const DEFAULT_CALL_PURPOSE: Partial<TransferConfig> = {
   callPurpose: 'speak with a representative',

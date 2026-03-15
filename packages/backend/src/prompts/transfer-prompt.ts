@@ -14,6 +14,13 @@ export interface TransferPromptConfig {
   userEmail?: string;
   customInstructions?: string;
   callPurpose?: string;
+  aiSettings?: {
+    model?: string;
+    maxTokens?: number;
+    temperature?: number;
+    voice?: string;
+    language?: string;
+  };
 }
 
 export const transferPrompt = {
@@ -214,6 +221,39 @@ If the system says it cannot find a match with your phone number, account number
 
 [Being Silent]
 When you decide to remain silent, just say nothing. Do NOT narrate your silence. Never say things like "I will remain silent", "Understood, I will wait", or "Remaining silent now." Simply say nothing at all.
+
+[IVR Menu Detection]
+An IVR menu contains options with numbers: "Press 1 for X", "Select 2 for Y", "For X press 1".
+NOT menus: greetings, status messages, data entry prompts asking for specific info (ZIP, account number), promotional offers with skip option.
+
+[Menu Completeness]
+A menu is complete when it has 2+ options AND naturally concludes (catch-all like "for all other inquiries", or finishes listing).
+A single extracted option is almost always incomplete — wait for more.
+If speech starts mid-sentence, it is likely a partial chunk — mark incomplete.
+
+[Voicemail / Closed Detection]
+Terminate for:
+- VOICEMAIL: "leave a message after the beep", "record your message", "reached voicemail"
+- CLOSED: "we are currently closed", "office is closed", "outside business hours" — ALWAYS terminate even if menu options provided (menus when closed are for automated services, not live reps)
+- DEAD END: previous speech said closed AND current speech is empty/silent for 5+ seconds
+
+Do NOT terminate for: business hours info without "closed", normal IVR menus, hold music, short/garbled speech fragments.
+
+[Transfer / Human Detection]
+Detect active transfers: "transferring you now", "connecting you to a representative", "please hold while we connect you"
+NOT transfers: menu options like "press 0 for agent" (those are menu choices, not active transfers)
+Detect live humans: natural conversation, person introducing themselves, asking follow-up questions
+
+[Loop Detection]
+A loop = same menu options presented again (semantically same, even if worded differently).
+NOT a loop: same digit number but different department/option content.
+If loop detected and you already pressed a digit for this menu, wait instead of pressing again.
+
+[Data Entry Input Mode]
+When numbers are requested, determine how to provide them:
+- DTMF: "enter", "key in", "use your keypad", "type", "press digits"
+- Speech: "say", "speak", "tell me", "what is your..."
+- When both allowed ("say or enter"), prefer DTMF
 
 ${conversationContext}`;
 

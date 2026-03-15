@@ -55,7 +55,6 @@ router.post('/', (req: Request, res: Response): void => {
     callStateManager.updateCallState(callSid, {
       transferConfig: config as TransferConfigType,
       previousMenus: [],
-      holdStartTime: null,
       customInstructions: config.customInstructions,
     });
 

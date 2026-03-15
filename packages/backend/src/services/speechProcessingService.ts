@@ -5,20 +5,18 @@
  */
 
 import twilio from 'twilio';
-import callStateManager, { CallState } from './callStateManager';
+import callStateManager from './callStateManager';
 import callHistoryService from './callHistoryService';
-import aiService, { TransferConfig } from './aiService';
-import aiDetectionService from './aiDetectionService';
-import { DTMFDecision } from './aiDTMFService';
+import ivrNavigatorService, { CallAction } from './ivrNavigatorService';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
+import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
 import {
   buildProcessSpeechUrl,
   createSayAttributes,
   createGatherAttributes,
   DEFAULT_SPEECH_TIMEOUT,
 } from '../utils/twimlHelpers';
-import { processVoiceInput } from './voiceProcessingService';
 
 export interface ProcessSpeechParams {
   callSid: string;
@@ -30,36 +28,19 @@ export interface ProcessSpeechParams {
   customInstructions?: string;
   userPhone?: string;
   userEmail?: string;
-  // Test mode: skip TwiML generation and call history persistence
   testMode?: boolean;
 }
 
 export interface ProcessSpeechResult {
   twiml: string;
   shouldSend: boolean;
-  // Structured results for eval service
-  processingResult?: {
-    isIVRMenu: boolean;
-    menuOptions: MenuOption[];
-    isMenuComplete: boolean;
-    loopDetected: boolean;
-    loopConfidence?: number;
-    loopReason?: string;
-    shouldTerminate: boolean;
-    terminationReason?: string;
-    transferRequested: boolean;
-    transferConfidence?: number;
-    transferReason?: string;
-    dtmfDecision: DTMFDecision;
-    shouldPreventDTMF: boolean;
-  };
+  processingResult?: VoiceProcessingResult;
   aiResponse?: string;
   digitPressed?: string;
 }
 
 /**
- * Extract pure digits from an AI response (e.g., "90001", "720-584-6358" → "7205846358").
- * Returns the digit string if the response is digit-only, or null if it contains words.
+ * Extract pure digits from text (e.g., "90001", "720-584-6358" → "7205846358").
  */
 function extractDTMFDigits(text: string): string | null {
   const stripped = text.replace(/[\s\-().+]/g, '');
@@ -74,24 +55,36 @@ function formatDigitsForSpeech(digits: string): string {
 }
 
 /**
- * Track how many times a digit has been pressed consecutively.
+ * Map a CallAction from the unified AI into the backward-compatible VoiceProcessingResult
  */
-function updateConsecutivePresses(
-  callState: CallState,
-  digitToPress: string
-): { digit: string; count: number }[] {
-  const existing = callState.consecutiveDTMFPresses || [];
-  const last = existing[existing.length - 1];
+function mapActionToProcessingResult(
+  action: CallAction,
+  callPurpose: string
+): VoiceProcessingResult {
+  const dtmfDecision: DTMFDecision = {
+    callPurpose,
+    shouldPress: action.action === 'press_digit' && !!action.digit,
+    digit: action.action === 'press_digit' ? action.digit || null : null,
+    matchedOption: action.reason,
+    matchType: action.detected.isIVRMenu ? 'semantic' : 'fallback',
+    reason: action.reason,
+  };
 
-  if (last && last.digit === digitToPress) {
-    return [
-      ...existing.slice(0, -1),
-      { digit: digitToPress, count: last.count + 1 },
-    ];
-  }
-
-  const updated = [...existing, { digit: digitToPress, count: 1 }];
-  return updated.length > 5 ? updated.slice(-5) : updated;
+  return {
+    isIVRMenu: action.detected.isIVRMenu,
+    menuOptions: action.detected.menuOptions as MenuOption[],
+    isMenuComplete: action.detected.isMenuComplete,
+    loopDetected: action.detected.loopDetected,
+    shouldTerminate: action.action === 'hang_up',
+    terminationReason: action.detected.terminationReason,
+    transferRequested:
+      action.action === 'human_detected' || action.detected.transferRequested,
+    transferConfidence: action.detected.transferConfidence,
+    transferReason: action.reason,
+    dtmfDecision,
+    shouldPreventDTMF:
+      action.detected.loopDetected && action.action !== 'press_digit',
+  };
 }
 
 /**
@@ -101,7 +94,7 @@ function updateConsecutivePresses(
 export async function processSpeech({
   callSid,
   speechResult,
-  isFirstCall,
+  isFirstCall: _isFirstCall,
   baseUrl,
   transferNumber,
   callPurpose,
@@ -146,81 +139,59 @@ export async function processSpeech({
       });
     }
 
-    if (!callState.previousMenus) {
-      callStateManager.updateCallState(callSid, { previousMenus: [] });
-    }
-
     if (!testMode) {
       console.log('👤', speechResult);
     }
 
-    // ── 2. Merge speech with any prior partial transcript (for menus, etc.) ──
-    const previousSpeechForContext = callState.lastSpeech || '';
-    let finalSpeech = speechResult;
-    if (callState.awaitingCompleteSpeech && callState.lastSpeech) {
-      finalSpeech = `${callState.lastSpeech} ${speechResult}`.trim();
-    }
-
-    callStateManager.updateCallState(callSid, {
-      lastSpeech: finalSpeech,
-      awaitingCompleteSpeech: false,
-      incompleteSpeechWaitCount: 0,
-    });
-
     if (!testMode) {
       callHistoryService
-        .addConversation(callSid, 'user', finalSpeech)
+        .addConversation(callSid, 'user', speechResult)
         .catch(err => console.error('Error adding conversation:', err));
     }
 
-    // ── 4. Fire off ALL AI calls in parallel to minimize latency ──────────
-    // Instead of waiting for detection → then human check → then AI response
-    // (8-13s total), we run them ALL at once (~3-5s total).
+    // ── 2. Single AI call ────────────────────────────────────────────────────
     const conversationHistory = callState.conversationHistory || [];
-    const aiResponsePromise = aiService
-      .generateResponse(
-        config as TransferConfig,
-        finalSpeech,
-        isFirstCall,
-        conversationHistory.map(h => ({ type: h.type, text: h.text || '' }))
-      )
-      .catch((err: Error) => {
-        if (!testMode) console.error('❌ AI service error:', err.message);
-        return 'silent';
-      });
+    const actionHistory = callState.actionHistory || [];
 
-    const dataEntryModePromise = aiDetectionService
-      .detectDataEntryInputMode(finalSpeech)
-      .catch((err: Error) => {
-        if (!testMode) {
-          console.error('❌ Data entry mode detection error:', err.message);
-        }
-        return { mode: 'none', confidence: 0, reason: 'error' } as const;
-      });
+    const action = await ivrNavigatorService.decideAction({
+      config,
+      conversationHistory: conversationHistory.map(h => ({
+        type: h.type,
+        text: h.text || '',
+      })),
+      actionHistory,
+      currentSpeech: speechResult,
+      previousMenus: callState.previousMenus || [],
+      lastPressedDTMF: callState.lastPressedDTMF,
+      callPurpose: config.callPurpose,
+    });
 
-    const [result, precomputedAiResponse, dataEntryMode] = await Promise.all([
-      processVoiceInput({
-        speech: finalSpeech,
-        previousSpeech: previousSpeechForContext,
-        previousMenus: callState.previousMenus || [],
-        partialMenuOptions: callState.partialMenuOptions,
-        lastPressedDTMF: callState.lastPressedDTMF,
-        lastMenuForDTMF: callState.lastMenuForDTMF,
-        consecutiveDTMFPresses: callState.consecutiveDTMFPresses || [],
-        config,
-      }),
-      aiResponsePromise,
-      dataEntryModePromise,
-    ]);
+    const result = mapActionToProcessingResult(
+      action,
+      config.callPurpose || 'speak with a representative'
+    );
 
-    // ── 5. Termination ───────────────────────────────────────────────────────
-    if (result.shouldTerminate) {
+    // ── 3. Record this turn in action history ────────────────────────────────
+    callStateManager.addActionToHistory(callSid, {
+      turnNumber: actionHistory.length + 1,
+      ivrSpeech: speechResult,
+      action: action.action,
+      digit: action.digit,
+      speech: action.speech,
+      reason: action.reason,
+    });
+
+    // ── 4. Handle termination ────────────────────────────────────────────────
+    if (action.action === 'hang_up') {
       if (!testMode) {
         console.log(
-          `🛑 Call Terminated: ${result.terminationReason || 'unknown'}`
+          `🛑 Call Terminated: ${action.detected.terminationReason || action.reason}`
         );
         callHistoryService
-          .addTermination(callSid, result.terminationReason || '')
+          .addTermination(
+            callSid,
+            action.detected.terminationReason || action.reason
+          )
           .catch(err => console.error('Error adding termination:', err));
         callHistoryService
           .endCall(callSid, 'terminated')
@@ -241,13 +212,13 @@ export async function processSpeech({
       };
     }
 
-    // ── 6. Transfer request ──────────────────────────────────────────────────
-    if (result.transferRequested) {
+    // ── 5. Handle human detected / transfer ──────────────────────────────────
+    if (
+      action.action === 'human_detected' ||
+      action.detected.transferRequested
+    ) {
       if (!testMode) {
-        console.log(
-          `🔄 Transfer detected (confidence: ${result.transferConfidence}): ${result.transferReason}`
-        );
-
+        console.log(`🔄 Transfer detected: ${action.reason}`);
         callHistoryService
           .addTransfer(callSid, config.transferNumber, true)
           .catch(err => console.error('Error adding transfer:', err));
@@ -273,144 +244,62 @@ export async function processSpeech({
       };
     }
 
-    // ── 7. IVR menu ──────────────────────────────────────────────────────────
-    let shouldProcessAsMenu = result.isIVRMenu;
-    if (!result.isIVRMenu && callState.awaitingCompleteMenu) {
-      callStateManager.updateCallState(callSid, {
-        awaitingCompleteMenu: false,
-        partialMenuOptions: [],
-      });
-    } else if (callState.awaitingCompleteMenu) {
-      shouldProcessAsMenu = true;
-    }
+    // ── 6. Handle IVR menu / press digit ─────────────────────────────────────
+    if (action.action === 'press_digit' && action.digit) {
+      const menuOptions = action.detected.menuOptions as MenuOption[];
 
-    if (shouldProcessAsMenu) {
-      const { menuOptions, isMenuComplete, dtmfDecision, shouldPreventDTMF } =
-        result;
-
-      if (!isMenuComplete) {
-        const hasRealMatch =
-          dtmfDecision.shouldPress &&
-          dtmfDecision.digit &&
-          dtmfDecision.matchType !== 'fallback';
-
-        if (!hasRealMatch) {
-          // No real match yet — accumulate options and wait for more speech
-          callStateManager.updateCallState(callSid, {
-            partialMenuOptions: menuOptions,
-            awaitingCompleteMenu: true,
-          });
-
-          if (!testMode) {
-            const menuSummary =
-              menuOptions.length > 0
-                ? `[IVR Menu incomplete - found: ${menuOptions.map(o => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`
-                : '[IVR Menu detected but no options extracted yet. Waiting for complete menu...]';
-            callHistoryService
-              .addConversation(callSid, 'system', menuSummary)
-              .catch(err => console.error('Error adding conversation:', err));
-            const gatherAttributes = createGatherAttributes(config, {
-              action: buildProcessSpeechUrl({ baseUrl, config }),
-              method: 'POST',
-              enhanced: true,
-              timeout: DEFAULT_SPEECH_TIMEOUT,
-            });
-            response.gather(
-              gatherAttributes as Parameters<typeof response.gather>[0]
-            );
-          }
-          return {
-            twiml: response.toString(),
-            shouldSend: !testMode,
-            processingResult: result,
-          };
-        }
-        // Menu incomplete but we have a real match — fall through to press DTMF
-      }
-
-      // Complete menu
-      if (!testMode) {
-        callHistoryService.addIVRMenu(callSid, menuOptions);
-      }
-      callStateManager.updateCallState(callSid, {
-        lastMenuOptions: menuOptions,
-        previousMenus: [...(callState.previousMenus || []), menuOptions],
-        menuLevel: (callState.menuLevel || 0) + 1,
-        partialMenuOptions: [],
-        awaitingCompleteMenu: false,
-      });
-
-      // Loop prevention — don't press if we'd just be cycling
-      if (shouldPreventDTMF) {
-        if (!testMode && callState.lastPressedDTMF) {
-          console.log(
-            `⏸️  Loop detected, already pressed ${callState.lastPressedDTMF} for similar menu. Waiting...`
-          );
-          const gatherAttributes = createGatherAttributes(config, {
-            action: buildProcessSpeechUrl({ baseUrl, config }),
-            method: 'POST',
-            enhanced: true,
-            timeout: DEFAULT_SPEECH_TIMEOUT,
-          });
-          response.gather(
-            gatherAttributes as Parameters<typeof response.gather>[0]
-          );
-        }
-        return {
-          twiml: response.toString(),
-          shouldSend: !testMode,
-          processingResult: result,
-        };
-      }
-
-      if (dtmfDecision.shouldPress && dtmfDecision.digit) {
-        const digit = dtmfDecision.digit;
+      // Update menu state
+      if (menuOptions.length > 0) {
         if (!testMode) {
-          console.log(
-            `🔢 Pressed DTMF: ${digit} - AI matched: ${dtmfDecision.matchedOption}`
-          );
+          callHistoryService.addIVRMenu(callSid, menuOptions);
         }
-
         callStateManager.updateCallState(callSid, {
-          lastPressedDTMF: digit,
-          lastMenuForDTMF: menuOptions,
-          consecutiveDTMFPresses: updateConsecutivePresses(callState, digit),
-          lastSpeech: '',
-          partialMenuOptions: [],
-          awaitingCompleteMenu: false,
+          lastMenuOptions: menuOptions,
+          previousMenus: [...(callState.previousMenus || []), menuOptions],
+          menuLevel: (callState.menuLevel || 0) + 1,
         });
-
-        if (!testMode) {
-          callHistoryService
-            .addDTMF(
-              callSid,
-              digit,
-              `AI selected: ${dtmfDecision.matchedOption}`
-            )
-            .catch(err => console.error('Error adding DTMF:', err));
-
-          response.play({ digits: digit });
-          response.redirect(
-            `${baseUrl}/voice/process-dtmf?Digits=${digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
-          );
-        }
-        return {
-          twiml: response.toString(),
-          shouldSend: !testMode,
-          processingResult: result,
-          digitPressed: digit,
-        };
       }
 
-      // No matching option — wait silently
+      if (!testMode) {
+        console.log(`🔢 Pressed DTMF: ${action.digit} - ${action.reason}`);
+      }
+
+      callStateManager.updateCallState(callSid, {
+        lastPressedDTMF: action.digit,
+      });
+
       if (!testMode) {
         callHistoryService
-          .addConversation(
-            callSid,
-            'system',
-            `[AI: No suitable option - ${dtmfDecision.reason}]`
-          )
-          .catch(err => console.error('Error adding conversation:', err));
+          .addDTMF(callSid, action.digit, `AI selected: ${action.reason}`)
+          .catch(err => console.error('Error adding DTMF:', err));
+
+        response.play({ digits: action.digit });
+        response.redirect(
+          `${baseUrl}/voice/process-dtmf?Digits=${action.digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
+        );
+      }
+      return {
+        twiml: response.toString(),
+        shouldSend: !testMode,
+        processingResult: result,
+        digitPressed: action.digit,
+      };
+    }
+
+    // ── 7. Handle wait (incomplete menu, silence, etc.) ──────────────────────
+    if (action.action === 'wait') {
+      // If menu detected but incomplete, track it
+      if (action.detected.isIVRMenu && !action.detected.isMenuComplete) {
+        const menuOptions = action.detected.menuOptions as MenuOption[];
+        if (!testMode && menuOptions.length > 0) {
+          const menuSummary = `[IVR Menu incomplete - found: ${menuOptions.map(o => `Press ${o.digit} for ${o.option}`).join(', ')}. Waiting for more options...]`;
+          callHistoryService
+            .addConversation(callSid, 'system', menuSummary)
+            .catch(err => console.error('Error adding conversation:', err));
+        }
+      }
+
+      if (!testMode) {
         const gatherAttributes = createGatherAttributes(config, {
           action: buildProcessSpeechUrl({ baseUrl, config }),
           method: 'POST',
@@ -428,9 +317,8 @@ export async function processSpeech({
       };
     }
 
-    // ── 8. AI conversational response (pre-computed in parallel) ───────────
-    const skipAISpeaking = result.dtmfDecision?.shouldPress === true;
-    const aiResponse = skipAISpeaking ? 'silent' : precomputedAiResponse;
+    // ── 8. Handle speak (AI conversational response) ─────────────────────────
+    const aiResponse = action.speech || '';
 
     if (!testMode) {
       if (
@@ -444,7 +332,10 @@ export async function processSpeech({
       }
     }
 
-    callStateManager.addToHistory(callSid, { type: 'user', text: finalSpeech });
+    callStateManager.addToHistory(callSid, {
+      type: 'user',
+      text: speechResult,
+    });
 
     if (
       aiResponse &&
@@ -454,10 +345,9 @@ export async function processSpeech({
       const dtmfDigits = extractDTMFDigits(aiResponse.trim());
 
       if (dtmfDigits && !testMode) {
-        const mode = dataEntryMode.mode;
+        const dataEntryMode = action.detected.dataEntryMode || 'dtmf';
 
-        if (mode === 'speech') {
-          // System asked to SAY the number (ASR), not keypad entry.
+        if (dataEntryMode === 'speech') {
           callStateManager.addToHistory(callSid, {
             type: 'ai',
             text: `[Spoken digits: ${dtmfDigits}]`,
@@ -472,7 +362,6 @@ export async function processSpeech({
             formatDigitsForSpeech(dtmfDigits)
           );
         } else {
-          // Default to DTMF when allowed/expected.
           console.log(
             `🔢 Data entry DTMF: ${dtmfDigits} (from AI response "${aiResponse.trim()}")`
           );

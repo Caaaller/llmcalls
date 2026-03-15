@@ -4,8 +4,7 @@
  * Run these when modifying prompts to ensure critical behaviors still work
  */
 
-import { TransferConfig } from './aiService';
-import { DTMFDecision } from './aiDTMFService';
+import { TransferConfig, DTMFDecision } from '../types/voiceProcessing';
 import { MenuOption } from '../types/menu';
 import { processSpeech } from './speechProcessingService';
 import callStateManager from './callStateManager';
@@ -141,11 +140,6 @@ class PromptEvaluationService {
 
     try {
       const testCallSid = `test-single-${testCase.name}`;
-      if (testCase.previousSpeech) {
-        callStateManager.updateCallState(testCallSid, {
-          lastSpeech: testCase.previousSpeech,
-        });
-      }
       const result = await processSpeech({
         callSid: testCallSid,
         speechResult: testCase.speech,
@@ -294,8 +288,6 @@ class PromptEvaluationService {
     const stepResults: MultiStepTestResult['stepResults'] = [];
     let previousMenus: MenuOption[][] = [];
     let lastPressedDTMF: string | undefined;
-    let lastMenuForDTMF: MenuOption[] | undefined;
-    let consecutiveDTMFPresses: { digit: string; count: number }[] = [];
 
     for (let i = 0; i < testCase.steps.length; i++) {
       const step = testCase.steps[i];
@@ -310,8 +302,6 @@ class PromptEvaluationService {
         callStateManager.updateCallState(testCallSid, {
           previousMenus,
           lastPressedDTMF,
-          lastMenuForDTMF,
-          consecutiveDTMFPresses,
         });
 
         // Use processSpeech (same function as route handler) in test mode
@@ -347,8 +337,6 @@ class PromptEvaluationService {
         const updatedState = callStateManager.getCallState(testCallSid);
         previousMenus = updatedState.previousMenus || [];
         lastPressedDTMF = updatedState.lastPressedDTMF;
-        lastMenuForDTMF = updatedState.lastMenuForDTMF;
-        consecutiveDTMFPresses = updatedState.consecutiveDTMFPresses || [];
 
         stepDetails.menuOptions = processingResult.menuOptions;
         stepDetails.loopDetected = processingResult.loopDetected;
@@ -451,27 +439,7 @@ class PromptEvaluationService {
           processingResult.dtmfDecision.shouldPress &&
           processingResult.dtmfDecision.digit !== null
         ) {
-          const digitPressed = processingResult.dtmfDecision.digit;
-          lastPressedDTMF = digitPressed;
-          lastMenuForDTMF = processingResult.menuOptions;
-
-          // Track consecutive DTMF presses
-          const lastPress =
-            consecutiveDTMFPresses[consecutiveDTMFPresses.length - 1];
-          if (lastPress && lastPress.digit === digitPressed) {
-            consecutiveDTMFPresses = [
-              ...consecutiveDTMFPresses.slice(0, -1),
-              { digit: digitPressed, count: lastPress.count + 1 },
-            ];
-          } else {
-            consecutiveDTMFPresses = [
-              ...consecutiveDTMFPresses,
-              { digit: digitPressed, count: 1 },
-            ];
-            if (consecutiveDTMFPresses.length > 5) {
-              consecutiveDTMFPresses = consecutiveDTMFPresses.slice(-5);
-            }
-          }
+          lastPressedDTMF = processingResult.dtmfDecision.digit;
         }
       } catch (error) {
         stepErrors.push(

@@ -3,7 +3,7 @@
  * Build expected/actual in the same shape so we can use expect(actual).toMatchObject(expected).
  */
 
-import type { VoiceProcessingResult } from '../voiceProcessingService';
+import type { VoiceProcessingResult } from '../../types/voiceProcessing';
 
 /** Shape used for expect(actual).toMatchObject(expected) */
 export interface EvalExpected {
