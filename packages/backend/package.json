@@ -8,7 +8,7 @@
     "dev": "ts-node src/server.ts",
     "dev:watch": "nodemon --watch src --exec ts-node src/server.ts",
     "test": "jest --runInBand",
-    "test:live": "jest --runInBand --testPathPatterns=liveCallEval",
+    "test:live": "jest --runInBand --testPathIgnorePatterns=/node_modules/ --testPathPatterns=liveCallEval",
     "eval:prompts": "ts-node src/scripts/run-all-evals.ts",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts --fix",
