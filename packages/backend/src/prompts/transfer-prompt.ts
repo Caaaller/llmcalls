@@ -227,9 +227,15 @@ An IVR menu contains options with numbers: "Press 1 for X", "Select 2 for Y", "F
 NOT menus: greetings, status messages, data entry prompts asking for specific info (ZIP, account number), promotional offers with skip option.
 
 [Menu Completeness]
-A menu is complete when it has 2+ options AND naturally concludes (catch-all like "for all other inquiries", or finishes listing).
-A single extracted option is almost always incomplete — wait for more.
-If speech starts mid-sentence, it is likely a partial chunk — mark incomplete.
+A menu is complete when ANY of these are true:
+1. It has 2+ options AND naturally concludes (catch-all like "for all other inquiries", or finishes listing)
+2. It has 2+ options AND the system pauses/stops speaking (silence after options = menu is done)
+3. The SAME menu options appeared in a PREVIOUS TURN (check PREVIOUS MENUS SEEN). If you've heard these options before, the menu IS complete — pick an option NOW
+4. The system says "sorry we didn't get that" or "please try again" after presenting options — the menu was complete and you missed it
+
+A single extracted option from a clearly mid-sentence chunk is incomplete — wait for more.
+Do NOT keep waiting turn after turn on the same menu. If you've seen the same menu options in PREVIOUS MENUS SEEN, treat it as complete and press a digit.
+Exception: If none of the menu options match the call purpose at all (e.g., "sales" and "marketing" when you need "technical support"), wait one more turn — the system may have more options. But if you've already waited once on this menu, press the closest option or a catch-all.
 
 [Voicemail / Closed Detection]
 Terminate for:
@@ -240,9 +246,10 @@ Terminate for:
 Do NOT terminate for: business hours info without "closed", normal IVR menus, hold music, short/garbled speech fragments.
 
 [Transfer / Human Detection]
-Detect active transfers: "transferring you now", "connecting you to a representative", "please hold while we connect you"
+Detect active transfers: "transferring you now", "connecting you to a representative", "please hold while we connect you", "hold on a minute please", "one moment please while I handle your request", "let me transfer you", "please wait while I connect you"
 NOT transfers: menu options like "press 0 for agent" (those are menu choices, not active transfers)
-Detect live humans: natural conversation, person introducing themselves, asking follow-up questions
+Detect live humans: natural conversation, a person introducing themselves, asking follow-up questions, saying "hold on" or "one moment" in a natural conversational way (not robotic IVR)
+When in doubt between "wait" and "human_detected" after the system says it's connecting/handling your request, choose "human_detected" — a false positive transfer is much better than missing a real one.
 
 [Loop Detection]
 A loop = same menu options presented again (semantically same, even if worded differently).
@@ -250,10 +257,11 @@ NOT a loop: same digit number but different department/option content.
 If loop detected and you already pressed a digit for this menu, wait instead of pressing again.
 
 [Data Entry Input Mode]
-When numbers are requested, determine how to provide them:
-- DTMF: "enter", "key in", "use your keypad", "type", "press digits"
-- Speech: "say", "speak", "tell me", "what is your..."
-- When both allowed ("say or enter"), prefer DTMF
+When numbers are requested, determine how to provide them and set dataEntryMode accordingly:
+- DTMF (dataEntryMode: "dtmf"): "enter", "key in", "use your keypad", "type", "press digits"
+- Speech (dataEntryMode: "speech"): "say", "speak", "tell me", "what is your..."
+- When both allowed ("say or enter"), prefer speech (dataEntryMode: "speech") to avoid double-entry issues where the system hears both speech and DTMF tones
+- IMPORTANT: Set the correct dataEntryMode in your JSON response so the system knows whether to send DTMF tones or speak the digits
 
 ${conversationContext}`;
 

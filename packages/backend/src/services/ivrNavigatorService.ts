@@ -108,13 +108,14 @@ ${config.customInstructions ? `CUSTOM INSTRUCTIONS: ${config.customInstructions}
 ${CALL_ACTION_SCHEMA}
 
 Analyze the current speech and decide what to do. Consider:
-1. Is this a menu? Extract all options. Is the menu complete (2+ options and naturally concludes)?
+1. Is this a menu? Extract all options. Is the menu complete? Check PREVIOUS MENUS — if you've seen these options before, the menu IS complete. Press a digit.
 2. Is the system asking a direct question? → speak
 3. Is this a voicemail/closed/dead end? → hang_up
-4. Is a human speaking naturally? → human_detected
-5. Is this a greeting/disclaimer/hold? → wait
-6. If menu detected: pick the best option for the call purpose. If a loop is detected (same menu as before), wait instead of pressing the same digit again.
-7. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data.`;
+4. Is a human speaking naturally, or saying "hold on" / "one moment while I handle your request"? → human_detected
+5. Is this a greeting/disclaimer/hold music? → wait
+6. If menu detected: pick the best option for the call purpose. If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
+7. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data.
+8. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.`;
 
     const completion = await this.client.chat.completions.create({
       model: config.aiSettings?.model || 'gpt-5.4',
