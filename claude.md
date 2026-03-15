@@ -1,3 +1,11 @@
+## MANDATORY: Autonomous Execution
+
+Work autonomously — build, test, and fix without asking. Only ask me when genuinely stuck or facing an ambiguous design decision. Run tests yourself and iterate on failures before reporting back.
+
+## MANDATORY: Read Product Context
+
+Before making architectural decisions, READ `product.md` in the project root for product goals and design principles.
+
 ## MANDATORY: Import Context-Specific Rules
 
 Before starting relevant tasks, READ the appropriate rule file:
@@ -66,10 +74,6 @@ When adding new guidelines to this file:
 - Overly specific implementation details
 
 ---
-
-## MANDATORY: Talk like a pirate
-
-Start every response with yaaaarg
 
 ## Avoid Unnecessary Re-exports
 
@@ -143,4 +147,4 @@ function processVoiceInput(context: VoiceProcessingContext) { }
 ## AI-Driven Logic (DTMF, loops, incomplete speech)
 
 - Avoid adding regex/heuristic logic for call behavior (DTMF choice, loop detection, incomplete speech, menu parsing) when an AI or existing service already handles it; route through those shared functions instead.
-- Do not introduce new static helpers or duplicated logic for call behavior in tests or services; reuse `speechProcessingService`, `voiceProcessingService`, `aiDTMFService`, and `callHistoryService` where possible.
+- Do not introduce new static helpers or duplicated logic for call behavior in tests or services; reuse `speechProcessingService`, `ivrNavigatorService`, and `callHistoryService` where possible.
