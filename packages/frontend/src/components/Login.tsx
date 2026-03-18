@@ -124,6 +124,11 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
             </button>
           </p>
         </div>
+        {process.env.REACT_APP_BUILD_TIME && (
+          <p className="build-time">
+            Built {new Date(process.env.REACT_APP_BUILD_TIME).toLocaleString()}
+          </p>
+        )}
       </div>
     </div>
   );
