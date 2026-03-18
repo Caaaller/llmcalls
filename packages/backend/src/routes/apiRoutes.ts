@@ -11,7 +11,8 @@ import twilioService from '../services/twilioService';
 import callHistoryService from '../services/callHistoryService';
 import evaluationService from '../services/evaluationService';
 import { isDbConnected } from '../services/database';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth';
+import SavedCall from '../models/SavedCall';
 import fs from 'fs';
 import path from 'path';
 
@@ -433,6 +434,90 @@ router.get(
       });
     }
   })
+);
+
+// ── Saved Calls CRUD ──
+
+const savedCallBodySchema = z.object({
+  name: z.string().min(1).max(200),
+  toPhoneNumber: z.string().min(1),
+  transferNumber: z.string().min(1),
+  callPurpose: z.string().min(1),
+  customInstructions: z.string().optional().default(''),
+});
+
+router.get(
+  '/saved-calls',
+  authenticate,
+  async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    const calls = await SavedCall.find({ userId: authReq.user!._id }).sort({
+      updatedAt: -1,
+    });
+    res.json({ success: true, savedCalls: calls });
+  }
+);
+
+router.post(
+  '/saved-calls',
+  authenticate,
+  async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    const parsed = savedCallBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ success: false, error: parsed.error.issues[0].message });
+      return;
+    }
+    const savedCall = await SavedCall.create({
+      ...parsed.data,
+      userId: authReq.user!._id,
+    });
+    res.status(201).json({ success: true, savedCall });
+  }
+);
+
+router.put(
+  '/saved-calls/:id',
+  authenticate,
+  async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    const parsed = savedCallBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res
+        .status(400)
+        .json({ success: false, error: parsed.error.issues[0].message });
+      return;
+    }
+    const savedCall = await SavedCall.findOneAndUpdate(
+      { _id: req.params.id, userId: authReq.user!._id },
+      parsed.data,
+      { new: true }
+    );
+    if (!savedCall) {
+      res.status(404).json({ success: false, error: 'Saved call not found' });
+      return;
+    }
+    res.json({ success: true, savedCall });
+  }
+);
+
+router.delete(
+  '/saved-calls/:id',
+  authenticate,
+  async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    const result = await SavedCall.findOneAndDelete({
+      _id: req.params.id,
+      userId: authReq.user!._id,
+    });
+    if (!result) {
+      res.status(404).json({ success: false, error: 'Saved call not found' });
+      return;
+    }
+    res.json({ success: true });
+  }
 );
 
 export default router;

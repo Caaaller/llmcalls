@@ -305,6 +305,53 @@ export const api = {
       ),
   },
 
+  // Saved calls endpoints
+  savedCalls: {
+    list: () =>
+      apiFetch<{
+        success: boolean;
+        savedCalls: Array<{
+          _id: string;
+          name: string;
+          toPhoneNumber: string;
+          transferNumber: string;
+          callPurpose: string;
+          customInstructions: string;
+          createdAt: string;
+          updatedAt: string;
+        }>;
+      }>('/api/saved-calls'),
+    create: (data: {
+      name: string;
+      toPhoneNumber: string;
+      transferNumber: string;
+      callPurpose: string;
+      customInstructions?: string;
+    }) =>
+      apiFetch<{ success: boolean }>('/api/saved-calls', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (
+      id: string,
+      data: {
+        name: string;
+        toPhoneNumber: string;
+        transferNumber: string;
+        callPurpose: string;
+        customInstructions?: string;
+      }
+    ) =>
+      apiFetch<{ success: boolean }>(`/api/saved-calls/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      apiFetch<{ success: boolean }>(`/api/saved-calls/${id}`, {
+        method: 'DELETE',
+      }),
+  },
+
   // Evaluation endpoints
   evaluations: {
     get: (params?: { days?: number; startDate?: string; endDate?: string }) => {
