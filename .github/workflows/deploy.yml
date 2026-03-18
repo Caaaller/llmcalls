@@ -34,11 +34,6 @@ jobs:
       - name: Install Railway CLI
         run: bash <(curl -fsSL cli.new)
 
-      - name: Verify Railway Auth
-        run: railway whoami
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
       - name: Deploy to Railway
         run: railway up --detach
         env:
