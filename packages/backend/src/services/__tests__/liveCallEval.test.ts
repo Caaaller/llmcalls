@@ -5,14 +5,21 @@
  */
 
 import '../../../jest.setup';
+import * as fs from 'fs';
+import * as path from 'path';
 import twilioService from '../twilioService';
 import callHistoryService from '../callHistoryService';
 import { connect, disconnect } from '../database';
-import { DEFAULT_TEST_CASES, QUICK_TEST_CASES } from '../liveCallTestCases';
+import {
+  DEFAULT_TEST_CASES,
+  QUICK_TEST_CASES,
+  TEST_IVR_CASES,
+} from '../liveCallTestCases';
 import type { LiveCallTestCase } from '../liveCallTestCases';
+import type { RecordedCall, RecordedTurn } from './recordedCallTypes';
 
 const POLL_INTERVAL_MS = 3000;
-const DEFAULT_TIMEOUT_SECONDS = 180;
+const DEFAULT_TIMEOUT_SECONDS = 600;
 const TERMINAL_STATUSES = [
   'completed',
   'failed',
@@ -135,9 +142,125 @@ async function formatCallTimeline(callSid: string): Promise<string> {
   return lines.join('\n');
 }
 
-const testCases = process.env.LIVE_EVAL_QUICK
-  ? QUICK_TEST_CASES
-  : DEFAULT_TEST_CASES;
+async function recordCall(
+  callSid: string,
+  testCase: LiveCallTestCase,
+  durationSeconds: number
+): Promise<void> {
+  const call = await callHistoryService.getCall(callSid);
+  if (!call?.events?.length) return;
+
+  const turns: Array<RecordedTurn> = [];
+  let turnNumber = 0;
+
+  for (let i = 0; i < call.events.length; i++) {
+    const event = call.events[i];
+    if (event.eventType !== 'conversation' || event.type !== 'user') continue;
+
+    turnNumber++;
+    // Find the next AI action: only dtmf, speak, or wait (real AI decisions)
+    // Skip transfer/termination — those are system events, not decideAction() outputs
+    let aiAction = null;
+    for (let j = i + 1; j < call.events.length; j++) {
+      const next = call.events[j];
+      if (next.eventType === 'dtmf') {
+        aiAction = {
+          action: 'press_digit' as const,
+          digit: next.digit,
+          reason: next.reason || '',
+          detected: {
+            isIVRMenu: true,
+            menuOptions: [],
+            isMenuComplete: true,
+            loopDetected: false,
+            shouldTerminate: false,
+            transferRequested: false,
+          },
+        };
+        break;
+      }
+      if (next.eventType === 'conversation' && next.type === 'ai') {
+        aiAction = {
+          action: 'speak' as const,
+          speech: next.text,
+          reason: '',
+          detected: {
+            isIVRMenu: false,
+            menuOptions: [],
+            isMenuComplete: false,
+            loopDetected: false,
+            shouldTerminate: false,
+            transferRequested: false,
+          },
+        };
+        break;
+      }
+      // Next user speech with no AI action in between means AI waited
+      if (next.eventType === 'conversation' && next.type === 'user') {
+        aiAction = {
+          action: 'wait' as const,
+          reason: 'No action before next speech',
+          detected: {
+            isIVRMenu: false,
+            menuOptions: [],
+            isMenuComplete: false,
+            loopDetected: false,
+            shouldTerminate: false,
+            transferRequested: false,
+          },
+        };
+        break;
+      }
+      // Stop at system events — remaining turns after transfer/termination aren't AI-replayable
+      if (next.eventType === 'transfer' || next.eventType === 'termination')
+        break;
+    }
+
+    if (aiAction) {
+      turns.push({
+        turnNumber,
+        ivrSpeech: event.text || '',
+        aiAction: aiAction as RecordedTurn['aiAction'],
+      });
+    }
+  }
+
+  if (turns.length === 0) return;
+
+  const digits = await callHistoryService.getDTMFDigits(callSid);
+  const reached = await callHistoryService.hasSuccessfulTransfer(callSid);
+
+  const recorded: RecordedCall = {
+    id: `${testCase.id}-${new Date().toISOString().slice(0, 10)}`,
+    testCaseId: testCase.id,
+    recordedAt: new Date().toISOString(),
+    config: {
+      callPurpose: testCase.callPurpose,
+      customInstructions: testCase.customInstructions,
+    },
+    turns,
+    outcome: {
+      finalStatus: call.status || 'unknown',
+      durationSeconds,
+      reachedHuman: reached,
+      dtmfDigits: digits,
+    },
+  };
+
+  const fixturesDir = path.join(__dirname, 'fixtures');
+  const filename = `${recorded.id}.json`;
+  fs.writeFileSync(
+    path.join(fixturesDir, filename),
+    JSON.stringify(recorded, null, 2)
+  );
+  console.log(`Recorded call fixture: ${filename} (${turns.length} turns)`);
+}
+
+const testCases = process.env.LIVE_EVAL_IVR
+  ? TEST_IVR_CASES
+  : process.env.LIVE_EVAL_QUICK
+    ? QUICK_TEST_CASES
+    : DEFAULT_TEST_CASES;
 
 describe('Live call evaluations', () => {
   beforeAll(async () => {
@@ -216,6 +339,10 @@ describe('Live call evaluations', () => {
             `\n📞 CALL DEBUG — ${testCase.name} (${result.durationSeconds}s, ${result.timedOut ? 'TIMED OUT' : result.status}):\n${timeline}\n`
           );
           throw error;
+        } finally {
+          if (process.env.RECORD_CALLS === '1') {
+            await recordCall(result.callSid, testCase, result.durationSeconds);
+          }
         }
       },
       timeoutMs

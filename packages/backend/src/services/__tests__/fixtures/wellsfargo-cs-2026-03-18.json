@@ -1,0 +1,98 @@
+{
+  "id": "wellsfargo-cs-2026-03-18",
+  "testCaseId": "wellsfargo-cs",
+  "recordedAt": "2026-03-18T16:31:41.212Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "turns": [
+    {
+      "turnNumber": 1,
+      "ivrSpeech": "Welcome to Wells, Fargo.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 2,
+      "ivrSpeech": "This call may be recorded monitored, or analyzed by Wells, Fargo and its service providers.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 3,
+      "ivrSpeech": "Monitor.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 4,
+      "ivrSpeech": "Count access or questions, say your account or card number, or enter it followed by pound for anything else. Say other options",
+      "aiAction": {
+        "action": "speak",
+        "speech": "other options",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 5,
+      "ivrSpeech": "All right, other options. You can say, open a new account find a branch or ATM verify an account or damaged card.",
+      "aiAction": {
+        "action": "speak",
+        "speech": "representative",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    }
+  ],
+  "outcome": {
+    "finalStatus": "in-progress",
+    "durationSeconds": 97,
+    "reachedHuman": true,
+    "dtmfDigits": []
+  }
+}

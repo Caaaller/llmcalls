@@ -14,17 +14,18 @@ Before starting relevant tasks, READ the appropriate rule file:
 
 ---
 
-## MANDATORY: Spec driven development
+## MANDATORY: Plan Mode for non-trivial changes
 
-When starting any changes, create a file in the ~/plans folder. It should be short:
+Use Plan Mode (EnterPlanMode) for any non-trivial changes. Plans are conversational — no plan files needed.
 
-Small changes: < 50 lines
-Medium changes: ~100 lines
-Large changes: 150-300 (at max)
+## MANDATORY: Live call tests require running server and ngrok
 
-In these plans you should be as coincise as possible. Sometimes it is necessary to provide code examples, but don't overuse that.
+Before running `test:live` or `test:live:record`:
 
-These plan files should be the source of truth as you are making changes, they should get updated over time as they will be reviewed during pull requests
+1. Start the dev server (`pnpm --filter backend dev`) if not running
+2. Check ngrok status (`curl -s http://localhost:4040/api/tunnels`). If down, start it with `ngrok http 3000`
+3. Update `TWIML_URL` in `.env` if the ngrok URL changed
+4. Use `TRANSFER_PHONE_NUMBER=+13033962866` to avoid ringing the user's phone
 
 ## DRY and duplicated code
 

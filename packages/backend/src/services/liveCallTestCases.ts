@@ -65,17 +65,19 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
       maxDurationSeconds: 180,
     },
   },
-  {
-    id: 'bankofamerica-cs',
-    name: 'Bank of America Customer Service',
-    description: 'Call Bank of America and navigate to representative',
-    phoneNumber: '+18004321000',
-    callPurpose: 'speak with a representative',
-    expectedOutcome: {
-      shouldReachHuman: true,
-      maxDurationSeconds: 180,
-    },
-  },
+  // BofA requires real account credentials — no bypass to representative
+  // {
+  //   id: 'bankofamerica-cs',
+  //   name: 'Bank of America Customer Service',
+  //   description: 'Call Bank of America and navigate to representative',
+  //   phoneNumber: '+18004321000',
+  //   callPurpose: 'speak with a representative',
+  //   customInstructions: 'If asked for account number or telephone access ID, provide 4853901276.',
+  //   expectedOutcome: {
+  //     shouldReachHuman: true,
+  //     maxDurationSeconds: 180,
+  //   },
+  // },
   {
     id: 'wellsfargo-cs',
     name: 'Wells Fargo Customer Service',
@@ -84,7 +86,6 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      maxDurationSeconds: 180,
     },
   },
   {

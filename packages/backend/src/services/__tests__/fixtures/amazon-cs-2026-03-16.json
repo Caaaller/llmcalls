@@ -1,0 +1,150 @@
+{
+  "id": "amazon-cs-2026-03-16",
+  "testCaseId": "amazon-cs",
+  "recordedAt": "2026-03-16T06:06:05.859Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "turns": [
+    {
+      "turnNumber": 1,
+      "ivrSpeech": "Welcome to Amazon. Please note. That this call may be recorded for training and quality purposes. Thank you for contacting Amazon. We're sorry that some customers may be experiencing issues while shopping.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 2,
+      "ivrSpeech": "As we work to resolve the issue to make this easier, I can text you a link to our customer service homepage where you can quickly find answers and resolve your issue.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 3,
+      "ivrSpeech": "You the link say yes or you can stay on the line.",
+      "aiAction": {
+        "action": "speak",
+        "speech": "No, I'd like to speak with a representative directly.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 4,
+      "ivrSpeech": "Access your protected account information, after verifying your identity, can we send you a quick text to complete the security step?",
+      "aiAction": {
+        "action": "speak",
+        "speech": "No, I'd like to speak with a representative directly.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 5,
+      "ivrSpeech": "To continue. Can I send you a message to verify your account, which might be a text, an email or a notification in the Amazon app.",
+      "aiAction": {
+        "action": "speak",
+        "speech": "No, I'd like to speak with a representative directly.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 6,
+      "ivrSpeech": "Sorry, I didn't get that to continue. Can I send you a message? Which might be a text, an email or a notification in the Amazon app to verify your account?",
+      "aiAction": {
+        "action": "speak",
+        "speech": "No, I'd like to speak with a representative directly.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 7,
+      "ivrSpeech": "Sorry, I didn't get that to continue. Can I send you a message to verify your account? Which might be a text, an email or a notification in the Amazon app.",
+      "aiAction": {
+        "action": "speak",
+        "speech": "No, I'd like to speak with a representative directly.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 8,
+      "ivrSpeech": "Sorry, I didn't get that to continue. Can I send you a message to verify your account? Which might be a text, an email or a notification in the Amazon app.",
+      "aiAction": {
+        "action": "speak",
+        "speech": "No. I'd like to speak with a representative directly.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    }
+  ],
+  "outcome": {
+    "finalStatus": "in-progress",
+    "durationSeconds": 143,
+    "reachedHuman": false,
+    "dtmfDigits": []
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "id": "bestbuy-cs-2026-03-16",
+  "testCaseId": "bestbuy-cs",
+  "recordedAt": "2026-03-16T06:09:55.959Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "turns": [
+    {
+      "turnNumber": 1,
+      "ivrSpeech": "Welcome to Best. Buy your interacting with a virtual assistant that I'll use AI to help you.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 2,
+      "ivrSpeech": "So I may not get everything right for quality assurance. Your call may be recorded by continuing you accept,",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 3,
+      "ivrSpeech": "Best buy.com.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 4,
+      "ivrSpeech": "1 moment while I look up your account.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 5,
+      "ivrSpeech": "You're My Best Buy account, you can also say, I don't have 1.",
+      "aiAction": {
+        "action": "speak",
+        "speech": "I don't have one.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 6,
+      "ivrSpeech": "That's okay.",
+      "aiAction": {
+        "action": "wait",
+        "reason": "No action before next speech",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 7,
+      "ivrSpeech": "What can I help you with?",
+      "aiAction": {
+        "action": "speak",
+        "speech": "I'd like to speak with a representative about my account.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 8,
+      "ivrSpeech": "Which of these do you want to update?",
+      "aiAction": {
+        "action": "speak",
+        "speech": "I'd like to speak with a representative about my account.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 9,
+      "ivrSpeech": "You can make updates to your account on the account settings page on best buy.com. Do you need additional help from an agent about this?",
+      "aiAction": {
+        "action": "speak",
+        "speech": "Yes, please connect me with a representative.",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    },
+    {
+      "turnNumber": 10,
+      "ivrSpeech": "Please say yes or no? Do you need additional help from an agent about this?",
+      "aiAction": {
+        "action": "speak",
+        "speech": "Yes",
+        "reason": "",
+        "detected": {
+          "isIVRMenu": false,
+          "menuOptions": [],
+          "isMenuComplete": false,
+          "loopDetected": false,
+          "shouldTerminate": false,
+          "transferRequested": false
+        }
+      }
+    }
+  ],
+  "outcome": {
+    "finalStatus": "completed",
+    "durationSeconds": 105,
+    "reachedHuman": true,
+    "dtmfDigits": []
+  }
+}
