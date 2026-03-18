@@ -32,7 +32,7 @@ jobs:
           CI: false
 
       - name: Install Railway CLI
-        run: npm install -g @railway/cli
+        run: bash <(curl -fsSL cli.new)
 
       - name: Verify Railway Auth
         run: railway whoami
