@@ -34,14 +34,8 @@ jobs:
       - name: Install Railway CLI
         run: bash <(curl -fsSL cli.new)
 
-      - name: List Railway services
-        run: railway status
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-
       - name: Deploy to Railway
-        run: railway up --detach
+        run: railway up --detach --service llmcalls
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
