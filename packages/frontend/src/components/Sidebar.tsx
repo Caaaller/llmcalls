@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import type { WizardData } from '../types/wizard';
-import { savedToWizard, recentToWizard } from '../utils/callConversions';
+import { savedToWizard } from '../utils/callConversions';
 
 export type ActiveView = 'wizard' | 'history' | 'evaluations';
 
@@ -28,11 +28,6 @@ function Sidebar({
     queryFn: () => api.savedCalls.list(),
   });
 
-  const { data: recentCallsData } = useQuery({
-    queryKey: ['calls', 'history', 'sidebar'],
-    queryFn: () => api.calls.history(10),
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.savedCalls.delete(id),
     onSuccess: () => {
@@ -41,7 +36,6 @@ function Sidebar({
   });
 
   const savedCalls = savedCallsData?.savedCalls ?? [];
-  const recentCalls = recentCallsData?.calls ?? [];
 
   return (
     <aside className="sidebar">
@@ -82,40 +76,6 @@ function Sidebar({
                     onClick={() => deleteMutation.mutate(sc._id)}
                   >
                     &times;
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Recent calls */}
-      {recentCalls.length > 0 && (
-        <div className="sidebar-section">
-          <h3 className="sidebar-heading">Recent</h3>
-          <ul className="sidebar-list">
-            {recentCalls.slice(0, 8).map(call => (
-              <li key={call.callSid} className="sidebar-item">
-                <span className="sidebar-item-name">
-                  {call.metadata?.callPurpose ||
-                    call.metadata?.to ||
-                    call.callSid.slice(0, 10)}
-                </span>
-                <div className="sidebar-item-actions">
-                  <button
-                    className="icon-btn"
-                    title="Edit & review"
-                    onClick={() => onPrefill(recentToWizard(call))}
-                  >
-                    &#9998;
-                  </button>
-                  <button
-                    className="icon-btn"
-                    title="Call again"
-                    onClick={() => onQuickCall(recentToWizard(call))}
-                  >
-                    &#9654;
                   </button>
                 </div>
               </li>

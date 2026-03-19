@@ -1,4 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/client';
 import {
   companyDirectory,
   type CompanyEntry,
@@ -15,6 +17,12 @@ interface Step1CompanyProps {
   onPrefillAndReview: (data: WizardData) => void;
 }
 
+function lookupNameByPhone(phone: string): string | undefined {
+  const digits = phone.replace(/\D/g, '');
+  return companyDirectory.find(c => c.phone.replace(/\D/g, '') === digits)
+    ?.name;
+}
+
 function Step1Company({
   data,
   onChange,
@@ -27,6 +35,19 @@ function Step1Company({
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   const { calls: recentCalls } = useRecentCalls(10);
+  const { data: savedCallsData } = useQuery({
+    queryKey: ['savedCalls'],
+    queryFn: () => api.savedCalls.list(),
+  });
+
+  const savedNameByPhone = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const sc of savedCallsData?.savedCalls ?? []) {
+      const digits = sc.toPhoneNumber.replace(/\D/g, '');
+      if (!map.has(digits)) map.set(digits, sc.name);
+    }
+    return map;
+  }, [savedCallsData]);
 
   const deduplicatedRecent = recentCalls
     .filter(c => c.metadata?.to)
@@ -95,27 +116,38 @@ function Step1Company({
       {deduplicatedRecent.length > 0 && !query && (
         <>
           <div className="recent-calls-list">
-            {deduplicatedRecent.map(call => (
-              <button
-                key={call.callSid}
-                className="recent-call-item"
-                onClick={() => onPrefillAndReview(recentToWizard(call))}
-              >
-                <div className="recent-call-info">
-                  <span className="recent-call-number">
-                    {call.metadata?.to}
+            {deduplicatedRecent.map(call => {
+              const phone = call.metadata!.to!;
+              const digits = phone.replace(/\D/g, '');
+              const label =
+                savedNameByPhone.get(digits) || lookupNameByPhone(phone);
+
+              function handleClick() {
+                const wizard = recentToWizard(call);
+                if (label) wizard.companyName = label;
+                onPrefillAndReview(wizard);
+              }
+
+              return (
+                <button
+                  key={call.callSid}
+                  className="recent-call-item"
+                  onClick={handleClick}
+                >
+                  <div className="recent-call-info">
+                    <span className="recent-call-number">{label || phone}</span>
+                    {call.metadata?.callPurpose && (
+                      <span className="recent-call-purpose">
+                        {call.metadata.callPurpose}
+                      </span>
+                    )}
+                  </div>
+                  <span className="recent-call-time">
+                    {timeAgo(call.startTime)}
                   </span>
-                  {call.metadata?.callPurpose && (
-                    <span className="recent-call-purpose">
-                      {call.metadata.callPurpose}
-                    </span>
-                  )}
-                </div>
-                <span className="recent-call-time">
-                  {timeAgo(call.startTime)}
-                </span>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
           <div className="wizard-divider">
             <span>or start new</span>
