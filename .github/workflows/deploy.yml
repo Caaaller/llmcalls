@@ -32,7 +32,7 @@ jobs:
           CI: false
 
       - name: Install Railway CLI
-        run: bash <(curl -fsSL cli.new)
+        run: npm install -g @railway/cli
 
       - name: Deploy to Railway
         run: railway up --detach --service llmcalls
