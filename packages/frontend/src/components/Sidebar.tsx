@@ -1,7 +1,8 @@
 import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
-import type { SavedCall, WizardData } from '../types/wizard';
+import type { WizardData } from '../types/wizard';
+import { savedToWizard, recentToWizard } from '../utils/callConversions';
 
 export type ActiveView = 'wizard' | 'history' | 'evaluations';
 
@@ -41,26 +42,6 @@ function Sidebar({
 
   const savedCalls = savedCallsData?.savedCalls ?? [];
   const recentCalls = recentCallsData?.calls ?? [];
-
-  function savedToWizard(sc: SavedCall): WizardData {
-    return {
-      companyName: sc.name,
-      toPhoneNumber: sc.toPhoneNumber,
-      transferNumber: sc.transferNumber,
-      callPurpose: sc.callPurpose,
-      customInstructions: sc.customInstructions || '',
-    };
-  }
-
-  function recentToWizard(call: (typeof recentCalls)[0]): WizardData {
-    return {
-      companyName: '',
-      toPhoneNumber: call.metadata?.to || '',
-      transferNumber: call.metadata?.transferNumber || '',
-      callPurpose: call.metadata?.callPurpose || 'speak with a representative',
-      customInstructions: '',
-    };
-  }
 
   return (
     <aside className="sidebar">
@@ -117,7 +98,9 @@ function Sidebar({
             {recentCalls.slice(0, 8).map(call => (
               <li key={call.callSid} className="sidebar-item">
                 <span className="sidebar-item-name">
-                  {call.metadata?.to || call.callSid.slice(0, 10)}
+                  {call.metadata?.callPurpose ||
+                    call.metadata?.to ||
+                    call.callSid.slice(0, 10)}
                 </span>
                 <div className="sidebar-item-actions">
                   <button

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import type { WizardData, WizardStep } from '../types/wizard';
 import { EMPTY_WIZARD } from '../types/wizard';
+import { saveTransferNumber } from '../utils/transferNumberStore';
 import Step1Company from './wizard/Step1Company';
 import Step2Reason from './wizard/Step2Reason';
 import Step3Phone from './wizard/Step3Phone';
@@ -43,6 +44,11 @@ function CallWizard({
     setData(prev => ({ ...prev, ...updates }));
   }, []);
 
+  const handlePrefillAndReview = useCallback((prefill: WizardData) => {
+    setData(prefill);
+    setStep(4);
+  }, []);
+
   const initiateCallMutation = useMutation({
     mutationFn: (payload: {
       to: string;
@@ -79,6 +85,8 @@ function CallWizard({
         customInstructions: data.customInstructions || undefined,
       });
     }
+
+    saveTransferNumber(data.transferNumber);
 
     initiateCallMutation.mutate({
       to: data.toPhoneNumber,
@@ -127,6 +135,7 @@ function CallWizard({
           data={data}
           onChange={updateData}
           onNext={() => setStep(2)}
+          onPrefillAndReview={handlePrefillAndReview}
         />
       )}
       {step === 2 && (

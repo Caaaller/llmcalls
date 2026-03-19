@@ -4,18 +4,41 @@ import {
   type CompanyEntry,
 } from '../../data/companyDirectory';
 import type { WizardData } from '../../types/wizard';
+import { useRecentCalls } from '../../hooks/useRecentCalls';
+import { recentToWizard } from '../../utils/callConversions';
+import { timeAgo } from '../../utils/time';
 
 interface Step1CompanyProps {
   data: WizardData;
   onChange: (updates: Partial<WizardData>) => void;
   onNext: () => void;
+  onPrefillAndReview: (data: WizardData) => void;
 }
 
-function Step1Company({ data, onChange, onNext }: Step1CompanyProps) {
+function Step1Company({
+  data,
+  onChange,
+  onNext,
+  onPrefillAndReview,
+}: Step1CompanyProps) {
   const [query, setQuery] = useState(data.companyName || data.toPhoneNumber);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  const { calls: recentCalls } = useRecentCalls(10);
+
+  const deduplicatedRecent = recentCalls
+    .filter(c => c.metadata?.to)
+    .reduce(
+      (acc, call) => {
+        const to = call.metadata!.to!;
+        if (!acc.some(c => c.metadata?.to === to)) acc.push(call);
+        return acc;
+      },
+      [] as typeof recentCalls
+    )
+    .slice(0, 5);
 
   const filtered = query
     ? companyDirectory.filter(c =>
@@ -51,7 +74,6 @@ function Step1Company({ data, onChange, onNext }: Step1CompanyProps) {
     setQuery(value);
     setShowSuggestions(true);
 
-    // If it looks like a phone number, put it in toPhoneNumber
     const isPhone =
       /^[+\d\s()-]+$/.test(value) && value.replace(/\D/g, '').length >= 7;
     if (isPhone) {
@@ -69,6 +91,37 @@ function Step1Company({ data, onChange, onNext }: Step1CompanyProps) {
       <p className="step-description">
         Search for a company or enter a phone number directly.
       </p>
+
+      {deduplicatedRecent.length > 0 && !query && (
+        <>
+          <div className="recent-calls-list">
+            {deduplicatedRecent.map(call => (
+              <button
+                key={call.callSid}
+                className="recent-call-item"
+                onClick={() => onPrefillAndReview(recentToWizard(call))}
+              >
+                <div className="recent-call-info">
+                  <span className="recent-call-number">
+                    {call.metadata?.to}
+                  </span>
+                  {call.metadata?.callPurpose && (
+                    <span className="recent-call-purpose">
+                      {call.metadata.callPurpose}
+                    </span>
+                  )}
+                </div>
+                <span className="recent-call-time">
+                  {timeAgo(call.startTime)}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="wizard-divider">
+            <span>or start new</span>
+          </div>
+        </>
+      )}
 
       <div className="autocomplete-wrapper">
         <input

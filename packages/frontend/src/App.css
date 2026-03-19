@@ -136,13 +136,14 @@ body {
 }
 
 .sidebar-item-actions {
-  display: none;
+  display: flex;
   gap: 2px;
   flex-shrink: 0;
+  opacity: 0;
 }
 
 .sidebar-item:hover .sidebar-item-actions {
-  display: flex;
+  opacity: 1;
 }
 
 .icon-btn {
@@ -744,6 +745,93 @@ body {
   border-radius: 8px;
   text-align: center;
   font-weight: 600;
+}
+
+/* ── Wizard history elements ── */
+
+.wizard-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: #999;
+  font-size: 0.82rem;
+}
+
+.wizard-divider::before,
+.wizard-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e9ecef;
+}
+
+.recent-calls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.recent-call-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #f8f9fc;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.recent-call-item:hover {
+  border-color: #667eea;
+  background: #f0f3ff;
+}
+
+.recent-call-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recent-call-number {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #222;
+}
+
+.recent-call-purpose {
+  font-size: 0.82rem;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-call-time {
+  font-size: 0.78rem;
+  color: #aaa;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.chips-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.chip-history {
+  border-style: dashed;
 }
 
 /* ── Responsive ── */

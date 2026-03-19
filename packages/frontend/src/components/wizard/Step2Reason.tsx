@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { WizardData } from '../../types/wizard';
+import { useRecentCalls } from '../../hooks/useRecentCalls';
 
 interface Step2ReasonProps {
   data: WizardData;
@@ -23,6 +24,17 @@ function Step2Reason({ data, onChange, onNext, onBack }: Step2ReasonProps) {
     data.customInstructions.length > 0
   );
 
+  const { calls: recentCalls } = useRecentCalls(20);
+
+  const suggestionLower = SUGGESTION_CHIPS.map(c => c.toLowerCase());
+  const usedBefore = recentCalls
+    .filter(
+      c => c.metadata?.to === data.toPhoneNumber && c.metadata?.callPurpose
+    )
+    .map(c => c.metadata!.callPurpose!)
+    .filter((purpose, i, arr) => arr.indexOf(purpose) === i)
+    .filter(purpose => !suggestionLower.includes(purpose.toLowerCase()));
+
   const canProceed = data.callPurpose.trim().length > 0;
 
   return (
@@ -31,6 +43,23 @@ function Step2Reason({ data, onChange, onNext, onBack }: Step2ReasonProps) {
       <p className="step-description">
         Tell us why you're calling so our AI knows what to navigate to.
       </p>
+
+      {usedBefore.length > 0 && (
+        <>
+          <div className="chips-label">Used before</div>
+          <div className="chips-row">
+            {usedBefore.map(purpose => (
+              <button
+                key={purpose}
+                className={`chip chip-history ${data.callPurpose === purpose ? 'chip-active' : ''}`}
+                onClick={() => onChange({ callPurpose: purpose })}
+              >
+                {purpose}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="chips-row">
         {SUGGESTION_CHIPS.map(chip => (
