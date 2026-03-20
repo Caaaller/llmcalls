@@ -136,6 +136,7 @@ export interface InitiateCallPayload {
   transferNumber: string;
   callPurpose: string;
   customInstructions: string;
+  skipInfoRequests?: boolean;
 }
 
 export interface InitiateCallResponse {

@@ -3,6 +3,7 @@ import type { WizardData, WizardStep } from '../../types/wizard';
 
 interface Step4ReviewProps {
   data: WizardData;
+  onChange: (updates: Partial<WizardData>) => void;
   onCall: (save: boolean, saveName: string) => void;
   onJumpToStep: (step: WizardStep) => void;
   onBack: () => void;
@@ -11,6 +12,7 @@ interface Step4ReviewProps {
 
 function Step4Review({
   data,
+  onChange,
   onCall,
   onJumpToStep,
   onBack,
@@ -88,6 +90,15 @@ function Step4Review({
           </button>
         </div>
       </div>
+
+      <label className="save-checkbox">
+        <input
+          type="checkbox"
+          checked={data.skipInfoRequests}
+          onChange={e => onChange({ skipInfoRequests: e.target.checked })}
+        />
+        Skip account verification prompts
+      </label>
 
       <label className="save-checkbox">
         <input

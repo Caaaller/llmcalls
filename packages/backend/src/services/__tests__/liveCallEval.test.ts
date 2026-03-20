@@ -39,6 +39,9 @@ function buildTwimlUrl(testCase: LiveCallTestCase): string {
   if (testCase.customInstructions) {
     params.append('customInstructions', testCase.customInstructions);
   }
+  if (testCase.skipInfoRequests !== false) {
+    params.append('skipInfoRequests', 'true');
+  }
   return `${baseUrl}/voice?${params.toString()}`;
 }
 
@@ -375,11 +378,14 @@ async function assertOutcome(
   }
 }
 
-const testCases = process.env.LIVE_EVAL_IVR
-  ? TEST_IVR_CASES
-  : process.env.LIVE_EVAL_QUICK
-    ? QUICK_TEST_CASES
-    : DEFAULT_TEST_CASES;
+const ALL_CASES = [...DEFAULT_TEST_CASES, ...TEST_IVR_CASES];
+const testCases = process.env.LIVE_EVAL_CASE
+  ? ALL_CASES.filter(tc => tc.id === process.env.LIVE_EVAL_CASE)
+  : process.env.LIVE_EVAL_IVR
+    ? TEST_IVR_CASES
+    : process.env.LIVE_EVAL_QUICK
+      ? QUICK_TEST_CASES
+      : DEFAULT_TEST_CASES;
 
 const maxPerCall = Math.max(
   ...testCases.map(

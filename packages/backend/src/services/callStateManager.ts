@@ -51,6 +51,7 @@ export interface CallState {
   awaitingHumanConfirmation?: boolean;
   pendingInfoRequest?: PendingInfoRequest;
   userPhone?: string;
+  skipInfoRequests?: boolean;
 }
 
 export function createDefaultCallState(callSid: string): CallState {

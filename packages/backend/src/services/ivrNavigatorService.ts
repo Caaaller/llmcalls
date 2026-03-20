@@ -47,9 +47,15 @@ interface DecideActionParams {
   callPurpose?: string;
   transferAnnounced?: boolean;
   awaitingHumanConfirmation?: boolean;
+  skipInfoRequests?: boolean;
 }
 
-const CALL_ACTION_SCHEMA = `You must respond with valid JSON matching this schema:
+const REQUEST_INFO_RULE = `- "request_info": The system is asking for information you do NOT have (account number, member ID, etc.) and it is NOT available in your custom instructions, and it is NOT the user's phone number or email. The system will pause the call, ask the user for this info, and resume when they reply.`;
+
+const REQUEST_INFO_SKIP_RULE = `- "request_info": DISABLED. Do NOT use this action. If the system asks for information you don't have (account number, member ID, etc.), say "I don't have that information" instead.`;
+
+function buildCallActionSchema(skipInfoRequests: boolean): string {
+  return `You must respond with valid JSON matching this schema:
 {
   "action": "press_digit" | "speak" | "wait" | "human_detected" | "maybe_human" | "hang_up" | "request_info",
   "digit": "0"-"9" | "*" | "#" (required if action is "press_digit"),
@@ -77,7 +83,8 @@ Action rules:
 - "maybe_human": You think a live human may be on the line. The system will ask them to confirm.
 - "human_detected": A live human is CONFIRMED on the line. Use ONLY when awaitingHumanConfirmation is true and the person responded naturally to the confirmation question.
 - "hang_up": Terminate the call. Use ONLY for voicemail, closed business, or dead ends.
-- "request_info": The system is asking for information you do NOT have (account number, member ID, etc.) and it is NOT available in your custom instructions, and it is NOT the user's phone number or email. The system will pause the call, ask the user for this info, and resume when they reply.`;
+${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
+}
 
 class IVRNavigatorService {
   private client: OpenAI;
@@ -97,6 +104,7 @@ class IVRNavigatorService {
     callPurpose,
     transferAnnounced,
     awaitingHumanConfirmation,
+    skipInfoRequests,
   }: DecideActionParams): Promise<CallAction> {
     const systemPrompt = transferPrompt['transfer-only'](config, '', false);
 
@@ -109,6 +117,8 @@ class IVRNavigatorService {
             )
             .join('\n')
         : 'None';
+
+    const actionSchema = buildCallActionSchema(!!skipInfoRequests);
 
     const userMessage = `${formatConversationForAI(actionHistory)}
 
@@ -124,7 +134,7 @@ ${config.customInstructions ? `CUSTOM INSTRUCTIONS: ${config.customInstructions}
 ${transferAnnounced ? `TRANSFER STATE: transferAnnounced=true (the IVR said it is transferring/connecting us)` : ''}
 ${awaitingHumanConfirmation ? `TRANSFER STATE: awaitingHumanConfirmation=true (we asked "Hey, are you a real person?" — if they respond naturally, use human_detected)` : ''}
 
-${CALL_ACTION_SCHEMA}
+${actionSchema}
 
 Analyze the current speech and decide what to do. Consider:
 1. Is this a menu? Extract all options. Is the menu complete? Check PREVIOUS MENUS — if you've seen these options before, the menu IS complete. Press a digit.

@@ -52,11 +52,14 @@ router.post('/', (req: Request, res: Response): void => {
       customInstructions: (req.query.customInstructions as string) || '',
     });
 
+    const skipInfoRequests = req.query.skipInfoRequests === 'true';
+
     callStateManager.updateCallState(callSid, {
       transferConfig: config as TransferConfigType,
       previousMenus: [],
       customInstructions: config.customInstructions,
       userPhone: config.userPhone,
+      ...(skipInfoRequests && { skipInfoRequests }),
     });
 
     logOnError(
@@ -117,19 +120,11 @@ router.post(
     try {
       const callSid = req.body.CallSid;
       const speechResult = req.body.SpeechResult || '';
+      const confidence = req.body.Confidence || '';
       const isFirstCall = req.query.firstCall === 'true';
       const baseUrl = getBaseUrl(req);
 
-      console.log(
-        '[SPEECH_DEBUG] Raw Twilio',
-        JSON.stringify({
-          SpeechResultLength: speechResult.length,
-          SpeechResult: speechResult,
-          BodyKeys: Object.keys(req.body).filter(k =>
-            /speech|result|text|input/i.test(k)
-          ),
-        })
-      );
+      console.log(`[STT] confidence=${confidence} "${speechResult}"`);
 
       const result = await processSpeech({
         callSid,

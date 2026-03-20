@@ -239,4 +239,69 @@ describe('Prompt evaluation – hold detection', () => {
       );
     });
   });
+
+  it('Hold detection sets transferAnnounced in call state', async () => {
+    await delay(API_DELAY_MS);
+    const testCallSid = 'jest-hold-transfer-announced';
+
+    const result = await processSpeech({
+      callSid: testCallSid,
+      speechResult:
+        'Please hold while we connect you to the next available representative. Your estimated wait time is 3 minutes.',
+      isFirstCall: true,
+      baseUrl: 'http://test',
+      callPurpose: 'speak with a representative',
+      transferNumber: defaultConfig.transferNumber,
+      userPhone: defaultConfig.userPhone,
+      userEmail: defaultConfig.userEmail,
+      testMode: true,
+    });
+
+    expect(result.aiAction).toBe('wait');
+    const state = callStateManager.getCallState(testCallSid);
+    expect(state.transferAnnounced).toBe(true);
+    callStateManager.clearCallState(testCallSid);
+  });
+
+  it('Human detected after hold triggers maybe_human', async () => {
+    await delay(API_DELAY_MS);
+    const testCallSid = 'jest-hold-then-human';
+
+    // Step 1: Hold speech sets transferAnnounced
+    await processSpeech({
+      callSid: testCallSid,
+      speechResult:
+        'Please hold while we connect you to the next available representative.',
+      isFirstCall: true,
+      baseUrl: 'http://test',
+      callPurpose: 'speak with a representative',
+      transferNumber: defaultConfig.transferNumber,
+      userPhone: defaultConfig.userPhone,
+      userEmail: defaultConfig.userEmail,
+      testMode: true,
+    });
+
+    // Verify transferAnnounced was set
+    const stateAfterHold = callStateManager.getCallState(testCallSid);
+    expect(stateAfterHold.transferAnnounced).toBe(true);
+
+    await delay(API_DELAY_MS);
+
+    // Step 2: Human speech should trigger maybe_human
+    const result = await processSpeech({
+      callSid: testCallSid,
+      speechResult:
+        'Hi, this is Sarah from customer service. How can I help you today?',
+      isFirstCall: false,
+      baseUrl: 'http://test',
+      callPurpose: 'speak with a representative',
+      transferNumber: defaultConfig.transferNumber,
+      userPhone: defaultConfig.userPhone,
+      userEmail: defaultConfig.userEmail,
+      testMode: true,
+    });
+
+    expect(result.aiAction).toBe('maybe_human');
+    callStateManager.clearCallState(testCallSid);
+  });
 });

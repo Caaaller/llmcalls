@@ -55,6 +55,7 @@ function CallWizard({
       transferNumber: string;
       callPurpose: string;
       customInstructions: string;
+      skipInfoRequests?: boolean;
     }) => api.calls.initiate(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calls', 'history'] });
@@ -93,6 +94,7 @@ function CallWizard({
       transferNumber: data.transferNumber,
       callPurpose: data.callPurpose,
       customInstructions: data.customInstructions,
+      skipInfoRequests: data.skipInfoRequests,
     });
   }
 
@@ -157,6 +159,7 @@ function CallWizard({
       {step === 4 && (
         <Step4Review
           data={data}
+          onChange={updateData}
           onCall={handleCall}
           onJumpToStep={jumpToStep}
           onBack={() => setStep(3)}

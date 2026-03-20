@@ -4,6 +4,7 @@ export interface WizardData {
   callPurpose: string;
   customInstructions: string;
   transferNumber: string;
+  skipInfoRequests: boolean;
 }
 
 export interface SavedCall {
@@ -25,4 +26,5 @@ export const EMPTY_WIZARD: WizardData = {
   callPurpose: 'speak with a representative',
   customInstructions: '',
   transferNumber: '',
+  skipInfoRequests: true,
 };

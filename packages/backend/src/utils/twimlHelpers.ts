@@ -48,6 +48,8 @@ export function createGatherAttributes(
     input: ['speech'],
     language: config.aiSettings.language || 'en-US',
     speechTimeout: 'auto',
+    speechModel: 'phone_call',
+    profanityFilter: false,
     timeout: DEFAULT_SPEECH_TIMEOUT,
     ...overrides,
   };

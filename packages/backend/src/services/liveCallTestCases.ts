@@ -10,6 +10,7 @@ export interface LiveCallTestCase {
   phoneNumber: string;
   callPurpose: string;
   customInstructions?: string;
+  skipInfoRequests?: boolean;
   expectedOutcome: {
     shouldReachHuman?: boolean;
     requireConfirmedTransfer?: boolean;
@@ -87,6 +88,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
+      requireConfirmedTransfer: true,
     },
   },
   {

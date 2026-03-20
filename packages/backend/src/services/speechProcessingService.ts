@@ -30,6 +30,7 @@ export interface ProcessSpeechParams {
   userPhone?: string;
   userEmail?: string;
   testMode?: boolean;
+  skipInfoRequests?: boolean;
 }
 
 export interface ProcessSpeechResult {
@@ -103,6 +104,7 @@ export async function processSpeech({
   userPhone,
   userEmail,
   testMode = false,
+  skipInfoRequests,
 }: ProcessSpeechParams): Promise<ProcessSpeechResult> {
   const response = new twilio.twiml.VoiceResponse();
 
@@ -170,6 +172,7 @@ export async function processSpeech({
       callPurpose: config.callPurpose,
       transferAnnounced: callState.transferAnnounced,
       awaitingHumanConfirmation: callState.awaitingHumanConfirmation,
+      skipInfoRequests: skipInfoRequests ?? callState.skipInfoRequests,
     });
 
     const result = mapActionToProcessingResult(
@@ -287,6 +290,17 @@ export async function processSpeech({
     }
 
     // ── 5c. Handle request_info → stall + notify user ───────────────────────
+    // Backend guard: if skipInfoRequests is on, override request_info → speak
+    if (
+      action.action === 'request_info' &&
+      (skipInfoRequests ?? callState.skipInfoRequests)
+    ) {
+      action.action = 'speak';
+      action.speech = "I don't have that information";
+      action.reason = `request_info blocked by skipInfoRequests (wanted: ${action.requestedInfo})`;
+      action.requestedInfo = undefined;
+    }
+
     if (action.action === 'request_info' && action.requestedInfo) {
       const requestedInfo = action.requestedInfo;
 
@@ -379,8 +393,9 @@ export async function processSpeech({
 
     // ── 7. Handle wait (incomplete menu, silence, etc.) ──────────────────────
     if (action.action === 'wait') {
-      // If transfer was announced, mark it in state
-      if (action.detected.transferRequested) {
+      // If transfer was announced or hold detected, mark transferAnnounced
+      // so human detection (maybe_human) becomes active
+      if (action.detected.transferRequested || action.detected.holdDetected) {
         callStateManager.updateCallState(callSid, {
           transferAnnounced: true,
         });

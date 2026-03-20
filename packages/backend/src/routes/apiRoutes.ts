@@ -220,6 +220,7 @@ router.post(
         callPurpose,
         customInstructions,
         userPhone,
+        skipInfoRequests,
       } = req.body;
 
       if (!to) {
@@ -284,6 +285,9 @@ router.post(
       }
       if (userPhone) {
         params.append('userPhone', userPhone);
+      }
+      if (skipInfoRequests) {
+        params.append('skipInfoRequests', 'true');
       }
       const twimlUrl = `${baseUrl}/voice?${params.toString()}`;
 

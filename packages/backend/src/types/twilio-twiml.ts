@@ -10,6 +10,9 @@ export interface TwilioGatherInput {
   action?: string;
   method?: string;
   enhanced?: boolean;
+  speechModel?: string;
+  hints?: string;
+  profanityFilter?: boolean;
   timeout?: number;
   numDigits?: number;
   finishOnKey?: string;

@@ -149,6 +149,10 @@ function processVoiceInput(context: VoiceProcessingContext) { }
 
 Extract logic into well-named functions. Keep function bodies declarative and explicit — prefer `doTheThing()` calls over 45 inline lines. Every distinct operation should be its own function.
 
+## MANDATORY: QA Tester and Skeptic After Implementation
+
+After completing any non-trivial implementation, invoke the QA Tester agent (to generate test scenarios from product requirements) and the Code Skeptic agent (to verify claims and surface risks) before reporting success.
+
 ## AI-Driven Logic (DTMF, loops, incomplete speech)
 
 - Avoid adding regex/heuristic logic for call behavior (DTMF choice, loop detection, incomplete speech, menu parsing) when an AI or existing service already handles it; route through those shared functions instead.

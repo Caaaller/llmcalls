@@ -8,6 +8,7 @@ export function savedToWizard(sc: SavedCall): WizardData {
     transferNumber: sc.transferNumber,
     callPurpose: sc.callPurpose,
     customInstructions: sc.customInstructions || '',
+    skipInfoRequests: true,
   };
 }
 
@@ -18,5 +19,6 @@ export function recentToWizard(call: CallSummary): WizardData {
     transferNumber: call.metadata?.transferNumber || '',
     callPurpose: call.metadata?.callPurpose || 'speak with a representative',
     customInstructions: '',
+    skipInfoRequests: true,
   };
 }
