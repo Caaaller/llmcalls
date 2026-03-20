@@ -250,6 +250,99 @@ class CallHistoryService {
   }
 
   /**
+   * Record a hold queue detection
+   */
+  async addHoldDetected(
+    callSid: string,
+    timestamp: Date | null = null
+  ): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        {
+          $push: {
+            events: {
+              eventType: 'hold' as const,
+              timestamp: timestamp || new Date(),
+            },
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error('❌ Error adding hold event:', getErrorMessage(error));
+    }
+  }
+
+  /**
+   * Check if a call reached a hold queue
+   */
+  async hasReachedHoldQueue(callSid: string): Promise<boolean> {
+    const call = await this.getCall(callSid);
+    if (!call?.events) return false;
+    return call.events.some(e => e.eventType === 'hold');
+  }
+
+  /**
+   * Record an info request (agent asked user for missing info)
+   */
+  async addInfoRequest(
+    callSid: string,
+    requestedInfo: string,
+    timestamp: Date | null = null
+  ): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        {
+          $push: {
+            events: {
+              eventType: 'info_request' as const,
+              text: requestedInfo,
+              timestamp: timestamp || new Date(),
+            },
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error('❌ Error adding info request:', getErrorMessage(error));
+    }
+  }
+
+  /**
+   * Record an info response (user replied with the requested info)
+   */
+  async addInfoResponse(
+    callSid: string,
+    response: string,
+    via: 'sms' | 'web',
+    timestamp: Date | null = null
+  ): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        {
+          $push: {
+            events: {
+              eventType: 'info_response' as const,
+              text: response,
+              reason: via,
+              timestamp: timestamp || new Date(),
+            },
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error('❌ Error adding info response:', getErrorMessage(error));
+    }
+  }
+
+  /**
    * Record a termination
    */
   async addTermination(

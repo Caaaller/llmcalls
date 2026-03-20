@@ -31,18 +31,20 @@ const singleStepCases: {
     },
     {
       name: 'Transfer Request - Customer Service',
-      description: 'Should detect customer service transfer request',
+      description:
+        'Should NOT detect transfer in caller-like speech (not a rep introducing themselves)',
       speech: 'I need to speak with customer service',
       expectedBehavior: {
-        shouldTransfer: true,
+        shouldTransfer: false,
       },
     },
     {
       name: 'Transfer Request - Representative',
-      description: 'Should detect representative transfer request',
+      description:
+        'Should NOT detect transfer in caller-like speech (not a rep introducing themselves)',
       speech: 'Can I speak with a representative please?',
       expectedBehavior: {
-        shouldTransfer: true,
+        shouldTransfer: false,
       },
     },
     {
@@ -59,6 +61,37 @@ const singleStepCases: {
       speech: 'Thank you for calling, how can I help you?',
       expectedBehavior: {
         shouldTransfer: false,
+      },
+    },
+    {
+      name: 'Maybe Human - Person introducing themselves after transfer',
+      description:
+        'Should trigger maybe_human when someone introduces themselves after transfer announced',
+      speech:
+        'Hi, my name is Sarah from customer service, how can I help you today?',
+      transferAnnounced: true,
+      expectedBehavior: {
+        shouldConfirmHuman: true,
+      },
+    },
+    {
+      name: 'Human Confirmed - After confirmation question',
+      description:
+        'Should trigger human_detected when awaitingHumanConfirmation and person responds',
+      speech: 'Yes, I am a representative, how can I help?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: {
+        shouldTransfer: true,
+      },
+    },
+    {
+      name: 'Transfer Announced - Sets transferRequested',
+      description:
+        'Should detect transfer announcement and set transferRequested (system will mark transferAnnounced)',
+      speech: 'Transferring you now. Please hold.',
+      expectedBehavior: {
+        shouldTransfer: true,
+        shouldConfirmHuman: false,
       },
     },
   ],
@@ -174,13 +207,15 @@ const singleStepCases: {
     },
     {
       name: 'DTMF - No Clear Match',
-      description: 'Should not press if no clear match found',
+      description:
+        'Should press lowest digit when no option matches call purpose',
       speech: 'Press 1 for sales, press 2 for marketing',
       config: {
         callPurpose: 'technical support',
       },
       expectedBehavior: {
-        shouldPressDTMF: false,
+        shouldPressDTMF: true,
+        expectedDigit: '1',
       },
     },
     {
@@ -233,13 +268,36 @@ const singleStepCases: {
     {
       name: 'DTMF - Home Depot Representative Option',
       description:
-        'Home Depot IVR: full numeric menu, should press 2 for help with orders / questions',
+        'Home Depot IVR: should press 6 for customer care when speaking with a rep',
       speech:
-        'For in-home services and installations press 1. For help with new or existing orders, product questions, or help with our website press 2. Press 3 for Home Depot protection plans, press 4.',
+        'For in-home services and installations press 1. For help with new or existing orders, product questions, or help with our website press 2. For appliance orders or questions press 3. Press 4 for Home Depot protection plans. Press 5 for credit card services. Press 6 for customer care.',
       config: DEFAULT_CALL_PURPOSE,
       expectedBehavior: {
         shouldPressDTMF: true,
-        expectedDigit: '2',
+        expectedDigit: '6',
+      },
+    },
+    {
+      name: 'DTMF - Verizon FiOS Honesty Over Shortcut',
+      description:
+        'Should NOT press # for "new customer" when caller is not a new customer — should say "I don\'t have one" instead',
+      speech:
+        "Or account number associated with the question, you are calling about to become a new customer. You can say new customer or press the pound key, or you can say, I don't have 1.",
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: {
+        shouldPressDTMF: false, // Should say "I don't have one" verbally, not press # for new customer
+      },
+    },
+    {
+      name: 'DTMF - DJI No False Catch-All',
+      description:
+        'Should NOT pick "existing order" (9) when purpose is to speak with a rep — any tech support option (1, 2, 3) or care plans (4) is acceptable',
+      speech:
+        'For technical support of camera drones and DJI power. Press 1 for technical support of handheld products, press 2 for technical support of enterprise products press 3. DJI care service plans, press 4. To inquire an existing order on DJI online store press 9, press the pound key to listen to this message again.',
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: {
+        shouldPressDTMF: true,
+        // Any of 1, 2, 3, 4 is acceptable — just NOT 9 (existing order) or # (repeat)
       },
     },
   ],

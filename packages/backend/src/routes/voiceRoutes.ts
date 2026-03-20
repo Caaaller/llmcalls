@@ -56,6 +56,7 @@ router.post('/', (req: Request, res: Response): void => {
       transferConfig: config as TransferConfigType,
       previousMenus: [],
       customInstructions: config.customInstructions,
+      userPhone: config.userPhone,
     });
 
     logOnError(
@@ -76,24 +77,20 @@ router.post('/', (req: Request, res: Response): void => {
       recordingStatusCallbackEvent: ['completed'],
       trim: 'do-not-trim',
     } as any);
+    const initialProcessSpeechUrl = buildProcessSpeechUrl({
+      baseUrl,
+      config,
+      additionalParams: { firstCall: 'true' },
+    });
     const gatherAttributes = createGatherAttributes(config, {
-      action: buildProcessSpeechUrl({
-        baseUrl,
-        config,
-        additionalParams: { firstCall: 'true' },
-      }),
+      action: initialProcessSpeechUrl,
       method: 'POST',
       enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
     });
     response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
-
-    const sayAttributes = createSayAttributes(config);
-    response.say(
-      sayAttributes as Parameters<typeof response.say>[0],
-      'Thank you. Goodbye.'
-    );
-    response.hangup();
+    // If Gather times out (IVR hasn't spoken yet), keep listening
+    response.redirect({ method: 'POST' }, initialProcessSpeechUrl);
 
     res.type('text/xml');
     res.send(response.toString());
@@ -254,6 +251,168 @@ router.post('/call-status', (req: Request, res: Response) => {
   }
 
   res.status(200).send('OK');
+});
+
+/**
+ * Stall loop — redirects to itself every ~6 seconds while waiting for user info.
+ * Breaks out when the user's reply arrives in call state or after 2-minute timeout.
+ */
+router.post('/stall', (req: Request, res: Response): void => {
+  const callSid = req.body.CallSid || (req.query.callSid as string);
+  const baseUrl = getBaseUrl(req);
+  const response = new twilio.twiml.VoiceResponse();
+
+  if (!callSid) {
+    response.say({ voice: 'alice', language: 'en-US' }, 'An error occurred.');
+    response.hangup();
+    res.type('text/xml');
+    res.send(response.toString());
+    return;
+  }
+
+  const callState = callStateManager.getCallState(callSid);
+  const pending = callState.pendingInfoRequest;
+
+  // If user has replied, break out of stall
+  if (pending?.userResponse) {
+    console.log(
+      `✅ Info received (${pending.respondedVia}): ${pending.userResponse}`
+    );
+
+    callHistoryService
+      .addInfoResponse(
+        callSid,
+        pending.userResponse,
+        pending.respondedVia || 'web'
+      )
+      .catch(err => console.error('Error logging info response:', err));
+
+    const config = transferConfig.createConfig({
+      transferNumber:
+        callState.transferConfig?.transferNumber ||
+        process.env.TRANSFER_PHONE_NUMBER,
+      callPurpose:
+        callState.transferConfig?.callPurpose || process.env.CALL_PURPOSE,
+      customInstructions: callState.customInstructions,
+    });
+
+    const sayAttributes = createSayAttributes(config);
+
+    // Determine how to provide the info based on dataEntryMode
+    const dataEntryMode = pending.dataEntryMode || 'speech';
+    const digits = pending.userResponse.replace(/\D/g, '');
+
+    if (dataEntryMode === 'dtmf' && digits.length > 0) {
+      response.play({ digits: `w${digits}` });
+    } else {
+      response.say(
+        sayAttributes as Parameters<typeof response.say>[0],
+        pending.userResponse
+      );
+    }
+
+    // Clear pending request
+    callState.pendingInfoRequest = undefined;
+
+    // Resume normal gather flow
+    const gatherAttributes = createGatherAttributes(config, {
+      action: buildProcessSpeechUrl({ baseUrl, config }),
+      method: 'POST',
+      enhanced: true,
+      timeout: DEFAULT_SPEECH_TIMEOUT,
+    });
+    response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+
+    res.type('text/xml');
+    res.send(response.toString());
+    return;
+  }
+
+  // Check 2-minute timeout
+  const STALL_TIMEOUT_MS = 2 * 60 * 1000;
+  if (
+    pending &&
+    Date.now() - pending.requestedAt.getTime() > STALL_TIMEOUT_MS
+  ) {
+    console.log('⏰ Stall timeout — giving up on info request');
+
+    callState.pendingInfoRequest = undefined;
+
+    const config = transferConfig.createConfig({
+      transferNumber:
+        callState.transferConfig?.transferNumber ||
+        process.env.TRANSFER_PHONE_NUMBER,
+      callPurpose:
+        callState.transferConfig?.callPurpose || process.env.CALL_PURPOSE,
+      customInstructions: callState.customInstructions,
+    });
+    const sayAttributes = createSayAttributes(config);
+    response.say(
+      sayAttributes as Parameters<typeof response.say>[0],
+      "I don't have that information. Can I speak with a representative?"
+    );
+
+    const gatherAttributes = createGatherAttributes(config, {
+      action: buildProcessSpeechUrl({ baseUrl, config }),
+      method: 'POST',
+      enhanced: true,
+      timeout: DEFAULT_SPEECH_TIMEOUT,
+    });
+    response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
+
+    res.type('text/xml');
+    res.send(response.toString());
+    return;
+  }
+
+  // Still waiting — use Gather (not Redirect) to cycle back.
+  // Gather→action is a new HTTP request, not a TwiML redirect,
+  // so it doesn't count toward Twilio's ~20 redirect limit.
+  response.say({ voice: 'Polly.Matthew', language: 'en-US' }, 'Just a moment.');
+  const stallUrl = `${baseUrl}/voice/stall?callSid=${callSid}`;
+  response.gather({
+    input: ['speech'] as any,
+    timeout: 5,
+    action: stallUrl,
+    method: 'POST',
+  } as any);
+
+  res.type('text/xml');
+  res.send(response.toString());
+});
+
+/**
+ * SMS reply webhook — Twilio POSTs here when user replies via SMS.
+ * Finds the active call by phone number and resolves the pending info request.
+ */
+router.post('/sms-reply', (req: Request, res: Response): void => {
+  const from = req.body.From || '';
+  const body = (req.body.Body || '').trim();
+
+  const response = new twilio.twiml.MessagingResponse();
+
+  if (!body) {
+    res.type('text/xml');
+    res.send(response.toString());
+    return;
+  }
+
+  const callSid = callStateManager.findCallByUserPhone(from);
+  if (!callSid) {
+    // No active call with pending request for this number
+    res.type('text/xml');
+    res.send(response.toString());
+    return;
+  }
+
+  const resolved = callStateManager.resolveInfoRequest(callSid, body, 'sms');
+  if (resolved) {
+    console.log(`📱 SMS reply from ${from}: "${body}" → call ${callSid}`);
+    response.message('Got it! Continuing your call now.');
+  }
+
+  res.type('text/xml');
+  res.send(response.toString());
 });
 
 /**

@@ -27,6 +27,8 @@ import twilio from 'twilio';
 const router: express.Router = express.Router();
 
 const GATHER_TIMEOUT = 30;
+const HOLD_MUSIC_ROCK =
+  'http://com.twilio.music.rock.s3.amazonaws.com/nickleus_-_original_guitar_song_200907251723.mp3';
 const VOICE_CONFIG = {
   voice: 'Polly.Matthew' as const,
   language: 'en-US' as const,
@@ -35,6 +37,7 @@ const VOICE_CONFIG = {
 interface TransferNode {
   type: 'transfer';
   say: string;
+  holdMusic?: string;
 }
 
 interface MenuNode {
@@ -162,6 +165,7 @@ const IVR_TREE: MenuNode = {
     '4': {
       type: 'transfer',
       say: 'This is an urgent matter. I am transferring your call to the fraud department immediately.',
+      holdMusic: HOLD_MUSIC_ROCK,
     },
     '0': {
       type: 'transfer',
@@ -181,14 +185,6 @@ function resolveNode(path: Array<string>): IvrNode | undefined {
   return current;
 }
 
-function getTransferTarget(): string {
-  return (
-    process.env.TRANSFER_PHONE_NUMBER ||
-    process.env.TWILIO_PHONE_NUMBER ||
-    '+10000000000'
-  );
-}
-
 function renderMenu(res: Response, node: MenuNode, actionPath: string): void {
   const response = new twilio.twiml.VoiceResponse();
   response.say(VOICE_CONFIG, node.prompt);
@@ -206,9 +202,51 @@ function renderMenu(res: Response, node: MenuNode, actionPath: string): void {
 }
 
 function renderTransfer(res: Response, node: TransferNode): void {
+  const holdMusic = node.holdMusic;
   const response = new twilio.twiml.VoiceResponse();
+
+  // Transfer announcement
   response.say(VOICE_CONFIG, node.say);
-  response.dial({ timeout: 30 }, getTransferTarget());
+
+  // Hold queue simulation (~60 seconds before connecting)
+  response.say(
+    VOICE_CONFIG,
+    'Please hold while we connect you to the next available representative.'
+  );
+  if (holdMusic) {
+    response.play(holdMusic);
+  } else {
+    response.pause({ length: 10 });
+  }
+  response.say(
+    VOICE_CONFIG,
+    'Your call is important to us. All representatives are currently assisting other customers. Please continue to hold.'
+  );
+  response.pause({ length: 10 });
+  response.say(
+    VOICE_CONFIG,
+    'You are caller number 2 in the queue. Your estimated wait time is less than 1 minute.'
+  );
+  response.pause({ length: 10 });
+  response.say(
+    VOICE_CONFIG,
+    'Thank you for your patience. A representative will be with you shortly.'
+  );
+  response.pause({ length: 5 });
+
+  // Simulate a human representative picking up
+  response.say(
+    VOICE_CONFIG,
+    'Hi, thank you for holding. This is Sarah from the customer service department. How can I help you today?'
+  );
+  // Wait for AI to ask "are you a real person?" and then respond
+  response.pause({ length: 8 });
+  response.say(
+    VOICE_CONFIG,
+    'Yes, I am a real person. I am here to assist you.'
+  );
+  // Stay on the line so the AI can complete the transfer flow
+  response.pause({ length: 30 });
   res.type('text/xml');
   res.send(response.toString());
 }
@@ -262,6 +300,138 @@ router.post('/handle', (req: Request, res: Response) => {
 
   const actionPath = `/voice/test-ivr/handle?path=${currentPath.join(',')}`;
   renderMenu(res, node, actionPath);
+});
+
+/**
+ * Minimal IVR that asks for an account number then transfers.
+ * Used by the info-request live call test.
+ *
+ * Flow:
+ *   GET/POST /voice/test-ivr/account-check
+ *     → "Please say or enter your 8-digit account number."
+ *     → Gather (speech + dtmf)
+ *     → POST /voice/test-ivr/account-check/verify
+ *       → If 8+ digits received: "Thank you. Transferring you now." + hold sim
+ *       → Otherwise: "Sorry, I didn't get that." + retry (up to 2 times)
+ */
+const accountRetryCount: Record<string, number> = {};
+
+function renderAccountPrompt(res: Response, actionUrl: string): void {
+  const response = new twilio.twiml.VoiceResponse();
+  response.say(
+    VOICE_CONFIG,
+    'Thank you for calling National Bank. To access your account, please say or enter your 8-digit account number.'
+  );
+  response.gather({
+    input: ['speech', 'dtmf'] as any,
+    timeout: 15,
+    numDigits: 8,
+    action: actionUrl,
+    method: 'POST',
+  });
+  response.say(VOICE_CONFIG, 'We did not receive any input. Goodbye.');
+  response.hangup();
+  res.type('text/xml');
+  res.send(response.toString());
+}
+
+router.get('/account-check', (_req: Request, res: Response) => {
+  renderAccountPrompt(res, '/voice/test-ivr/account-check/verify');
+});
+
+router.post('/account-check', (_req: Request, res: Response) => {
+  renderAccountPrompt(res, '/voice/test-ivr/account-check/verify');
+});
+
+router.post('/account-check/verify', (req: Request, res: Response) => {
+  const callSid = req.body.CallSid || 'unknown';
+  const speechResult = req.body.SpeechResult || '';
+  const dtmfDigits = req.body.Digits || '';
+
+  // Extract digits from speech or DTMF
+  const input = dtmfDigits || speechResult.replace(/\D/g, '');
+
+  const response = new twilio.twiml.VoiceResponse();
+
+  if (input.length >= 8) {
+    // Success — account number received
+    delete accountRetryCount[callSid];
+    response.say(
+      VOICE_CONFIG,
+      `Thank you. I found your account ending in ${input.slice(-4)}. Transferring you to a representative now.`
+    );
+    response.say(VOICE_CONFIG, 'Please hold while we connect you.');
+    response.pause({ length: 3 });
+    response.say(
+      VOICE_CONFIG,
+      'Hi, thank you for holding. This is Sarah. How can I help you today?'
+    );
+    response.pause({ length: 8 });
+    response.say(
+      VOICE_CONFIG,
+      'Yes, I am a real person. I am here to assist you.'
+    );
+    response.pause({ length: 30 });
+  } else {
+    // Failed — retry up to 2 times
+    const retries = accountRetryCount[callSid] || 0;
+    if (retries >= 2) {
+      delete accountRetryCount[callSid];
+      response.say(
+        VOICE_CONFIG,
+        "I'm sorry, I was unable to verify your account. Let me connect you with a representative who can help."
+      );
+      response.pause({ length: 3 });
+      response.say(
+        VOICE_CONFIG,
+        'Hi, this is Sarah. How can I help you today?'
+      );
+      response.pause({ length: 30 });
+    } else {
+      accountRetryCount[callSid] = retries + 1;
+      response.say(
+        VOICE_CONFIG,
+        "I'm sorry, I didn't get a valid account number. Please try again."
+      );
+      response.gather({
+        input: ['speech', 'dtmf'] as any,
+        timeout: 15,
+        numDigits: 8,
+        action: '/voice/test-ivr/account-check/verify',
+        method: 'POST',
+      });
+      response.say(VOICE_CONFIG, 'We did not receive any input. Goodbye.');
+      response.hangup();
+    }
+  }
+
+  res.type('text/xml');
+  res.send(response.toString());
+});
+
+/**
+ * Bridge endpoint: makes our AI navigator dial the account-check IVR.
+ * Used by the live call test to connect two Twilio numbers on the same account.
+ *
+ * GET/POST /voice/test-ivr/bridge-to-account-check?transferNumber=...&callPurpose=...
+ *   → <Dial> to TEST_USER_PHONE_NUMBER (which answers with account-check IVR)
+ *   → The AI navigator's voice webhook is set as the action on <Dial>
+ */
+router.post('/bridge-to-account-check', (_req: Request, res: Response) => {
+  const testNumber = process.env.TEST_USER_PHONE_NUMBER;
+  if (!testNumber) {
+    const r = new twilio.twiml.VoiceResponse();
+    r.say(VOICE_CONFIG, 'Test number not configured.');
+    r.hangup();
+    res.type('text/xml');
+    res.send(r.toString());
+    return;
+  }
+
+  const response = new twilio.twiml.VoiceResponse();
+  response.dial({ timeout: 20 }, testNumber);
+  res.type('text/xml');
+  res.send(response.toString());
 });
 
 export default router;

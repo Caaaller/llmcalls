@@ -29,7 +29,15 @@ export interface DTMFPress {
 import { MenuOption } from '../types/menu';
 
 export interface CallEvent {
-  eventType: 'conversation' | 'dtmf' | 'ivr_menu' | 'transfer' | 'termination';
+  eventType:
+    | 'conversation'
+    | 'dtmf'
+    | 'ivr_menu'
+    | 'transfer'
+    | 'termination'
+    | 'hold'
+    | 'info_request'
+    | 'info_response';
   type?: string; // For conversation events: 'user', 'ai', 'system'
   text?: string; // For conversation events
   digit?: string; // For DTMF events
@@ -101,7 +109,16 @@ const eventSchema = new Schema<CallEvent>(
   {
     eventType: {
       type: String,
-      enum: ['conversation', 'dtmf', 'ivr_menu', 'transfer', 'termination'],
+      enum: [
+        'conversation',
+        'dtmf',
+        'ivr_menu',
+        'transfer',
+        'termination',
+        'hold',
+        'info_request',
+        'info_response',
+      ],
       required: true,
     },
     type: String,

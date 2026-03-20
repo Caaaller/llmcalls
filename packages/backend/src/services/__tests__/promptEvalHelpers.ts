@@ -8,6 +8,7 @@ import type { VoiceProcessingResult } from '../../types/voiceProcessing';
 /** Shape used for expect(actual).toMatchObject(expected) */
 export interface EvalExpected {
   transferRequested?: boolean;
+  shouldConfirmHuman?: boolean;
   shouldTerminate?: boolean;
   terminationReason?: string | null;
   isIVRMenu?: boolean;
@@ -20,6 +21,7 @@ export interface EvalExpected {
 /** Single-step expectedBehavior from PromptTestCase */
 interface SingleStepExpectedBehavior {
   shouldTransfer?: boolean;
+  shouldConfirmHuman?: boolean;
   shouldPressDTMF?: boolean;
   expectedDigit?: string;
   shouldTerminate?: boolean;
@@ -42,6 +44,8 @@ export function expectedFromSingleStepBehavior(
   const expected: EvalExpected = {};
   if (eb.shouldTransfer !== undefined)
     expected.transferRequested = eb.shouldTransfer;
+  if (eb.shouldConfirmHuman !== undefined)
+    expected.shouldConfirmHuman = eb.shouldConfirmHuman;
   if (eb.shouldTerminate !== undefined)
     expected.shouldTerminate = eb.shouldTerminate;
   if (eb.terminationReason !== undefined)
@@ -74,9 +78,13 @@ export function expectedFromStepBehavior(
   return expected;
 }
 
-export function actualFromResult(pr: VoiceProcessingResult): EvalExpected {
+export function actualFromResult(
+  pr: VoiceProcessingResult,
+  aiAction?: string
+): EvalExpected {
   return {
-    transferRequested: pr.transferRequested,
+    transferRequested: pr.transferRequested || aiAction === 'human_detected',
+    shouldConfirmHuman: aiAction === 'maybe_human',
     shouldTerminate: pr.shouldTerminate,
     terminationReason: pr.terminationReason ?? undefined,
     isIVRMenu: pr.isIVRMenu,

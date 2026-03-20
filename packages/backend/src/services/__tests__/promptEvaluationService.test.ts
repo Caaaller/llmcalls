@@ -13,6 +13,8 @@ import {
   expectedFromStepBehavior,
   actualFromResult,
 } from './promptEvalHelpers';
+import ivrNavigatorService from '../ivrNavigatorService';
+import transferConfig from '../../config/transfer-config';
 import {
   SINGLE_STEP_TEST_CASES,
   MULTI_STEP_TEST_CASES,
@@ -48,7 +50,15 @@ describe('Prompt evaluation – single-step', () => {
       await delay(API_DELAY_MS);
       const config = configFor(testCase);
       const testCallSid = `jest-single-${testCase.name}`;
-      // previousSpeech context is now handled by the unified AI via actionHistory
+
+      if (testCase.transferAnnounced || testCase.awaitingHumanConfirmation) {
+        callStateManager.updateCallState(testCallSid, {
+          transferAnnounced:
+            testCase.transferAnnounced || testCase.awaitingHumanConfirmation,
+          awaitingHumanConfirmation: testCase.awaitingHumanConfirmation,
+        });
+      }
+
       const result = await processSpeech({
         callSid: testCallSid,
         speechResult: testCase.speech,
@@ -78,7 +88,7 @@ describe('Prompt evaluation – single-step', () => {
       const expected = expectedFromSingleStepBehavior(
         testCase.expectedBehavior
       );
-      const actual = actualFromResult(pr);
+      const actual = actualFromResult(pr, result.aiAction);
       expect(actual).toMatchObject(expected);
 
       if (
@@ -143,7 +153,7 @@ describe('Prompt evaluation – multi-step', () => {
         }
         const pr = result.processingResult;
         const expected = expectedFromStepBehavior(step.expectedBehavior);
-        const actual = actualFromResult(pr);
+        const actual = actualFromResult(pr, result.aiAction);
         expect(actual).toMatchObject(expected);
 
         const updatedState = callStateManager.getCallState(testCallSid);
@@ -154,6 +164,79 @@ describe('Prompt evaluation – multi-step', () => {
       for (let i = 0; i < testCase.steps.length; i++) {
         callStateManager.clearCallState(`jest-${testCase.name}-${i}`);
       }
+    });
+  });
+});
+
+describe('Prompt evaluation – hold detection', () => {
+  const holdCases: Array<{
+    name: string;
+    speech: string;
+    expectedHoldDetected: boolean;
+    expectedAction?: string;
+    transferAnnounced?: boolean;
+  }> = [
+    {
+      name: 'Hold - Please hold message',
+      speech:
+        'Please hold while I connect you to the next available representative. Your estimated wait time is 5 minutes.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - All agents busy',
+      speech:
+        'All of our agents are currently busy assisting other customers. Please stay on the line and your call will be answered in the order it was received.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - Queue position',
+      speech:
+        'You are caller number 3 in the queue. A representative will be with you shortly.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - Your call is important',
+      speech:
+        'Your call is important to us. Please continue to hold and a representative will be with you shortly.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'No Hold - Regular IVR menu',
+      speech: 'Press 1 for sales, press 2 for support, press 0 for operator.',
+      expectedHoldDetected: false,
+      expectedAction: 'press_digit',
+    },
+    {
+      name: 'No Hold - Greeting',
+      speech:
+        'Thank you for calling Acme Corporation. How can I help you today?',
+      expectedHoldDetected: false,
+      expectedAction: 'speak',
+    },
+  ];
+
+  holdCases.forEach(testCase => {
+    it(testCase.name, async () => {
+      await delay(API_DELAY_MS);
+
+      const result = await ivrNavigatorService.decideAction({
+        config: transferConfig.createConfig(),
+        conversationHistory: [],
+        actionHistory: [],
+        currentSpeech: testCase.speech,
+        previousMenus: [],
+        callPurpose: 'speak with a representative',
+        transferAnnounced: testCase.transferAnnounced,
+      });
+
+      if (testCase.expectedAction) {
+        expect(result.action).toBe(testCase.expectedAction);
+      } else if (testCase.expectedHoldDetected) {
+        expect(result.action).toBe('wait');
+      }
+      expect(result.detected.holdDetected ?? false).toBe(
+        testCase.expectedHoldDetected
+      );
     });
   });
 });

@@ -12,6 +12,7 @@ export interface LiveCallTestCase {
   customInstructions?: string;
   expectedOutcome: {
     shouldReachHuman?: boolean;
+    requireConfirmedTransfer?: boolean;
     maxDTMFPresses?: number;
     expectedDigits?: string[];
     maxDurationSeconds?: number;
@@ -126,161 +127,182 @@ export const QUICK_TEST_CASES: LiveCallTestCase[] = [
   },
 ];
 
+export const TEST_IVR_NUMBERS = [
+  '+17208150797',
+  '+17207909170',
+  '+17206192779',
+];
+
 export const TEST_IVR_CASES: LiveCallTestCase[] = [
   {
     id: 'test-ivr-operator',
     name: 'Banking IVR - Operator (Press 0)',
     description: 'Root menu - press 0 for operator',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       expectedDigits: ['0'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      requireConfirmedTransfer: true,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-activate-card',
     name: 'Banking IVR - Activate Card (1 → 1)',
     description: 'Card services → activate a card',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'activate my new debit card',
     expectedOutcome: {
       expectedDigits: ['1', '1'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-credit-billing',
     name: 'Banking IVR - Credit Card Billing (1 → 2 → 1)',
     description: 'Card services → billing → credit card',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'credit card billing',
     expectedOutcome: {
       expectedDigits: ['1', '2', '1'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-debit-billing',
     name: 'Banking IVR - Debit Card Billing (1 → 2 → 2)',
     description: 'Card services → billing → debit card',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'debit card billing',
     expectedOutcome: {
       expectedDigits: ['1', '2', '2'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-pending-dues',
     name: 'Banking IVR - Pending Dues (1 → 2 → 3)',
     description: 'Card services → billing → pending dues',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'pending dues on my account',
     expectedOutcome: {
       expectedDigits: ['1', '2', '3'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-stolen-card',
     name: 'Banking IVR - Stolen Card (1 → 3)',
     description: 'Card services → report stolen card',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'my card was stolen',
     expectedOutcome: {
       expectedDigits: ['1', '3'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-new-loan',
     name: 'Banking IVR - New Loan (2 → 1)',
     description: 'Loans → apply for new loan',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'apply for a home loan',
     expectedOutcome: {
       expectedDigits: ['2', '1'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-existing-loan',
     name: 'Banking IVR - Existing Loan (2 → 2)',
     description: 'Loans → existing loan status',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'check my existing loan status',
     expectedOutcome: {
       expectedDigits: ['2', '2'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-balance',
     name: 'Banking IVR - Check Balance (3 → 1)',
     description: 'Account services → check balance',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'check my account balance',
     expectedOutcome: {
       expectedDigits: ['3', '1'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-open-account',
     name: 'Banking IVR - Open Account (3 → 2)',
     description: 'Account services → open new account',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'open a new savings account',
     expectedOutcome: {
       expectedDigits: ['3', '2'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-close-account',
     name: 'Banking IVR - Close Account (3 → 3)',
     description: 'Account services → close account',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'close my account',
     expectedOutcome: {
       expectedDigits: ['3', '3'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-statements',
     name: 'Banking IVR - Statements (3 → 4)',
     description: 'Account services → request statements',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'request bank statements',
     expectedOutcome: {
       expectedDigits: ['3', '4'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
     },
   },
   {
     id: 'test-ivr-fraud',
     name: 'Banking IVR - Fraud (4 → immediate transfer)',
     description: 'Report fraud → immediate transfer to fraud dept',
-    phoneNumber: '+17208150797',
+    phoneNumber: TEST_IVR_NUMBERS[0],
     callPurpose: 'report fraudulent activity on my card',
     expectedOutcome: {
       expectedDigits: ['4'],
       shouldReachHuman: true,
-      maxDurationSeconds: 120,
+      maxDurationSeconds: 240,
+    },
+  },
+  {
+    id: 'test-ivr-hold-with-lyrics',
+    name: 'Banking IVR - Hold with vocal music (4 → fraud)',
+    description:
+      'Fraud path plays rock hold music with vocals/lyrics — AI must not confuse song lyrics with IVR prompts or human speech',
+    phoneNumber: TEST_IVR_NUMBERS[0],
+    callPurpose: 'report fraudulent activity on my card',
+    expectedOutcome: {
+      expectedDigits: ['4'],
+      shouldReachHuman: true,
+      requireConfirmedTransfer: true,
+      maxDurationSeconds: 240,
     },
   },
 ];

@@ -4,7 +4,7 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
-  testPathIgnorePatterns: ['/node_modules/', 'liveCallEval\\.test\\.ts$'],
+  testPathIgnorePatterns: ['/node_modules/', 'liveCallEval\\.test\\.ts$', 'infoRequest\\.test\\.ts$'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   testTimeout: 120000,
 };

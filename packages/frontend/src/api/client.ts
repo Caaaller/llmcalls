@@ -90,8 +90,26 @@ export interface MenuOption {
   option: string;
 }
 
+export interface PendingInfoResponse {
+  pending: boolean;
+  requestedInfo?: string;
+  requestedAt?: string;
+}
+
+export interface ProvideInfoResponse {
+  success: boolean;
+  resolved: boolean;
+}
+
 export interface CallEvent {
-  eventType: 'conversation' | 'dtmf' | 'ivr_menu' | 'transfer' | 'termination';
+  eventType:
+    | 'conversation'
+    | 'dtmf'
+    | 'ivr_menu'
+    | 'transfer'
+    | 'termination'
+    | 'info_request'
+    | 'info_response';
   type?: 'user' | 'ai' | 'system';
   text?: string;
   digit?: string;
@@ -303,6 +321,13 @@ export const api = {
           body: JSON.stringify(data),
         }
       ),
+    getPendingInfo: (callSid: string) =>
+      apiFetch<PendingInfoResponse>(`/api/calls/${callSid}/pending-info`),
+    provideInfo: (callSid: string, response: string) =>
+      apiFetch<ProvideInfoResponse>(`/api/calls/${callSid}/provide-info`, {
+        method: 'POST',
+        body: JSON.stringify({ response }),
+      }),
   },
 
   // Saved calls endpoints

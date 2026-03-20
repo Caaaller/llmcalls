@@ -19,8 +19,11 @@ export interface PromptTestCase {
   speech: string;
   previousSpeech?: string;
   config?: Partial<TransferConfig>;
+  transferAnnounced?: boolean;
+  awaitingHumanConfirmation?: boolean;
   expectedBehavior: {
     shouldTransfer?: boolean;
+    shouldConfirmHuman?: boolean;
     shouldPressDTMF?: boolean;
     expectedDigit?: string;
     shouldTerminate?: boolean;
@@ -140,6 +143,15 @@ class PromptEvaluationService {
 
     try {
       const testCallSid = `test-single-${testCase.name}`;
+
+      if (testCase.transferAnnounced || testCase.awaitingHumanConfirmation) {
+        callStateManager.updateCallState(testCallSid, {
+          transferAnnounced:
+            testCase.transferAnnounced || testCase.awaitingHumanConfirmation,
+          awaitingHumanConfirmation: testCase.awaitingHumanConfirmation,
+        });
+      }
+
       const result = await processSpeech({
         callSid: testCallSid,
         speechResult: testCase.speech,
@@ -169,14 +181,24 @@ class PromptEvaluationService {
       details.dtmfDecision = processingResult.dtmfDecision;
       details.aiResponse = result.aiResponse;
 
-      // Test transfer detection
-      if (testCase.expectedBehavior.shouldTransfer !== undefined) {
-        if (
-          processingResult.transferRequested !==
-          testCase.expectedBehavior.shouldTransfer
-        ) {
+      // Test maybe_human confirmation detection
+      if (testCase.expectedBehavior.shouldConfirmHuman !== undefined) {
+        const gotMaybeHuman = result.aiAction === 'maybe_human';
+        if (gotMaybeHuman !== testCase.expectedBehavior.shouldConfirmHuman) {
           errors.push(
-            `Transfer detection mismatch: expected ${testCase.expectedBehavior.shouldTransfer}, got ${processingResult.transferRequested} (confidence: ${processingResult.transferConfidence}) - ${processingResult.transferReason}`
+            `Human confirmation mismatch: expected shouldConfirmHuman=${testCase.expectedBehavior.shouldConfirmHuman}, got aiAction=${result.aiAction}`
+          );
+        }
+      }
+
+      // Test transfer detection (human_detected action)
+      if (testCase.expectedBehavior.shouldTransfer !== undefined) {
+        const gotTransfer =
+          result.aiAction === 'human_detected' ||
+          processingResult.transferRequested;
+        if (gotTransfer !== testCase.expectedBehavior.shouldTransfer) {
+          errors.push(
+            `Transfer detection mismatch: expected ${testCase.expectedBehavior.shouldTransfer}, got aiAction=${result.aiAction}, transferRequested=${processingResult.transferRequested} (confidence: ${processingResult.transferConfidence}) - ${processingResult.transferReason}`
           );
         }
       }

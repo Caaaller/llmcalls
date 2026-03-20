@@ -9,6 +9,7 @@ import { validatedRoute } from '../middleware/validateQuery';
 import transferConfig from '../config/transfer-config';
 import twilioService from '../services/twilioService';
 import callHistoryService from '../services/callHistoryService';
+import callStateManager from '../services/callStateManager';
 import evaluationService from '../services/evaluationService';
 import { isDbConnected } from '../services/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
@@ -212,8 +213,14 @@ router.post(
   authenticate,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      const { to, from, transferNumber, callPurpose, customInstructions } =
-        req.body;
+      const {
+        to,
+        from,
+        transferNumber,
+        callPurpose,
+        customInstructions,
+        userPhone,
+      } = req.body;
 
       if (!to) {
         res.status(400).json({
@@ -274,6 +281,9 @@ router.post(
       });
       if (config.customInstructions) {
         params.append('customInstructions', config.customInstructions);
+      }
+      if (userPhone) {
+        params.append('userPhone', userPhone);
       }
       const twimlUrl = `${baseUrl}/voice?${params.toString()}`;
 
@@ -435,6 +445,106 @@ router.get(
     }
   })
 );
+
+// ── Pending Info Request ──
+
+/**
+ * Check if a call has a pending info request
+ */
+router.get(
+  '/calls/:callSid/pending-info',
+  authenticate,
+  (req: Request, res: Response) => {
+    const callSid = req.params.callSid as string;
+    const state = callStateManager.getCallState(callSid);
+    const pending = state.pendingInfoRequest;
+
+    if (!pending || pending.userResponse) {
+      res.json({ pending: false });
+      return;
+    }
+
+    res.json({
+      pending: true,
+      requestedInfo: pending.requestedInfo,
+      requestedAt: pending.requestedAt,
+    });
+  }
+);
+
+/**
+ * Provide info for a pending request (web UI)
+ */
+router.post(
+  '/calls/:callSid/provide-info',
+  authenticate,
+  (req: Request, res: Response) => {
+    const callSid = req.params.callSid as string;
+    const { response: userResponse } = req.body;
+
+    if (!userResponse || typeof userResponse !== 'string') {
+      res.status(400).json({ success: false, error: 'response is required' });
+      return;
+    }
+
+    const resolved = callStateManager.resolveInfoRequest(
+      callSid,
+      userResponse.trim(),
+      'web'
+    );
+
+    if (resolved) {
+      console.log(
+        `🌐 Web info provided for ${callSid}: "${userResponse.trim()}"`
+      );
+      callHistoryService
+        .addInfoResponse(callSid, userResponse.trim(), 'web')
+        .catch(err => console.error('Error logging info response:', err));
+    }
+
+    res.json({ success: true, resolved });
+  }
+);
+
+// ── Test-only: set up pending info request for e2e testing ──
+
+if (process.env.NODE_ENV !== 'production') {
+  router.post(
+    '/calls/:callSid/test-pending-info',
+    authenticate,
+    (req: Request, res: Response) => {
+      const callSid = req.params.callSid as string;
+      const { requestedInfo, dataEntryMode, userPhone } = req.body;
+
+      if (!requestedInfo || !userPhone) {
+        res.status(400).json({
+          success: false,
+          error: 'requestedInfo and userPhone required',
+        });
+        return;
+      }
+
+      callStateManager.getCallState(callSid);
+      callStateManager.updateCallState(callSid, {
+        userPhone,
+        transferConfig: {
+          transferNumber: process.env.TWILIO_PHONE_NUMBER || '',
+          userPhone,
+          callPurpose: 'test',
+          customInstructions: '',
+          aiSettings: { model: 'gpt-4o', maxTokens: 500, temperature: 0.3 },
+        } as any,
+      });
+      callStateManager.setPendingInfoRequest(
+        callSid,
+        requestedInfo,
+        dataEntryMode
+      );
+
+      res.json({ success: true, callSid });
+    }
+  );
+}
 
 // ── Saved Calls CRUD ──
 

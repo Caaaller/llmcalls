@@ -11,9 +11,17 @@ import { transferPrompt } from '../prompts/transfer-prompt';
 import { formatConversationForAI, ActionHistoryEntry } from '../config/prompts';
 
 export interface CallAction {
-  action: 'press_digit' | 'speak' | 'wait' | 'human_detected' | 'hang_up';
+  action:
+    | 'press_digit'
+    | 'speak'
+    | 'wait'
+    | 'human_detected'
+    | 'maybe_human'
+    | 'hang_up'
+    | 'request_info';
   digit?: string;
   speech?: string;
+  requestedInfo?: string;
   reason: string;
   detected: {
     isIVRMenu: boolean;
@@ -25,6 +33,7 @@ export interface CallAction {
     transferRequested: boolean;
     transferConfidence?: number;
     dataEntryMode?: 'dtmf' | 'speech' | 'none';
+    holdDetected?: boolean;
   };
 }
 
@@ -36,13 +45,16 @@ interface DecideActionParams {
   previousMenus: Array<Array<MenuOption>>;
   lastPressedDTMF?: string;
   callPurpose?: string;
+  transferAnnounced?: boolean;
+  awaitingHumanConfirmation?: boolean;
 }
 
 const CALL_ACTION_SCHEMA = `You must respond with valid JSON matching this schema:
 {
-  "action": "press_digit" | "speak" | "wait" | "human_detected" | "hang_up",
+  "action": "press_digit" | "speak" | "wait" | "human_detected" | "maybe_human" | "hang_up" | "request_info",
   "digit": "0"-"9" | "*" | "#" (required if action is "press_digit"),
   "speech": "what to say" (required if action is "speak"),
+  "requestedInfo": "description of what info is needed" (required if action is "request_info"),
   "reason": "brief explanation of your decision",
   "detected": {
     "isIVRMenu": true/false,
@@ -53,7 +65,8 @@ const CALL_ACTION_SCHEMA = `You must respond with valid JSON matching this schem
     "terminationReason": "voicemail" | "closed_no_menu" | "dead_end" | null,
     "transferRequested": true/false,
     "transferConfidence": 0.0-1.0,
-    "dataEntryMode": "dtmf" | "speech" | "none"
+    "dataEntryMode": "dtmf" | "speech" | "none",
+    "holdDetected": true/false
   }
 }
 
@@ -61,8 +74,10 @@ Action rules:
 - "press_digit": Press a DTMF digit. Use when an IVR menu is detected and you've chosen an option.
 - "speak": Say something. Use when the system asks a direct question, requests data, or you need to state your purpose.
 - "wait": Stay silent. Use for greetings, disclaimers, hold messages, incomplete menus.
-- "human_detected": A live human representative is on the line. The system will auto-transfer.
-- "hang_up": Terminate the call. Use ONLY for voicemail, closed business, or dead ends.`;
+- "maybe_human": You think a live human may be on the line. The system will ask them to confirm.
+- "human_detected": A live human is CONFIRMED on the line. Use ONLY when awaitingHumanConfirmation is true and the person responded naturally to the confirmation question.
+- "hang_up": Terminate the call. Use ONLY for voicemail, closed business, or dead ends.
+- "request_info": The system is asking for information you do NOT have (account number, member ID, etc.) and it is NOT available in your custom instructions, and it is NOT the user's phone number or email. The system will pause the call, ask the user for this info, and resume when they reply.`;
 
 class IVRNavigatorService {
   private client: OpenAI;
@@ -80,6 +95,8 @@ class IVRNavigatorService {
     previousMenus,
     lastPressedDTMF,
     callPurpose,
+    transferAnnounced,
+    awaitingHumanConfirmation,
   }: DecideActionParams): Promise<CallAction> {
     const systemPrompt = transferPrompt['transfer-only'](config, '', false);
 
@@ -104,6 +121,8 @@ CURRENT IVR SPEECH:
 
 CALL PURPOSE: ${callPurpose || config.callPurpose || 'speak with a representative'}
 ${config.customInstructions ? `CUSTOM INSTRUCTIONS: ${config.customInstructions}` : ''}
+${transferAnnounced ? `TRANSFER STATE: transferAnnounced=true (the IVR said it is transferring/connecting us)` : ''}
+${awaitingHumanConfirmation ? `TRANSFER STATE: awaitingHumanConfirmation=true (we asked "Hey, are you a real person?" — if they respond naturally, use human_detected)` : ''}
 
 ${CALL_ACTION_SCHEMA}
 
@@ -111,7 +130,7 @@ Analyze the current speech and decide what to do. Consider:
 1. Is this a menu? Extract all options. Is the menu complete? Check PREVIOUS MENUS — if you've seen these options before, the menu IS complete. Press a digit.
 2. Is the system asking a direct question? → speak
 3. Is this a voicemail/closed/dead end? → hang_up
-4. Is a human speaking naturally, or saying "hold on" / "one moment while I handle your request"? → human_detected
+4. Does it sound like a live human (natural speech, introducing themselves)? → maybe_human (NOT human_detected, unless awaitingHumanConfirmation is true and they responded to the confirmation question)
 5. Is this a greeting/disclaimer/hold music? → wait
 6. If menu detected: pick the best option for the call purpose. If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
 7. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data.

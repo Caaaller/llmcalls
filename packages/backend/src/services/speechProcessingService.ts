@@ -8,6 +8,7 @@ import twilio from 'twilio';
 import callStateManager from './callStateManager';
 import callHistoryService from './callHistoryService';
 import ivrNavigatorService, { CallAction } from './ivrNavigatorService';
+import twilioService from './twilioService';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
@@ -35,6 +36,7 @@ export interface ProcessSpeechResult {
   twiml: string;
   shouldSend: boolean;
   processingResult?: VoiceProcessingResult;
+  aiAction?: string;
   aiResponse?: string;
   digitPressed?: string;
 }
@@ -77,8 +79,7 @@ function mapActionToProcessingResult(
     loopDetected: action.detected.loopDetected,
     shouldTerminate: action.action === 'hang_up',
     terminationReason: action.detected.terminationReason,
-    transferRequested:
-      action.action === 'human_detected' || action.detected.transferRequested,
+    transferRequested: action.detected.transferRequested,
     transferConfidence: action.detected.transferConfidence,
     transferReason: action.reason,
     dtmfDecision,
@@ -133,9 +134,12 @@ export async function processSpeech({
       customInstructions: finalCustomInstructions,
     });
 
-    if (finalCustomInstructions) {
+    if (finalCustomInstructions || config.userPhone) {
       callStateManager.updateCallState(callSid, {
-        customInstructions: finalCustomInstructions,
+        ...(finalCustomInstructions && {
+          customInstructions: finalCustomInstructions,
+        }),
+        ...(config.userPhone && { userPhone: config.userPhone }),
       });
     }
 
@@ -164,6 +168,8 @@ export async function processSpeech({
       previousMenus: callState.previousMenus || [],
       lastPressedDTMF: callState.lastPressedDTMF,
       callPurpose: config.callPurpose,
+      transferAnnounced: callState.transferAnnounced,
+      awaitingHumanConfirmation: callState.awaitingHumanConfirmation,
     });
 
     const result = mapActionToProcessingResult(
@@ -209,16 +215,14 @@ export async function processSpeech({
         twiml: response.toString(),
         shouldSend: !testMode,
         processingResult: result,
+        aiAction: action.action,
       };
     }
 
-    // ── 5. Handle human detected / transfer ──────────────────────────────────
-    if (
-      action.action === 'human_detected' ||
-      action.detected.transferRequested
-    ) {
+    // ── 5. Handle human confirmed → dial user ─────────────────────────────────
+    if (action.action === 'human_detected') {
       if (!testMode) {
-        console.log(`🔄 Transfer detected: ${action.reason}`);
+        console.log(`🔄 Human confirmed, dialing user: ${action.reason}`);
         callHistoryService
           .addTransfer(callSid, config.transferNumber, true)
           .catch(err => console.error('Error adding transfer:', err));
@@ -226,7 +230,7 @@ export async function processSpeech({
         const sayAttributes = createSayAttributes(config);
         response.say(
           sayAttributes as Parameters<typeof response.say>[0],
-          'Hold on, please.'
+          'Ok, one second please.'
         );
         response.pause({ length: 1 });
         const dial = response.dial({
@@ -241,6 +245,92 @@ export async function processSpeech({
         twiml: response.toString(),
         shouldSend: !testMode,
         processingResult: result,
+        aiAction: action.action,
+      };
+    }
+
+    // ── 5b. Handle maybe_human → ask confirmation ────────────────────────────
+    if (action.action === 'maybe_human') {
+      if (!testMode) {
+        console.log(
+          `❓ Maybe human detected, asking confirmation: ${action.reason}`
+        );
+      }
+
+      callStateManager.updateCallState(callSid, {
+        awaitingHumanConfirmation: true,
+      });
+
+      if (!testMode) {
+        const sayAttributes = createSayAttributes(config);
+        response.say(
+          sayAttributes as Parameters<typeof response.say>[0],
+          'Hey, are you a real person?'
+        );
+
+        const gatherAttributes = createGatherAttributes(config, {
+          action: buildProcessSpeechUrl({ baseUrl, config }),
+          method: 'POST',
+          enhanced: true,
+          timeout: DEFAULT_SPEECH_TIMEOUT,
+        });
+        response.gather(
+          gatherAttributes as Parameters<typeof response.gather>[0]
+        );
+      }
+      return {
+        twiml: response.toString(),
+        shouldSend: !testMode,
+        processingResult: result,
+        aiAction: action.action,
+      };
+    }
+
+    // ── 5c. Handle request_info → stall + notify user ───────────────────────
+    if (action.action === 'request_info' && action.requestedInfo) {
+      const requestedInfo = action.requestedInfo;
+
+      callStateManager.setPendingInfoRequest(
+        callSid,
+        requestedInfo,
+        action.detected.dataEntryMode
+      );
+
+      if (!testMode) {
+        console.log(`📋 Info requested: ${requestedInfo}`);
+
+        callHistoryService
+          .addInfoRequest(callSid, requestedInfo)
+          .catch(err => console.error('Error logging info request:', err));
+
+        // Fire-and-forget SMS to user
+        const userPhoneNumber =
+          config.userPhone || process.env.USER_PHONE_NUMBER;
+        if (userPhoneNumber) {
+          twilioService
+            .sendSMS(
+              userPhoneNumber,
+              `Your call needs: ${requestedInfo}. Reply with the info to continue the call.`
+            )
+            .then(() => console.log(`📱 SMS sent to ${userPhoneNumber}`))
+            .catch(err =>
+              console.error('SMS send failed (non-blocking):', err)
+            );
+        }
+
+        const sayAttributes = createSayAttributes(config);
+        response.say(
+          sayAttributes as Parameters<typeof response.say>[0],
+          'One moment, let me look that up.'
+        );
+        response.redirect(`${baseUrl}/voice/stall?callSid=${callSid}`);
+      }
+
+      return {
+        twiml: response.toString(),
+        shouldSend: !testMode,
+        processingResult: result,
+        aiAction: action.action,
       };
     }
 
@@ -282,12 +372,28 @@ export async function processSpeech({
         twiml: response.toString(),
         shouldSend: !testMode,
         processingResult: result,
+        aiAction: action.action,
         digitPressed: action.digit,
       };
     }
 
     // ── 7. Handle wait (incomplete menu, silence, etc.) ──────────────────────
     if (action.action === 'wait') {
+      // If transfer was announced, mark it in state
+      if (action.detected.transferRequested) {
+        callStateManager.updateCallState(callSid, {
+          transferAnnounced: true,
+        });
+      }
+
+      // If hold queue detected, record it
+      if (action.detected.holdDetected && !testMode) {
+        console.log(`📞 Hold queue detected: ${action.reason}`);
+        callHistoryService
+          .addHoldDetected(callSid)
+          .catch(err => console.error('Error adding hold event:', err));
+      }
+
       // If menu detected but incomplete, track it
       if (action.detected.isIVRMenu && !action.detected.isMenuComplete) {
         const menuOptions = action.detected.menuOptions as MenuOption[];
@@ -300,8 +406,9 @@ export async function processSpeech({
       }
 
       if (!testMode) {
+        const processSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
         const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl({ baseUrl, config }),
+          action: processSpeechUrl,
           method: 'POST',
           enhanced: true,
           timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -309,11 +416,13 @@ export async function processSpeech({
         response.gather(
           gatherAttributes as Parameters<typeof response.gather>[0]
         );
+        response.redirect({ method: 'POST' }, processSpeechUrl);
       }
       return {
         twiml: response.toString(),
         shouldSend: !testMode,
         processingResult: result,
+        aiAction: action.action,
       };
     }
 
@@ -376,8 +485,9 @@ export async function processSpeech({
           response.play({ digits: `w${dtmfDigits}` });
         }
 
+        const dtmfProcessSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
         const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl({ baseUrl, config }),
+          action: dtmfProcessSpeechUrl,
           method: 'POST',
           enhanced: true,
           timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -385,11 +495,13 @@ export async function processSpeech({
         response.gather(
           gatherAttributes as Parameters<typeof response.gather>[0]
         );
+        response.redirect({ method: 'POST' }, dtmfProcessSpeechUrl);
 
         return {
           twiml: response.toString(),
           shouldSend: true,
           processingResult: result,
+          aiAction: action.action,
           digitPressed: dtmfDigits,
         };
       }
@@ -409,8 +521,9 @@ export async function processSpeech({
     }
 
     if (!testMode) {
+      const processSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
       const gatherAttributes = createGatherAttributes(config, {
-        action: `${baseUrl}/voice/process-speech?transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`,
+        action: processSpeechUrl,
         method: 'POST',
         enhanced: true,
         timeout: DEFAULT_SPEECH_TIMEOUT,
@@ -418,12 +531,16 @@ export async function processSpeech({
       response.gather(
         gatherAttributes as Parameters<typeof response.gather>[0]
       );
+      // If Gather times out (no speech), redirect back to keep listening
+      // instead of silently ending the call
+      response.redirect({ method: 'POST' }, processSpeechUrl);
     }
 
     return {
       twiml: response.toString(),
       shouldSend: !testMode,
       processingResult: result,
+      aiAction: action.action,
       aiResponse,
     };
   } catch (error) {

@@ -145,6 +145,10 @@ const mergedRanges = mergeTimeRanges(ranges);
 function processVoiceInput(context: VoiceProcessingContext) { }
 ````
 
+## MANDATORY: Modular Function Bodies
+
+Extract logic into well-named functions. Keep function bodies declarative and explicit — prefer `doTheThing()` calls over 45 inline lines. Every distinct operation should be its own function.
+
 ## AI-Driven Logic (DTMF, loops, incomplete speech)
 
 - Avoid adding regex/heuristic logic for call behavior (DTMF choice, loop detection, incomplete speech, menu parsing) when an AI or existing service already handles it; route through those shared functions instead.

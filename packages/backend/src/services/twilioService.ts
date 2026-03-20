@@ -103,6 +103,17 @@ class TwilioService {
   }
 
   /**
+   * Send an SMS message
+   */
+  async sendSMS(to: string, body: string): Promise<void> {
+    const from = process.env.TWILIO_PHONE_NUMBER;
+    if (!from) {
+      throw new Error('TWILIO_PHONE_NUMBER must be set to send SMS');
+    }
+    await this.client.messages.create({ to, from, body });
+  }
+
+  /**
    * Generate Twilio Access Token for browser client
    */
   generateAccessToken(identity: string, _appName: string): string {
