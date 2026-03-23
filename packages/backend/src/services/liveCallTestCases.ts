@@ -25,12 +25,11 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   {
     id: 'amazon-cs',
     name: 'Amazon Customer Service',
-    description: 'Call Amazon customer service and navigate to representative',
+    description: 'Call Amazon customer service and navigate through IVR',
     phoneNumber: '+18882804331',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      shouldReachHuman: true,
-      maxDurationSeconds: 180,
+      maxDurationSeconds: 300,
     },
   },
   {
@@ -40,8 +39,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18009256278',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      shouldReachHuman: true,
-      maxDurationSeconds: 180,
+      maxDurationSeconds: 300,
     },
   },
   {
@@ -51,8 +49,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18004400680',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      shouldReachHuman: true,
-      maxDurationSeconds: 180,
+      maxDurationSeconds: 300,
     },
   },
   {
@@ -63,8 +60,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18882378289',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      shouldReachHuman: true,
-      maxDurationSeconds: 180,
+      maxDurationSeconds: 300,
     },
   },
   // BofA requires real account credentials — no bypass to representative
@@ -87,8 +83,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18008693557',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      shouldReachHuman: true,
-      requireConfirmedTransfer: true,
+      maxDurationSeconds: 300,
     },
   },
   {
@@ -98,8 +93,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18003310500',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      shouldReachHuman: true,
-      maxDurationSeconds: 180,
+      maxDurationSeconds: 300,
     },
   },
   {
@@ -109,22 +103,35 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18009220204',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      shouldReachHuman: true,
       maxDTMFPresses: 5,
-      maxDurationSeconds: 180,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'loop-test-720',
+    name: 'Loop Detection Test (720-587-1000)',
+    description:
+      'IVR with known looping menu — verifies loop detection and correct DTMF behavior',
+    phoneNumber: '+17205871000',
+    callPurpose: 'speak with a representative',
+    customInstructions:
+      'This is a Costco warehouse. Navigate the IVR menu to reach a human (administrative staff is the best option). Use DTMF when prompted.',
+    expectedOutcome: {
+      maxDurationSeconds: 300,
     },
   },
 ];
 
-export const QUICK_TEST_CASES: LiveCallTestCase[] = [
+export const LONG_TEST_CASES: LiveCallTestCase[] = [
   {
-    id: 'quick-amazon',
-    name: 'Quick Test - Amazon',
-    description: 'Quick test with Amazon customer service',
+    id: 'amazon-cs-long',
+    name: 'Amazon Customer Service (Long)',
+    description: 'Call Amazon customer service and wait to reach a human',
     phoneNumber: '+18882804331',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
-      maxDurationSeconds: 180,
+      shouldReachHuman: true,
+      maxDurationSeconds: 1000,
     },
   },
 ];

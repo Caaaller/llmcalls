@@ -1,0 +1,465 @@
+{
+  "version": 2,
+  "id": "target-cs",
+  "testCaseId": "target-cs",
+  "lastRecordedAt": "2026-03-21T00:06:30.968Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "Hi, thanks for calling Target.",
+    "children": [
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-03-21T00:06:30.968Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "In-store purchase experience or merchandise, press 1.",
+          "children": [
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-03-21T00:06:30.968Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "Experience including drive up or order pickup. Press 3, Target credit debit or reloadable Target, gift cards, or third, party payments, press 4.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-03-21T00:06:30.968Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n3",
+                      "ivrSpeech": "Sorry, we didn't get that. Please try again. In store, purchase experience or merchandise, press 1, gift registry, press 2.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "wait",
+                            "reason": "No action before next speech",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-03-16T06:08:10.578Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n4",
+                            "ivrSpeech": "Press, 3, Target credit debit or reloadable Target, gift cards, or third, party payments, press 4.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-16T06:08:10.578Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n5",
+                                  "ivrSpeech": "Sorry, we didn't get that. Please try again. In store, purchase experience or merchandise, press 1, gift registry, press 2.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-16T06:08:10.578Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n6",
+                                        "ivrSpeech": "3, Target credit debit or reloadable Target, gift cards, or third. Party payments, press 4.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-03-16T06:08:10.578Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "in-progress",
+                                              "durationSeconds": 111,
+                                              "reachedHuman": false,
+                                              "dtmfDigits": []
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "5",
+                            "reason": "AI selected: This is part of an IVR menu and enough options have been presented to treat it as complete. Since no representative option was offered, choose the available path rather than keep waiting.",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-03-21T00:06:30.968Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n7",
+                            "ivrSpeech": "Are you interested in selling products at Target or providing services for goods not for retail sale to Target. Here's how to learn more perspective, manufacturers or representatives in selling retail products, specifically for the Alaska or Hawaii.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "Representative",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-20T23:52:10.409Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n8",
+                                  "ivrSpeech": "at target.com, prospective manufacturers or representatives in selling retail and grocery products, please visit target.com suppliers",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-20T23:52:10.409Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n9",
+                                        "ivrSpeech": "Target or providing services are Goods not for retail sale to Target. Here's how to learn more.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-03-20T23:52:10.409Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n10",
+                                              "ivrSpeech": "Markets dot merchandising at target.com. Prospective manufacturers are representatives in selling retail and grocery products. Please visit target.com suppliers.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-03-20T23:52:10.409Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n11",
+                                                    "ivrSpeech": "Products at Target or providing services are Goods not for retail sale to Target. Here's how to learn more perspective, manufacturers. Or representatives in selling retail products, specifically for the Alaska or Hawaii markets. Please email offshore markets. Merchandise",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "wait",
+                                                          "reason": "No action before next speech",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-03-20T23:52:10.409Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n12",
+                                                          "ivrSpeech": "Prospective manufacturers or representatives in selling retail and grocery products, please visit target.com suppliers.",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "wait",
+                                                                "reason": "No action before next speech",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-03-20T23:52:10.409Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "terminal": true,
+                                                                "finalStatus": "completed",
+                                                                "durationSeconds": 143,
+                                                                "reachedHuman": false,
+                                                                "dtmfDigits": [
+                                                                  "5"
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-21T00:06:30.968Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n13",
+                                  "ivrSpeech": "At target.com, prospective manufacturers or representatives in selling retail and grocery products, please visit target.com suppliers. Are you interested in selling products at Target",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "No, I’m calling because I need to speak with a representative.",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-21T00:06:30.968Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n14",
+                                        "ivrSpeech": "Expected manufacturers or representatives in selling retail products, specifically for the Alaska or Hawaii markets. Please email offshore markets dot merchandising at target.com",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-03-21T00:06:30.968Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n15",
+                                              "ivrSpeech": "And grocery products, please visit target.com suppliers.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-03-21T00:06:30.968Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "id": "n16",
+                                                    "ivrSpeech": "That Target or providing services are Goods not for retail sales to Target. Here's how to learn more.",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "wait",
+                                                          "reason": "No action before next speech",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-03-21T00:06:30.968Z",
+                                                        "isLatestPath": true,
+                                                        "child": {
+                                                          "id": "n17",
+                                                          "ivrSpeech": "Products specifically for the Alaska or Hawaii markets. Please email offshore markets dot merchandising at Target",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "wait",
+                                                                "reason": "No action before next speech",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-03-21T00:06:30.968Z",
+                                                              "isLatestPath": true,
+                                                              "child": {
+                                                                "terminal": true,
+                                                                "finalStatus": "completed",
+                                                                "durationSeconds": 143,
+                                                                "reachedHuman": false,
+                                                                "dtmfDigits": [
+                                                                  "5"
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
