@@ -10,6 +10,51 @@ import { MenuOption } from '../types/menu';
 import { transferPrompt } from '../prompts/transfer-prompt';
 import { formatConversationForAI, ActionHistoryEntry } from '../config/prompts';
 
+const INVALID_ENTRY_PATTERNS =
+  /did not recognize|invalid entry|not a valid|not recognized/i;
+
+/**
+ * Scan action history for digits that were pressed and followed by "invalid entry" responses.
+ * Checks both immediate next turn AND any turn within the next 2 entries for the error message
+ * (since STT sometimes splits the error and menu replay across multiple turns).
+ */
+function extractFailedDigits(
+  actionHistory: Array<ActionHistoryEntry>,
+  currentSpeech: string
+): Array<string> {
+  const failed = new Set<string>();
+
+  for (let i = 0; i < actionHistory.length; i++) {
+    const entry = actionHistory[i];
+    if (entry.action !== 'press_digit' || !entry.digit) continue;
+
+    // Check the next 2 turns for invalid entry messages
+    for (let j = 1; j <= 2 && i + j < actionHistory.length; j++) {
+      const futureEntry = actionHistory[i + j];
+      if (INVALID_ENTRY_PATTERNS.test(futureEntry.ivrSpeech)) {
+        failed.add(entry.digit);
+        break;
+      }
+      // Stop looking if there's another press_digit action (that's a different attempt)
+      if (futureEntry.action === 'press_digit') break;
+    }
+  }
+
+  // Also check if the last pressed digit was followed by the current speech being an error
+  if (actionHistory.length > 0) {
+    const lastEntry = actionHistory[actionHistory.length - 1];
+    if (
+      lastEntry.action === 'press_digit' &&
+      lastEntry.digit &&
+      INVALID_ENTRY_PATTERNS.test(currentSpeech)
+    ) {
+      failed.add(lastEntry.digit);
+    }
+  }
+
+  return [...failed];
+}
+
 export interface CallAction {
   action:
     | 'press_digit'
@@ -120,12 +165,19 @@ class IVRNavigatorService {
 
     const actionSchema = buildCallActionSchema(!!skipInfoRequests);
 
+    const failedDigits = extractFailedDigits(actionHistory, currentSpeech);
+    const allDigitsFailed = failedDigits.length >= 2;
+    const failedDigitsWarning =
+      failedDigits.length > 0
+        ? `\n⚠️ FAILED DIGITS (got "invalid entry" after pressing these): ${failedDigits.join(', ')} — do NOT press these again.${allDigitsFailed ? ' ALL DTMF digits have been rejected. This IVR may not accept DTMF tones. Try SPEAKING your choice instead (e.g., say "administrative staff" or "representative" or "one") using action "speak".' : ' Try a different digit.'}\n`
+        : '';
+
     const userMessage = `${formatConversationForAI(actionHistory)}
 
 PREVIOUS MENUS SEEN THIS CALL:
 ${previousMenusSummary}
 ${lastPressedDTMF ? `Last DTMF pressed: ${lastPressedDTMF}` : ''}
-
+${failedDigitsWarning}
 CURRENT IVR SPEECH:
 "${currentSpeech}"
 
@@ -144,7 +196,8 @@ Analyze the current speech and decide what to do. Consider:
 5. Is this a greeting/disclaimer/hold music? → wait
 6. If menu detected: pick the best option for the call purpose. If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
 7. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data.
-8. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.`;
+8. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.
+9. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
 
     const completion = await this.client.chat.completions.create({
       model: config.aiSettings?.model || 'gpt-5.4',

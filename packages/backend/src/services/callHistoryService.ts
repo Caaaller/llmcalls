@@ -285,6 +285,16 @@ class CallHistoryService {
   }
 
   /**
+   * Get the termination reason for a call (e.g. 'closed_no_menu', 'voicemail', 'dead_end')
+   */
+  async getTerminationReason(callSid: string): Promise<string | null> {
+    const call = await this.getCall(callSid);
+    if (!call?.events) return null;
+    const termination = call.events.find(e => e.eventType === 'termination');
+    return termination?.reason ?? null;
+  }
+
+  /**
    * Record an info request (agent asked user for missing info)
    */
   async addInfoRequest(

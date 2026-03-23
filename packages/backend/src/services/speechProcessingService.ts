@@ -190,6 +190,17 @@ export async function processSpeech({
       reason: action.reason,
     });
 
+    // ── 3b. Store detected menu options for loop detection (regardless of action) ──
+    const detectedMenuOptions = action.detected.menuOptions as MenuOption[];
+    if (detectedMenuOptions.length > 0) {
+      callStateManager.updateCallState(callSid, {
+        previousMenus: [
+          ...(callState.previousMenus || []),
+          detectedMenuOptions,
+        ],
+      });
+    }
+
     // ── 4. Handle termination ────────────────────────────────────────────────
     if (action.action === 'hang_up') {
       if (!testMode) {
@@ -274,7 +285,6 @@ export async function processSpeech({
         const gatherAttributes = createGatherAttributes(config, {
           action: buildProcessSpeechUrl({ baseUrl, config }),
           method: 'POST',
-          enhanced: true,
           timeout: DEFAULT_SPEECH_TIMEOUT,
         });
         response.gather(
@@ -377,10 +387,21 @@ export async function processSpeech({
           .addDTMF(callSid, action.digit, `AI selected: ${action.reason}`)
           .catch(err => console.error('Error adding DTMF:', err));
 
-        response.play({ digits: action.digit });
-        response.redirect(
-          `${baseUrl}/voice/process-dtmf?Digits=${action.digit}&transferNumber=${encodeURIComponent(config.transferNumber)}&callPurpose=${encodeURIComponent(config.callPurpose || '')}`
+        // Send DTMF and immediately set up Gather for the IVR's response.
+        // No redirect to /process-dtmf — that caused a redundant network round-trip
+        // and previously sent the digit a second time.
+        response.play({ digits: `${action.digit}` });
+
+        const processSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
+        const gatherAttributes = createGatherAttributes(config, {
+          action: processSpeechUrl,
+          method: 'POST',
+          timeout: DEFAULT_SPEECH_TIMEOUT,
+        });
+        response.gather(
+          gatherAttributes as Parameters<typeof response.gather>[0]
         );
+        response.redirect({ method: 'POST' }, processSpeechUrl);
       }
       return {
         twiml: response.toString(),
@@ -425,7 +446,6 @@ export async function processSpeech({
         const gatherAttributes = createGatherAttributes(config, {
           action: processSpeechUrl,
           method: 'POST',
-          enhanced: true,
           timeout: DEFAULT_SPEECH_TIMEOUT,
         });
         response.gather(
@@ -497,14 +517,13 @@ export async function processSpeech({
             .addDTMF(callSid, dtmfDigits, 'AI data entry response')
             .catch(err => console.error('Error adding DTMF:', err));
 
-          response.play({ digits: `w${dtmfDigits}` });
+          response.play({ digits: `ww${dtmfDigits}` });
         }
 
         const dtmfProcessSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
         const gatherAttributes = createGatherAttributes(config, {
           action: dtmfProcessSpeechUrl,
           method: 'POST',
-          enhanced: true,
           timeout: DEFAULT_SPEECH_TIMEOUT,
         });
         response.gather(
@@ -540,7 +559,6 @@ export async function processSpeech({
       const gatherAttributes = createGatherAttributes(config, {
         action: processSpeechUrl,
         method: 'POST',
-        enhanced: true,
         timeout: DEFAULT_SPEECH_TIMEOUT,
       });
       response.gather(

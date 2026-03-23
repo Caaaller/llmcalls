@@ -88,7 +88,6 @@ router.post('/', (req: Request, res: Response): void => {
     const gatherAttributes = createGatherAttributes(config, {
       action: initialProcessSpeechUrl,
       method: 'POST',
-      enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
     });
     response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
@@ -193,14 +192,18 @@ router.post('/process-dtmf', (req: Request, res: Response) => {
   const response = new twilio.twiml.VoiceResponse();
 
   if (digit) {
-    console.log('[process-dtmf] Sending DTMF digit:', digit);
-    response.play({ digits: digit });
+    console.log(
+      '[process-dtmf] DTMF digit already sent by speechProcessingService:',
+      digit
+    );
+    // Do NOT re-send the digit here — it was already sent via <Play digits="ww{digit}">
+    // in speechProcessingService before the <Redirect> to this endpoint.
+    // Sending it twice causes IVRs to reject the input.
   }
 
   const gatherAttributes = createGatherAttributes(config, {
     action: buildProcessSpeechUrl({ baseUrl, config }),
     method: 'POST',
-    enhanced: true,
     timeout: DEFAULT_SPEECH_TIMEOUT,
     input: ['dtmf', 'speech'],
     numDigits: 1,
@@ -298,7 +301,7 @@ router.post('/stall', (req: Request, res: Response): void => {
     const digits = pending.userResponse.replace(/\D/g, '');
 
     if (dataEntryMode === 'dtmf' && digits.length > 0) {
-      response.play({ digits: `w${digits}` });
+      response.play({ digits: `ww${digits}` });
     } else {
       response.say(
         sayAttributes as Parameters<typeof response.say>[0],
@@ -313,7 +316,6 @@ router.post('/stall', (req: Request, res: Response): void => {
     const gatherAttributes = createGatherAttributes(config, {
       action: buildProcessSpeechUrl({ baseUrl, config }),
       method: 'POST',
-      enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
     });
     response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
@@ -350,7 +352,6 @@ router.post('/stall', (req: Request, res: Response): void => {
     const gatherAttributes = createGatherAttributes(config, {
       action: buildProcessSpeechUrl({ baseUrl, config }),
       method: 'POST',
-      enhanced: true,
       timeout: DEFAULT_SPEECH_TIMEOUT,
     });
     response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);

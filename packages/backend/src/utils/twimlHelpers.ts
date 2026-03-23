@@ -44,15 +44,23 @@ export function createGatherAttributes(
   config: TransferConfigType,
   overrides: Partial<TwilioGatherInput> = {}
 ): TwilioGatherInput {
-  return {
+  const envSpeechModel = process.env.SPEECH_MODEL;
+  const envSpeechTimeout = process.env.SPEECH_TIMEOUT;
+
+  const defaults: TwilioGatherInput = {
     input: ['speech'],
     language: config.aiSettings.language || 'en-US',
-    speechTimeout: 'auto',
-    speechModel: 'phone_call',
+    speechTimeout: envSpeechTimeout
+      ? envSpeechTimeout === 'auto'
+        ? 'auto'
+        : Number(envSpeechTimeout)
+      : 1,
+    speechModel: envSpeechModel || 'experimental_conversations',
     profanityFilter: false,
     timeout: DEFAULT_SPEECH_TIMEOUT,
-    ...overrides,
   };
+
+  return { ...defaults, ...overrides };
 }
 
 export function createSayAttributes(
