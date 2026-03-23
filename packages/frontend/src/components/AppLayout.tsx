@@ -4,6 +4,7 @@ import Sidebar, { type ActiveView } from './Sidebar';
 import CallWizard from './CallWizard';
 import HistoryTab from '../HistoryTab';
 import EvaluationsTab from '../EvaluationsTab';
+import TestRunsTab from '../TestRunsTab';
 import { api } from '../api/client';
 import type { WizardData, WizardStep } from '../types/wizard';
 import type { User } from '../utils/auth';
@@ -107,6 +108,7 @@ function AppLayout({ user, defaultTransferNumber, onLogout }: AppLayoutProps) {
           )}
           {activeView === 'history' && <HistoryTab />}
           {activeView === 'evaluations' && <EvaluationsTab />}
+          {activeView === 'test-runs' && <TestRunsTab />}
         </div>
       </main>
     </div>

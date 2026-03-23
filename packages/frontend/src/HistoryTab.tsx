@@ -338,6 +338,14 @@ function HistoryTab() {
                               )}
                             </div>
                           )}
+                          {event.eventType === 'hold' && (
+                            <div
+                              className="event-transfer"
+                              style={{ color: '#ffc107' }}
+                            >
+                              ⏳ Hold queue detected
+                            </div>
+                          )}
                           {event.eventType === 'transfer' && (
                             <div className="event-transfer">
                               🔄 Transfer{' '}

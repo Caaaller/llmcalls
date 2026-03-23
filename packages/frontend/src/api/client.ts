@@ -108,6 +108,7 @@ export interface CallEvent {
     | 'ivr_menu'
     | 'transfer'
     | 'termination'
+    | 'hold'
     | 'info_request'
     | 'info_response';
   type?: 'user' | 'ai' | 'system';
@@ -171,6 +172,32 @@ export interface EvaluationMetrics {
 export interface EvaluationResponse {
   success: boolean;
   metrics: EvaluationMetrics;
+}
+
+export interface TestCaseResult {
+  testCaseId: string;
+  name: string;
+  callSid: string;
+  status: 'passed' | 'failed' | 'business_closed';
+  durationSeconds: number;
+  error?: string;
+  timedOut: boolean;
+}
+
+export interface TestRunSummary {
+  runId: string;
+  startedAt: string;
+  completedAt: string;
+  status: 'passed' | 'failed';
+  totalTests: number;
+  passedTests: number;
+  failedTests: number;
+  closedTests: number;
+  createdAt: string;
+}
+
+export interface TestRunDetail extends TestRunSummary {
+  testCases: TestCaseResult[];
 }
 
 export interface BreakdownResponse {
@@ -376,6 +403,21 @@ export const api = {
       apiFetch<{ success: boolean }>(`/api/saved-calls/${id}`, {
         method: 'DELETE',
       }),
+  },
+
+  // Test runs endpoints (dev only)
+  testRuns: {
+    list: () =>
+      apiFetch<{ success: boolean; runs: TestRunSummary[] }>('/api/test-runs'),
+    get: (runId: string) =>
+      apiFetch<{ success: boolean; run: TestRunDetail }>(
+        `/api/test-runs/${encodeURIComponent(runId)}`
+      ),
+    delete: (runId: string) =>
+      apiFetch<{ success: boolean }>(
+        `/api/test-runs/${encodeURIComponent(runId)}`,
+        { method: 'DELETE' }
+      ),
   },
 
   // Evaluation endpoints

@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import type { WizardData } from '../types/wizard';
 import { savedToWizard } from '../utils/callConversions';
 
-export type ActiveView = 'wizard' | 'history' | 'evaluations';
+export type ActiveView = 'wizard' | 'history' | 'evaluations' | 'test-runs';
 
 interface SidebarProps {
   activeView: ActiveView;
@@ -104,6 +104,14 @@ function Sidebar({
         >
           Evaluations
         </button>
+        {process.env.NODE_ENV !== 'production' && (
+          <button
+            className={`sidebar-nav-btn ${activeView === 'test-runs' ? 'nav-active' : ''}`}
+            onClick={() => onViewChange('test-runs')}
+          >
+            Test Runs
+          </button>
+        )}
       </nav>
     </aside>
   );

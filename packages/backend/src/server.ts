@@ -17,6 +17,8 @@ import voiceRoutes from './routes/voiceRoutes';
 import testIvrRoutes from './routes/testIvrRoutes';
 import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
+import testRunRoutes from './routes/testRunRoutes';
+import sttTestRoutes from './routes/sttTestRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import twilio from 'twilio';
 
@@ -71,6 +73,12 @@ app.use('/api/auth', authRoutes);
 console.log('  ✅ /api/auth routes registered');
 app.use('/api', apiRoutes);
 console.log('  ✅ /api routes registered');
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test-runs', testRunRoutes);
+  console.log('  ✅ /api/test-runs routes registered (dev only)');
+  app.use('/voice/stt-test', sttTestRoutes);
+  console.log('  ✅ /voice/stt-test routes registered (dev only)');
+}
 
 // Serve static files from public directory (after routes to avoid conflicts)
 app.use(express.static('public'));
