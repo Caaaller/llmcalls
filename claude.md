@@ -18,14 +18,20 @@ Before starting relevant tasks, READ the appropriate rule file:
 
 Use Plan Mode (EnterPlanMode) for any non-trivial changes. Plans are conversational — no plan files needed.
 
-## MANDATORY: Live call tests require running server and ngrok
+## MANDATORY: Prefer replay tests over live tests
 
-Before running `test:live` or `test:live:record`:
+Always use `test:replay-or-live` instead of `test:live`. It replays from recorded fixtures (free) and only falls back to live Twilio calls when the tree diverges. Only use `test:live:record` when explicitly recording new fixtures.
 
-1. Start the dev server (`pnpm --filter backend dev`) if not running
+## MANDATORY: Start server/ngrok automatically for live tests
+
+Before running `test:live`, `test:live:record`, or when `test:replay-or-live` falls back to a live call:
+
+1. Start the dev server (`pnpm --filter backend dev`) in background if not running on port 3000
 2. Check ngrok status (`curl -s http://localhost:4040/api/tunnels`). If down, start it with `ngrok http 3000`
 3. Update `TWIML_URL` in `.env` if the ngrok URL changed
 4. Use `TRANSFER_PHONE_NUMBER=+13033962866` to avoid ringing the user's phone
+
+Do NOT report a blocker about the server/ngrok being down — just start them.
 
 ## DRY and duplicated code
 
@@ -90,6 +96,17 @@ import { MenuOption } from '../types/menu';
 // Use directly - TypeScript catches issues
 ```
 
+## MANDATORY: Use Worktrees for Separate Work Items
+
+Each distinct task or feature MUST be done in its own git worktree to avoid mixing unrelated changes. Before starting a new task:
+
+1. Create a worktree: `git worktree add ../llmcalls-<short-name> -b <branch-name>`
+2. Do all work in that worktree directory
+3. Commit and push from the worktree
+4. Clean up when done: `git worktree remove ../llmcalls-<short-name>`
+
+If you are already in a worktree (check with `git worktree list`), continue working there. Never mix unrelated changes in the same worktree.
+
 ## Git Workflow
 
 Before starting work, run `git log --format="%h %ae %s" -20` and review all consecutive commits from the top by the current `git config user.email` author for context.
@@ -152,6 +169,14 @@ Extract logic into well-named functions. Keep function bodies declarative and ex
 ## MANDATORY: QA Tester and Skeptic After Implementation
 
 After completing any non-trivial implementation, invoke the QA Tester agent (to generate test scenarios from product requirements) and the Code Skeptic agent (to verify claims and surface risks) before reporting success.
+
+## Explain Tests Clearly
+
+When discussing tests, always explain how they work step by step — what input goes in, what the AI does, and what we assert. Don't just say "the loop test fails" — show the exact speech fed at each step and what the AI decided. Use the format: Step 1: speech → AI decision → assertion.
+
+## Question Legacy Decisions
+
+Early development made some questionable choices. Don't assume existing test expectations, prompt workarounds, or architectural patterns are correct — question whether they make sense before building on top of them. If a test expectation seems wrong (e.g., testing that the AI should stop pressing a digit after detecting a loop, when the correct behavior is to keep pressing), fix the test, don't work around it.
 
 ## AI-Driven Logic (DTMF, loops, incomplete speech)
 
