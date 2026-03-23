@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Metro PCS",
+    "phone": "+18888638768",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[22:40:21] USER: Thanks for calling Metro by T-Mobile. Our terms and conditions are on Metro by t-bill calm.  But a continuity espanol Muriel nueve.\n[22:40:39] USER: Information about you to improve service to learn more. Go to Metro buy t-bill.com, slash privacy. I don't recognize the phone number you're calling from. Are you currently an existing Metro by T-Mobile customer?\n[22:40:43] AI: No. I need help with my account and would like to speak with a representative.\n[22:40:55] USER: I didn't get that. Do you currently have an existing Metro by T-Mobile account?\n[22:40:57] AI: No.\n[22:41:10] USER: If you already have a device that you need to activate say, activate my device, or if you're interested in becoming a new Metro by T-Mobile  customer.\n[22:41:40] USER: Know, if you already have a device that you need to activate say activate my device or press 1, if you're interested in becoming a new Metro by T-Mobile customer and need to order a new device or equipment, say new customer or press 2. You can also say I'm calling about something else or press 3.\n[22:41:44] IVR MENU: 1=activate my device, 2=new customer ordering a new device or equipment, 3=calling about something else\n[22:41:44] DTMF: 3 — AI selected: This is a complete IVR menu. The truthful best path for reaching a representative is the catch-all 'something else' option, which is most likely to route to a human or general support.\n[22:42:00] USER: I didn't hear you if you're calling to activate a device press 1. If you're interested in becoming a Metro by T-Mobile customer and are looking to purchase a device or equipment press 2 if you're calling for something else, press 3,\n[22:42:04] AI: something else\n[22:42:08] USER: "
+  },
+  {
+    "name": "Sprint",
+    "phone": "+18882114727",
+    "status": "in-progress",
+    "duration": 123,
+    "transcript": "[22:42:20] USER: Welcome to T-Mobile.  Para espanol, Marcus paraskos.\n[22:42:40] USER: Interactions from this call. T-Mobile May collect information about you to provide the best service possible to learn more. Go to t-mobile.com slash privacy.  To get started. Please enter or say your mobile number area code first or say, I don't have one\n[22:42:43] AI: I don't have one\n[22:42:54] USER: only the 10-digit mobile number you're calling about, you can enter or say it now area code first or say, I don't have one\n[22:42:57] AI: I don't have one\n[22:43:10] USER: I'll need you to enter or say the T-Mobile number you're calling about area code. First, if you're a new customer and you don't have one yet just say I don't have one.\n[22:43:12] AI: I don't have one\n[22:43:25] USER: Having so much trouble hearing you, if you'd like further assistance press zero or if you'd like to return to the main menu and start over press 1.\n[22:43:28] IVR MENU: 0=further assistance, 1=return to the main menu and start over\n[22:43:28] DTMF: 0 — AI selected: This is a complete IVR menu. Pressing 0 is the explicit option for further assistance, which is the best path to a live representative.\n[22:43:38] USER: I'll get you right over to someone who can help.\n[22:43:50] USER: Let it know.  How many?  When she can't be with you, tell her you wish you were there.\n[22:43:53] HOLD\n[22:44:00] USER: Leave attention, give us something to be.\n[22:44:04] HOLD\n[22:44:10] USER: Just because you have been spoken for so long."
+  },
+  {
+    "name": "Straight Talk",
+    "phone": "+18774302355",
+    "status": "in-progress",
+    "duration": 123,
+    "transcript": "[22:44:37] USER: Thank you for calling Straight, Talk.  And Welcome to our new enhanced calling experience.  For English, please hold.  Para espanol. Opry me doce.\n[22:44:50] USER: I'm your virtual assistant, we in our partners May record, or monitor this call for Quality Systems, training and personalization.\n[22:45:07] USER: To learn how we use share and safeguard that information. Visit the link titled privacy policy or California privacy notice at the bottom of the straighttalk.com home page. You also may be selected for a survey at the end of this call.\n[22:45:15] USER: About. If you don't have one say, I don't have one.\n[22:45:18] AI: I don't have one.\n[22:45:35] USER: That is okay. We can try another way. Please enter the IMEI number of the device.  You get this number by dialing, star pound, 06 pound on the device keypad.\n[22:45:37] info_request"
+  },
+  {
+    "name": "T-Mobile",
+    "phone": "+18774531304",
+    "status": "in-progress",
+    "duration": 123,
+    "transcript": "[22:46:29] USER: Welcome to T-Mobile para espanol, Marquee.\n[22:46:49] USER: Interactions from this call. T-Mobile May collect information about you to provide the best service possible to learn more. Go to t-mobile.com slash privacy.  To get started. Please enter or say your mobile number area code first or say, I don't have one\n[22:46:52] AI: I don't have one. I'd like to speak with a representative.\n[22:47:07] USER: Since you haven't entered a T-Mobile number, which do you need help with home internet, prepaid business or new service?\n[22:47:10] AI: I need help with new service, and I'd like to speak with a representative.\n[22:47:21] USER: Do you need to place an order for a new device or equipment?\n[22:47:24] AI: No, I'd like to speak with a representative about new service.\n[22:47:33] USER: I'll get you right over to someone who can help.\n[22:47:41] USER: Break of Dawn.\n[22:47:43] HOLD\n[22:47:46] USER: Angels me.\n[22:47:48] HOLD\n[22:47:53] USER: Up until the break of dawn.\n[22:47:55] HOLD\n[22:48:05] USER: I say I put some new shoes on and every day.\n[22:48:07] HOLD\n[22:48:17] USER: Started showing in the feet sunshine and I'm running late and I don't either you. So willing, my brand new shoes,\n[22:48:19] HOLD\n[22:48:22] USER: funny,  but"
+  },
+  {
+    "name": "Virgin Mobile",
+    "phone": "+18883221122",
+    "status": "completed",
+    "duration": 19,
+    "transcript": "[22:48:42] USER: You have dialed in number that is not available from your calling area."
+  }
+]

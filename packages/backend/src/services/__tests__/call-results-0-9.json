@@ -1,0 +1,72 @@
+[
+  {
+    "name": "AT&T U-verse",
+    "phone": "+18002882020",
+    "status": "in-progress",
+    "duration": 123,
+    "transcript": "[16:27:46] USER: Welcome to AT&T.\n[16:27:53] USER: In our privacy, notice.\n[16:28:01] USER: What's the issue you're calling about?\n[16:28:04] AI: I have a question and I'd like to speak with a representative.\n[16:28:18] USER: So I can help you get to the right agent, what's the account number or phone number on the account?\n[16:28:21] AI: 7 2 0 5 8 4 6 3 5 8\n[16:28:34] USER: If I don't hear something from you soon, I will need to disconnect the call.\n[16:28:36] AI: 7 2 0 5 8 4 6 3 5 8\n[16:28:45] USER: I got 5846358, is this your full account number?\n[16:28:47] AI: No\n[16:28:54] USER: Which product are you calling about?\n[16:28:59] AI: Wireless.\n[16:29:06] USER: Sorry, I don't think I heard you. Which product are you calling about?\n[16:29:08] AI: Wireless.\n[16:29:15] USER: If I don't hear something from you soon, I will need to disconnect the call. Which product are you calling about?\n[16:29:17] AI: Wireless.\n[16:29:27] USER: To better handle your call. How can I help with your mobile phone service?\n[16:29:32] AI: I need help with my wireless service and I'd like to speak with a representative."
+  },
+  {
+    "name": "Cablevision (Optimum)",
+    "phone": "+18662183025",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[16:29:48] USER: Welcome to Optimum. This call may be recorded.\n[16:29:56] USER: To get started. Please say or enter the 10-digit phone number on your account.\n[16:29:58] AI: 7 2 0 5 8 4 6 3 5 8\n[16:30:14] USER: That was 7205846358, right?\n[16:30:16] AI: Yes\n[16:30:30] USER: Thanks just to confirm that phone. Number was 720-584-6358, right?\n[16:30:33] AI: Yes\n[16:30:45] USER: Sorry, I couldn't find an account with that phone number. Let's try a different way. Please say, or enter, your account number if you need a moment to find it. Say, hold on.\n[16:30:47] AI: I don't have my account number. Can I speak with a representative?\n[16:30:59] USER: All right, I couldn't find your account but I may be able to help you anyway.\n[16:31:05] USER: Home or business.\n[16:31:08] AI: Home\n[16:31:16] USER: Please tell me the ZIP code associated with your account.\n[16:31:19] AI: I don't have that information. Can I speak with a representative?\n[16:31:30] USER: You don't know it, right?\n[16:31:36] AI: Yes.\n[16:31:42] USER: All right."
+  },
+  {
+    "name": "Charter (Spectrum)",
+    "phone": "+18336949259",
+    "status": "completed",
+    "duration": 90,
+    "transcript": "[16:31:56] USER: Welcome to Spectrum. This call may be recorded for quality and security purposes.\n[16:32:07] USER: number associated with your account or your account number, or say, I don't have an account,\n[16:32:10] AI: 7 2 0 5 8 4 6 3 5 8\n[16:32:27] USER: Okay, got it. Next please say or enter only the street number part of your service address for\n[16:32:29] AI: I don't have that information, can I speak with a representative?\n[16:32:41] USER: You want to talk to a representative? Is that right?\n[16:32:48] AI: Yes\n[16:32:55] USER: Okay, to avoid sending you to the wrong representative.\n[16:33:04] USER: Technical support billing, add service, remove service or say I'm moving.\n[16:33:06] AI: Technical support"
+  },
+  {
+    "name": "Comcast",
+    "phone": "+18009346489",
+    "status": "completed",
+    "duration": 50,
+    "transcript": "[16:33:21] USER: Hello. And thank you for calling Xfinity.\n[16:33:34] USER: For this call may be monitored or recorded.\n[16:33:43] USER: Number, if you would like to try a different phone number please press 1 otherwise please remain on the line.\n[16:33:53] USER: Please enter the ZIP code where you have or want service.\n[16:33:56] AI: I don't have that information, can I speak with a representative?"
+  },
+  {
+    "name": "Cox Communications",
+    "phone": "+18885667751",
+    "status": "completed",
+    "duration": 46,
+    "transcript": "[16:34:19] USER: Welcome to Cox Corporate Offices. Your call may be monitored or recorded to ensure quality service at Cox, we take your privacy.\n[16:34:29] USER: W.com privacy, if you are attempting to reach the Corporate Offices, please press 1.\n[16:34:32] IVR MENU: 1=reach the corporate offices\n[16:34:32] DTMF: 1 — AI selected: The IVR presented a complete menu with a single valid option to reach Corporate Offices, which is the best path toward a live representative.\n[16:34:46] USER: All representatives are currently busy. Please hold for the next available. Representative your call will be answered in the order in which it was received."
+  },
+  {
+    "name": "DirecTV",
+    "phone": "+18887772454",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[16:35:06] USER: Thank you for calling DirecTV.\n[16:35:13] USER: Being recorded for quality assurance.\n[16:35:23] USER: Agent to establish a new DirecTV account. Please say yes or no.\n[16:35:25] AI: No. I'd like to speak with a representative.\n[16:35:34] USER: Okay.\n[16:35:40] USER: Tell me how I can help you.\n[16:35:42] AI: I have a question about my service and I'd like to speak with a representative.\n[16:35:54] USER: You'd like to speak to an agent. Is that right?\n[16:35:56] AI: Yes.\n[16:36:14] USER: Hey there I'm Ava. Direct TV's AI agent to help get you to the right agent. Can you tell me a little more about why you are calling? As I may be able to help.\n[16:36:17] AI: I have a question about my service and I’d like to speak with a representative.\n[16:36:35] USER: All right, I'm checking on that for you. 1 moment just need to gather a few more Account Details. Then I'll get you connected to an agent.\n[16:36:53] USER: Please say or enter the phone number associated with your service or if you don't know, it press star.\n[16:36:56] AI: 7 2 0 5 8 4 6 3 5 8"
+  },
+  {
+    "name": "Dish Network",
+    "phone": "+18003333474",
+    "status": "completed",
+    "duration": 31,
+    "transcript": "[16:37:12] USER: Thank you for choosing dish.\n[16:37:20] USER: Calls are recorded to improve your experience."
+  },
+  {
+    "name": "Time Warner Cable",
+    "phone": "+18008922253",
+    "status": "completed",
+    "duration": 72,
+    "transcript": "[16:37:55] USER: For customer service or billing questions. Press 1 to speak with an agent about new cable satellite or Internet service. Press 2 for all other inquiries press 3.\n[16:37:59] IVR MENU: 1=speak with an agent about new cable satellite or internet service, 2=customer service or billing questions, 3=all other inquiries\n[16:37:59] DTMF: 2 — AI selected: This is a complete IVR menu, and option 2 is the best path to reach a representative for general inquiries.\n[16:38:12] USER: For customer service or billing questions. Press 1 to speak with an agent about new cable satellite or Internet service. Press 2 for all other inquiries press 3.\n[16:38:14] DTMF: 2 — AI selected: This is the same complete IVR menu repeating, so a loop is detected. Option 2 best matches customer service/billing and is the strongest path to a live representative.\n[16:38:14] IVR MENU: 1=speak with an agent about new cable satellite or internet service, 2=customer service or billing questions, 3=all other inquiries\n[16:38:33] USER: This call may be recorded, thank you for calling the sales and promotions Department. This call may be recorded for quality and training purposes, to be connected with a sales and promotion. Specialist, please press 1 for all other inquiries, please press 2.\n[16:38:35] IVR MENU: 1=connected with a sales and promotion specialist, 2=all other inquiries\n[16:38:35] DTMF: 2 — AI selected: This is a complete IVR menu after disclaimers. Option 2 is the best match for reaching a representative for a non-sales inquiry.\n[16:38:45] USER: Please refer all other inquiries to the customer service number found in your billing statement. Thank you."
+  },
+  {
+    "name": "Verizon FiOS",
+    "phone": "+18885531555",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[16:39:08] USER: Welcome to Verizon.\n[16:39:23] USER: our partners May Monitor and record calls for Quality Systems training and personalization say, enter a phone, number, or account number associated with the question you are calling about,\n[16:39:26] AI: 7 2 0 5 8 4 6 3 5 8\n[16:39:44] USER: Okay. 7 2 0 5 8 4 6, 3 5 8. Did I get that right?\n[16:39:46] AI: Yes\n[16:39:52] USER: Sorry.\n[16:39:54] AI: I’d like to speak with a representative.\n[16:40:02] USER: I'm sorry, but the number I heard doesn't match our records.\n[16:40:04] AI: I don't have that information, can I speak with a representative?\n[16:40:13] USER: I'm sorry, I didn't understand you.\n[16:40:15] AI: Representative\n[16:40:23] USER: I'm sorry, we're having trouble.\n[16:40:36] USER: Or account number associated with the question, you are calling about to become a new customer. You can say new customer or press the pound key, or you can say, I don't have 1.\n[16:40:39] DTMF: # — AI selected: The IVR is presenting a menu option and explicitly says to press pound to become a new customer; since no representative option is available and the menu appears complete enough to act, choose the available path most likely to reach a human.\n[16:40:39] IVR MENU: #=become a new customer, 1=i don't have one\n[16:40:46] USER: Will this be either for a business?\n[16:40:50] AI: No, I need help with a personal account and would like to speak with a representative."
+  },
+  {
+    "name": "Acer",
+    "phone": "+18005712237",
+    "status": "completed",
+    "duration": 69,
+    "transcript": "[16:41:07] USER: Thank you for calling Acer customer service for Target for testing. This call may be recorded for quality and training purposes. If you are interested in helping\n[16:41:17] USER: You need support with a product you already own say, support or press 2.\n[16:41:19] IVR MENU: 2=support with a product you already own\n[16:41:19] DTMF: 2 — AI selected: This is a complete IVR menu with a valid option for product support, which is the best path toward reaching a representative.\n[16:41:36] USER: If you are interested in help purchasing a new product say sales or press 1. If you need support with a product you already own say support or press 2. Please provide the Snider of your product. It is an 11 or 12 digit number located on a white label on the back of your device.\n[16:41:40] AI: I don't have that information available right now. Can I speak with a representative?\n[16:41:50] USER: Thanks. You will be directed to the next available representative."
+  }
+]

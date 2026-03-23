@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Nikon",
+    "phone": "+18006456678",
+    "status": "completed",
+    "duration": 38,
+    "transcript": "[21:30:54] USER: Thank you for calling Nikon.  To continue your call in English. Please press one.  Gracias, por.\n[21:30:58] DTMF: 1 — AI selected: The IVR presented a complete menu option to continue in English by pressing 1. Selecting English is the best next step toward reaching a representative.\n[21:30:58] IVR MENU: 1=continue in english\n[21:31:17] USER: The Nikon contact center is currently closed. Our staff is available Monday through Friday, 9 a.m. to 8 p.m. eastern time. Excluding holidays. Please call us back during these times for assistance.\n[21:31:19] TERMINATED: closed_no_menu"
+  },
+  {
+    "name": "Nintendo",
+    "phone": "+18002553700",
+    "status": "in-progress",
+    "duration": 123,
+    "transcript": "[21:32:09] USER: Hi, thank you for calling Nintendo. Let's connect you to a specialist quickly. Let's get started. But assistant en espanol. Oh, Prema numero Nueva.  For any Nintendo switch 2 Nintendo switch or Nintendo account question, including troubleshooting and repairs eShop and prepaid cards, billing and charges or bands, and login issues, press 1, for help with any other system. Press 2 for help with parental controls, press 3, for help with games and system. Availability, contests or promotions, press 4, for help with my Nintendo store, orders, press 5,  To repeat this menu. Press 8.\n[21:32:13] IVR MENU: 1=nintendo switch 2, nintendo switch, or nintendo account questions including troubleshooting, repairs, eshop and prepaid cards, billing and charges, bans, and login issues, 2=help with any other system, 3=help with parental controls, 4=help with games and system availability, contests or promotions, 5=help with my nintendo store orders, 8=repeat this menu\n[21:32:13] DTMF: 1 — AI selected: A complete IVR menu was presented. Option 1 is the broadest support path and most likely to reach a representative for Nintendo account, troubleshooting, billing, and general support issues.\n[21:32:56] USER: We don't yet have enough information to route your call. We only have a few questions and then we'll get you to the right specialist quickly. But as a student in espanol, oh, Prema numero Nueva for any Nintendo switch. To Nintendo switch or Nintendo account. Question, including troubleshooting and repairs eShop and prepaid cards, billing and charges or bands, and login issues, press 1, for help with any other system. Press 2 for help with parental controls, press 3, for help with games and system. Availability, contests or promotions, press 4, for help with my Nintendo store, orders, press 5,\n[21:33:00] IVR MENU: 1=nintendo switch 2, nintendo switch, or nintendo account questions including troubleshooting, repairs, eshop and prepaid cards, billing and charges, bans, and login issues, 2=help with any other system, 3=help with parental controls, 4=help with games and system availability, contests or promotions, 5=help with my nintendo store orders\n[21:33:00] DTMF: 1 — AI selected: The IVR is repeating the same menu options already heard, so this is a loop. Press the previously relevant option again to continue routing toward a specialist who can connect to a representative.\n[21:33:26] USER: For any Nintendo switch 2 Nintendo switch or Nintendo account question, including troubleshooting and repairs eShop and prepaid cards, billing and charges or bands, and login issues, press 1, for help with any other system. Press 2 for help with parental controls press 3 for help with games and system. Availability, contests  or prom."
+  },
+  {
+    "name": "Olympus",
+    "phone": "+18885534448",
+    "status": "failed",
+    "duration": 3,
+    "transcript": "No call history found"
+  },
+  {
+    "name": "Panasonic",
+    "phone": "+18002117262",
+    "status": "completed",
+    "duration": 35,
+    "transcript": "[21:34:01] USER: Panasonic, our call center is currently closed. However, the following self-support options are available to purchase Panasonic parts or accessories. Press 1 to locate your nearest authorized servicer press 2, Oban and operating manual. Press 3 information about our online, self-support options, press 4.\n[21:34:04] TERMINATED: closed_no_menu"
+  },
+  {
+    "name": "Philips",
+    "phone": "+18887445477",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[21:34:25] USER: Hello and welcome to Phillips.  For English press 1. Butt espanol, presione dose.\n[21:34:28] IVR MENU: 1=english, 2=spanish\n[21:34:28] DTMF: 1 — AI selected: This is a complete IVR language-selection menu. Press 1 for English to continue toward a representative.\n[21:34:47] USER: Phillips Mets record. This call for quality assurance training purposes and complaint management. We may also record calls to improve fix and customize our products and services.  If you wish this call to be recorded, please press 1.\n[21:35:02] USER: Please have your model number serial number and date of purchase available. You can locate these numbers on the bottom of your product.\n[21:35:34] USER: Serial, number and data, purchase available. You can look at these numbers on the bottom of your product.  We have seven options for you to choose from, for Sony care. Press 1 for Philips Norelco, press 2 for Philips Advent. Press 3 for Philips llamas, press 4 for TV. Support press 5 for portable Electronics DVD, home theater and accessories, press 6 for other products. Press 7.\n[21:35:38] IVR MENU: 1=philips norelco, 2=philips avent, 3=philips lamps, 4=tv support, 5=portable electronics, dvd, home theater and accessories, 6=other products, 7=unspecified final option / likely general or representative path\n[21:35:38] DTMF: 7 — AI selected: This is a complete IVR menu. No explicit representative option is given, so choose the likely catch-all/final option to reach a person or general support.\n[21:35:54] USER: We have four options for you to choose from.  For beauty products, press 1, for medical products, Pros, too, for coffee makers, and kitchen appliances press 3 for other products, press 4.\n[21:35:58] IVR MENU: 1=beauty products, 2=medical products, 3=coffee makers and kitchen appliances, 4=other products\n[21:35:58] DTMF: 4 — AI selected: This is a complete IVR menu. For reaching a live person, the best truthful catch-all option is 'other products,' which is most likely to route to a representative or general support.\n[21:36:13] USER: Hello, thank you for calling Philips consumer care. This is Chen, how can I help?"
+  },
+  {
+    "name": "PlayStation",
+    "phone": "+18003457669",
+    "status": "completed",
+    "duration": 12,
+    "transcript": "[21:36:27] USER: Thank you for calling PlayStation. We are currently closed, please visit playstation.com for our opening hours and online Support  options.\n[21:36:29] TERMINATED: closed_no_menu"
+  },
+  {
+    "name": "Razer",
+    "phone": "+18886972037",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[21:37:31] USER: Thank you for calling Razer support. Please be informed that our support contact number has recently been updated for the latest contact information. Please visit my support.razor.com  You will now be connected to one of our Representatives.  For future assistance. Kindly use the updated number of available on our support site. You have reached razor technical support. This call may be recorded for training and quality purposes. Make sure to have your serial number of available. Most of our support services are available 24 hours a day on our support website at my support razor.com or you may visit our community at insider.com razor.com.  Our menu options have recently changed. Please wait for the prompt before making a selection.  For Razer Blade laptops. Please press one for Razer gaming. Chair. Please press 2 for raise your peripherals, including mice, keyboard, audio devices, controllers, and  other.\n[21:37:34] SYSTEM: [IVR Menu incomplete - found: Press 1 for razer blade laptops, Press 2 for razer gaming chair. Waiting for more options...]\n[21:37:50] USER: Silver, please press four.  For inquiries related to Razer store order. Such as status, check order, cancellation or returns. Please visit our support site at my support.razor.com.  We provide both chat and email  support.\n[21:37:53] SYSTEM: [IVR Menu incomplete - found: Press 1 for razer blade laptops, Press 2 for razer gaming chair, Press 4 for razer silver, Press 4 for razer store order inquiries. Waiting for more options...]\n[21:38:32] USER: You have reached razor technical support. This call may be recorded for training and quality purposes. Make sure to have your serial number of available. Most of our support services are available 24 hours a day on our support website at my support.razor.com or you may visit our community at insider.com.  Our menu options have recently changed. Please wait for the prompt before making a selection.  For Razer Blade laptops. Please press one.  For Razer gaming chair,  please."
+  },
+  {
+    "name": "Samsung",
+    "phone": "+18007267864",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[21:38:43] USER: Calling Samsung, but as you know, Ocho para continuar en espanol.\n[21:38:56] USER: Quality and training purposes, and improve our business.  We may use your information to develop and train our artificial intelligence algorithms and models.\n[21:39:08] USER: Welcome back guest. What can we do to assist you today?\n[21:39:11] AI: I need help with a Samsung product and would like to speak with a representative.\n[21:39:29] USER: I understand that you would like to speak to a representative.  In order to get you connected with someone that can help.  Can you please provide the product that you need assistance with?\n[21:39:31] AI: TV\n[21:39:46] USER: Understood now before a transfer you to an agent, we do have one option for you and that is to talk to a representative through text message.  Would you like to connect now?\n[21:39:49] AI: No. Please connect me with a representative.\n[21:40:14] USER: All right, got it. Let me go ahead and share this information with the next available representative.  We're routing you to a human. Now to provide a faster support experience. We can send you a text where you can reply with an image of your product label at any time.  Please enter your 10-digit mobile number for us to send.\n[21:40:16] AI: 7 2 0 5 8 4 6 3 5 8\n[21:40:36] USER: "
+  },
+  {
+    "name": "Sony",
+    "phone": "+18002227669",
+    "status": "completed",
+    "duration": 69,
+    "transcript": "[21:40:54] USER: Welcome to Sony electronics support. Please select from one of the following menu options for PlayStation or PlayStation account. Press 1 for all other products press 2.\n[21:40:57] IVR MENU: 1=playstation or playstation account, 2=all other products\n[21:40:57] DTMF: 2 — AI selected: This is a complete IVR menu. For reaching a representative, the best truthful path is the general 'all other products' option rather than PlayStation-specific support.\n[21:41:11] USER: Thank you for contacting Sony electronics if you have an existing Case press 1, now otherwise to be transferred to our virtual assistant press 2 now.\n[21:41:14] IVR MENU: 1=existing case, 2=be transferred to virtual assistant\n[21:41:14] DTMF: 2 — AI selected: This is a complete IVR menu. Option 2 is the only path that mentions transfer, so choose it to try to reach a human path via the assistant.\n[21:41:32] USER: Thank you for contacting Sony electronics if you have an existing Case press 1, now otherwise to be transferred to our virtual assistant press 2 now.\n[21:41:35] DTMF: 1 — AI selected: This is the same complete IVR menu as before, so it's a loop. Digit 2 led to the virtual assistant and did not reach a human path; after an unhelpful repeat, choose a different valid option.\n[21:41:35] IVR MENU: 1=existing case, 2=be transferred to virtual assistant\n[21:41:45] USER: I'm sorry I appear to be having difficulty. Please try again later.  Goodbye.\n[21:41:47] TERMINATED: dead_end"
+  },
+  {
+    "name": "Sharp",
+    "phone": "+18002374277",
+    "status": "completed",
+    "duration": 41,
+    "transcript": "[21:42:29] USER: Thank you for calling Sharp Electronics. This call is being recorded for quality purposes. Visit us on our website www.sharpusa.com for info on our products and answers to our most frequently asked questions.  We are currently closed our office hours are from 9 a.m. to 7 p.m. Monday through Friday. And from 10 a.m. to 3 p.m. Saturday and Sunday Eastern Standard Time, you may call back during office hours or visit www.sharpusa.com for more information.\n[21:42:31] TERMINATED: closed_no_menu"
+  }
+]

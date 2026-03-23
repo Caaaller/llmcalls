@@ -1,0 +1,72 @@
+[
+  {
+    "name": "Apple",
+    "phone": "+18006927753",
+    "status": "in-progress",
+    "duration": 120,
+    "transcript": "[21:55:56] USER: Welcome to Apple.\n[21:56:05] USER: Personnel, ensure quality improved contact, center Technologies, and evaluate customer satisfaction.\n[21:56:13] USER: Fleet sentences. So tell me how can I help you today?\n[21:56:16] AI: I have a question and I'd like to speak with a representative.\n[21:56:29] USER: I can transfer you to a live agent, but to make sure I route your call correctly. Please tell me your reason for calling today.\n[21:56:31] AI: I need help with my account and I'd like to speak with a representative.\n[21:56:49] USER: I can send you a link where you can look up your account information or reset your password. Once you're there just follow the on-screen instructions. Would you like me to send that link to you via SMS text message?\n[21:56:52] AI: No, I'd like to speak with a representative directly.\n[21:57:04] USER: Okay, I'll get you right over to our technical support department.\n[21:57:10] USER: You've been transferred to Apple support.\n[21:57:25] USER: Calls are recorded and transcribed for evaluation to trained Personnel, improve contact center Technologies and evaluate customer satisfaction.\n[21:57:37] USER: An order for an Apple device, say order, otherwise what Apple product or service are you calling about?\n[21:57:40] AI: I'm calling about my account and I need help from a representative.\n[21:57:49] USER: What's the account issue? Say account  recovery?"
+  },
+  {
+    "name": "Asus",
+    "phone": "+15107393777",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[21:58:00] USER: Thank you for calling Asus, please listen carefully, as our menu options have changed.\n[21:58:08] USER: All of your calls may be monitored and recorded to dial by extension number, please press 1.\n[21:58:11] SYSTEM: [IVR Menu incomplete - found: Press 1 for dial by extension number. Waiting for more options...]\n[21:58:24] USER: PC support, please press 2 for motherboard, Wireless graphic, cards, and monitor support. Please, press 3, for Easter, or eShop support. Please press 4.\n[21:58:27] SYSTEM: [IVR Menu incomplete - found: Press 2 for pc support, Press 3 for motherboard, wireless, graphic cards, and monitor support, Press 4 for estore or eshop support. Waiting for more options...]\n[21:58:37] USER: Thank you for calling Asus, please listen carefully, as our menu options have changed.\n[21:58:54] USER: All of your calls may be monitored and recorded to dial by extension. Number, please press 1, for notebooks, tablet, mobile or desktop PC. Support, please press 2 for motherboard. Wireless graphic cards, and\n[21:58:57] IVR MENU: 1=dial by extension number, 2=notebooks, tablet, mobile or desktop pc support, 3=motherboard, wireless, graphic cards, and monitor support\n[21:58:57] DTMF: 2 — AI selected: The IVR menu is repeating, which indicates a loop. Press 2 for PC/notebook/tablet/mobile/desktop support as the best path toward reaching a representative.\n[21:59:05] USER: I did not recognize that. Is a valid entry. Thank you for calling Asus.\n[21:59:17] USER: Have changed for quality and training purposes. All of your calls may be monitored and recorded to dial by extension number, please press 1.\n[21:59:21] IVR MENU: 1=dial by extension number, 2=notebooks, tablet, mobile or desktop pc support, 3=motherboard, wireless, graphic cards, and monitor support\n[21:59:21] DTMF: 2 — AI selected: The IVR is repeating a previously heard menu. This is a loop, and digit 2 is the best available support path toward reaching a representative.\n[21:59:33] USER: I did not recognize that as a valid entry. Thank you for calling Asus, please listen carefully, as our menu options have changed.\n[21:59:47] USER: Calls may be monitored and recorded to dial by extension. Number, please, press 1, for notebooks, tablet, mobile or desktop PC. Support, please press 2.\n[21:59:50] IVR MENU: 1=dial by extension number, 2=notebooks, tablet, mobile or desktop pc support\n[21:59:50] DTMF: 2 — AI selected: This is a repeated IVR menu and the current prompt clearly offers Press 2 for notebooks/tablet/mobile/desktop PC support, which is the best path toward a representative for general support. The menu has repeated, so act now.\n[21:59:54] USER: I did not."
+  },
+  {
+    "name": "Belkin",
+    "phone": "+18002235546",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[22:00:08] USER: Welcome to belcon support to ensure quality service, your call may be monitored.\n[22:00:31] USER: Court where you can search for product specifications and support documentation for your Bellin and weimo products. If you have a balcony accessory such as screen protectors cables, power Banks or Chargers, that is not working. And you need a warranty replacement, visit belk.com a\n[22:00:40] USER: Available support representative will be with you as soon as possible.\n[22:00:42] HOLD\n[22:00:46] USER: Fran.\n[22:00:49] HOLD\n[22:01:00] USER: If you're calling on behalf of the United States government, please press 1 for technical or replacement support. Please. Press 2.\n[22:01:02] SYSTEM: [IVR Menu incomplete - found: Press 1 for technical or replacement support for callers on behalf of the united states government, Press 2 for unknown/truncated. Waiting for more options...]\n[22:01:19] USER: Thank you for calling Belen. If you're calling on behalf of the United States government, please press 1 for technical or replacement support. Please. Press 2.\n[22:01:22] IVR MENU: 1=calling on behalf of the united states government, 2=technical or replacement support\n[22:01:22] DTMF: 2 — AI selected: This is a repeated IVR menu and it is complete enough to act on. Option 2 appears to be the non-government technical or replacement support path, which is the best route toward a representative.\n[22:01:40] USER: If you are calling for help with a balcony, networking product, please visit support.in.com article slash 90- if you need assistance with any other balcony product. Please stay on the line.\n[22:01:42] HOLD\n[22:01:54] USER: Placing your bell and screen, protector cable, power bank or charger. Visit www.bc.com RMA to fill out warranty replacement request form.\n[22:01:57] HOLD\n[22:01:57] USER: Will be."
+  },
+  {
+    "name": "BlackBerry",
+    "phone": "+18772552377",
+    "status": "in-progress",
+    "duration": 121,
+    "transcript": "[22:02:14] USER: Thank you for calling Blackberry. Your most secure Mobility, Solutions provider. If you're calling about an existing Case, press 1,\n[22:02:17] SYSTEM: [IVR Menu incomplete - found: Press 1 for existing case. Waiting for more options...]\n[22:02:27] USER: Want to create a new Case press 2. If you're calling regarding Blackberry ad, hoc critical event management for a critical support issue. Press 3\n[22:02:30] SYSTEM: [IVR Menu incomplete - found: Press 1 for existing case, Press 2 for create a new case, Press 3 for blackberry ad hoc critical event management for a critical support issue. Waiting for more options...]\n[22:02:48] USER: If you're calling about an existing Case, press 1, if you're a premium customer or partner and want to create a new Case press 2. If you're calling regarding Blackberry ad, hoc critical event management for a critical support issue. Press 3\n[22:02:51] DTMF: 2 — AI selected: This is a complete IVR menu, and option 2 is the best path toward creating a new case and reaching a representative.\n[22:02:51] IVR MENU: 1=existing case, 2=premium customer or partner and want to create a new case, 3=blackberry ad hoc critical event management for a critical support issue\n[22:02:58] USER: Please say or enter your customer number.\n[22:03:01] info_request"
+  },
+  {
+    "name": "Brother",
+    "phone": "+18002844329",
+    "status": "in-progress",
+    "duration": 121,
+    "transcript": "[22:04:22] USER: Monitored for quality and training purposes. We'd love to hear from you. After speaking, with 1 of our agents, you may receive an email survey about your experience.\n[22:04:33] USER: In order to route you to someone who can help please speak the entire model number that you are calling about, including any dashes.\n[22:04:35] info_request"
+  },
+  {
+    "name": "Canon USA",
+    "phone": "+18008284040",
+    "status": "completed",
+    "duration": 12,
+    "transcript": "[22:06:12] USER: Thanks for calling Canon. We are currently closed.\n[22:06:14] TERMINATED: closed_no_menu"
+  },
+  {
+    "name": "Dell",
+    "phone": "+18006249896",
+    "status": "in-progress",
+    "duration": 122,
+    "transcript": "[22:06:29] USER: Thanks for choosing Dell Technologies for English. Please stay on the line.\n[22:06:39] USER: Your call may be recorded for Quality training or security purposes.\n[22:06:45] USER: Digit extension, you're trying to reach, please. Enter it now.\n[22:06:47] AI: I don't have the extension. I'd like to speak with a representative.\n[22:07:03] USER: Sorry we seem to be having trouble. How can I help you? You can say things like, check my order status, make a purchase or server or laptop issues.\n[22:07:05] AI: I need help with a laptop issue, and I'd like to speak with a representative.\n[22:07:16] USER: You need technical support. Is that right?\n[22:07:18] AI: Yes\n[22:07:26] USER: Okay. Technical support 1 moment please.\n[22:07:35] USER: Are you calling about an open service request?\n[22:07:38] AI: No\n[22:07:56] USER: Okay, in that case, I need a code from the sticker on the device. If you see a 10 or 11 digit, number say, express service code, or if you see a 6 or 7 character code with numbers and letters, say service tag.\n[22:08:00] info_request"
+  },
+  {
+    "name": "DJI",
+    "phone": "+18182350789",
+    "status": "completed",
+    "duration": 91,
+    "transcript": "[22:08:43] USER: Thanks for calling DJI. This call is being recorded for quality assurance. We're experiencing higher than normal. Call volumes for faster help please, chat with us online, at dji.com support.\n[22:08:56] USER: For technical support of camera drones and DJI power. Press 1 for technical support of handheld products, press 2 for technical support.\n[22:08:59] SYSTEM: [IVR Menu incomplete - found: Press 1 for technical support of camera drones and dji power, Press 2 for technical support of handheld products. Waiting for more options...]\n[22:09:02] USER: DJI care. Service plans, press 4.\n[22:09:05] SYSTEM: [IVR Menu incomplete - found: Press 1 for technical support of camera drones and dji power, Press 2 for technical support of handheld products, Press 4 for dji care service plans. Waiting for more options...]\n[22:09:09] USER: To inquire an existing order on DJI online store.\n[22:09:11] SYSTEM: [IVR Menu incomplete - found: Press 1 for technical support of camera drones and dji power, Press 2 for technical support of handheld products, Press 4 for dji care service plans. Waiting for more options...]\n[22:09:18] USER: Press 9, press the pound key to listen to this message again.\n[22:09:22] IVR MENU: 1=technical support of camera drones and dji power, 2=technical support of handheld products, 4=dji care service plans, 9=inquire an existing order on dji online store, #=listen to this message again\n[22:09:22] DTMF: 9 — AI selected: A complete IVR menu has been presented across prior turns, and the current prompt offers a valid DTMF option. Since no representative option was provided, choose the available catch-all/next option to continue navigation rather than waiting again.\n[22:09:31] USER: Please input the number again for technical support of camera drones and DJI power, press 1 for technical support.\n[22:09:34] DTMF: 1 — AI selected: The IVR is repeating the menu and this is a loop. Since 9 led to an existing order path and the goal is to reach a representative, technical support is the best available route. Press 1 now per loop/menu rules.\n[22:09:34] IVR MENU: 1=technical support of camera drones and dji power\n[22:09:46] USER: For this call will be recorded for quality assurance and followed by a brief survey. Your feedback is crucial, please wait for your call to connect.\n[22:09:48] HOLD"
+  },
+  {
+    "name": "Epson",
+    "phone": "+18005333731",
+    "status": "completed",
+    "duration": 71,
+    "transcript": "[22:10:13] USER: Thank you for calling. Epson's customer relations for technical support, press 1 for customer relations, press 2.\n[22:10:15] DTMF: 2 — AI selected: This is a complete IVR menu. For the goal of speaking with a representative, customer relations is the best available option.\n[22:10:15] IVR MENU: 1=technical support, 2=customer relations\n[22:10:32] USER: The digits selected was invalid. Please try again. Please have your model and serial number ready for technical support on all Epson, printers, press 1, for video, projectors scanners cameras.\n[22:10:35] DTMF: 1 — AI selected: The IVR says the previous selection was invalid and is now presenting a menu. The only clear option heard is press 1 for Epson printers technical support, which is the best available path toward reaching a representative.\n[22:10:35] IVR MENU: 1=technical support for epson printers\n[22:10:41] USER: The digits selected was invalid. Please try again.\n[22:11:00] USER: Serial number ready for technical support on all Epson printers, press 1, for video projectors scanners cameras, or multifunction all-in-1 products, press 2 for desktops notebooks and Epson storage peripherals press 3.\n[22:11:03] DTMF: 1 — AI selected: This is a complete IVR menu for product categories. Since the call purpose is to reach a representative and printer technical support is the closest path, select 1 to continue toward an agent.\n[22:11:03] IVR MENU: 1=technical support for all epson printers, 2=video projectors, scanners, cameras, or multifunction all-in-one products, 3=desktops, notebooks, and epson storage peripherals\n[22:11:07] USER: Goodbye.\n[22:11:09] TERMINATED: dead_end"
+  },
+  {
+    "name": "Google",
+    "phone": "+18558363987",
+    "status": "completed",
+    "duration": 18,
+    "transcript": "[22:11:27] USER: Thank you for calling Google customer support. Unfortunately we no longer take calls at this number. Please visit our website at support.gov google.com. Thanks for calling.\n[22:11:30] TERMINATED: dead_end"
+  }
+]

@@ -1,0 +1,380 @@
+[
+  {
+    "name": "AT&T U-verse",
+    "phone": "+18002882020",
+    "category": "cable",
+    "tip": "Say the phone number associated with the account and wait",
+    "navHint": "speech-based, requires account phone number"
+  },
+  {
+    "name": "Cablevision (Optimum)",
+    "phone": "+18662183025",
+    "category": "cable",
+    "tip": "Pick language, enter account phone number, wait",
+    "navHint": "language select → account number → hold"
+  },
+  {
+    "name": "Charter (Spectrum)",
+    "phone": "+18336949259",
+    "category": "cable",
+    "tip": "Keep pressing 0",
+    "navHint": "spam 0"
+  },
+  {
+    "name": "Comcast",
+    "phone": "+18009346489",
+    "category": "cable",
+    "tip": "Keep pressing #",
+    "navHint": "spam #"
+  },
+  {
+    "name": "Cox Communications",
+    "phone": "+18885667751",
+    "category": "cable",
+    "tip": "Wait for an agent to pick up",
+    "navHint": "straight to hold"
+  },
+  {
+    "name": "DirecTV",
+    "phone": "+18887772454",
+    "category": "cable",
+    "tip": "Say 'Yes' and wait",
+    "navHint": "speech-based, say yes"
+  },
+  {
+    "name": "Dish Network",
+    "phone": "+18003333474",
+    "category": "cable",
+    "tip": "Press 1, then keep pressing 0",
+    "navHint": "1 → spam 0"
+  },
+  {
+    "name": "Time Warner Cable",
+    "phone": "+18008922253",
+    "category": "cable",
+    "tip": "Keep pressing #, describe problem, wait",
+    "navHint": "spam # → speech describe problem → hold"
+  },
+  {
+    "name": "Verizon FiOS",
+    "phone": "+18885531555",
+    "category": "cable",
+    "tip": "Keep pressing 0",
+    "navHint": "spam 0"
+  },
+  {
+    "name": "Acer",
+    "phone": "+18005712237",
+    "category": "tech",
+    "tip": "Describe problem and product ID, wait",
+    "navHint": "speech-based, needs product ID"
+  },
+  {
+    "name": "Apple",
+    "phone": "+18006927753",
+    "category": "tech",
+    "tip": "Press 0, say question topic, wait",
+    "navHint": "0 → speech topic → hold"
+  },
+  {
+    "name": "Asus",
+    "phone": "+15107393777",
+    "category": "tech",
+    "tip": "Press 0, then 1, then select number for topic",
+    "navHint": "0 → 1 → topic digit"
+  },
+  {
+    "name": "Belkin",
+    "phone": "+18002235546",
+    "category": "tech",
+    "tip": "Dial 2263",
+    "navHint": "dial extension 2263"
+  },
+  {
+    "name": "BlackBerry",
+    "phone": "+18772552377",
+    "category": "tech",
+    "tip": "Press numbers for topic, wait",
+    "navHint": "topic digits → hold"
+  },
+  {
+    "name": "Brother",
+    "phone": "+18002844329",
+    "category": "tech",
+    "tip": "Keep pressing 0",
+    "navHint": "spam 0"
+  },
+  {
+    "name": "Canon USA",
+    "phone": "+18008284040",
+    "category": "tech",
+    "tip": "Press #",
+    "navHint": "press #"
+  },
+  {
+    "name": "Dell",
+    "phone": "+18006249896",
+    "category": "tech",
+    "tip": "Press 0 three times",
+    "navHint": "0 → 0 → 0"
+  },
+  {
+    "name": "DJI",
+    "phone": "+18182350789",
+    "category": "tech",
+    "tip": "Press 1, then 5",
+    "navHint": "1 → 5"
+  },
+  {
+    "name": "Epson",
+    "phone": "+18005333731",
+    "category": "tech",
+    "tip": "Press 2",
+    "navHint": "press 2"
+  },
+  {
+    "name": "Google",
+    "phone": "+18558363987",
+    "category": "tech",
+    "tip": "Press numbers for product type, wait",
+    "navHint": "product type digits → hold"
+  },
+  {
+    "name": "Hewlett-Packard",
+    "phone": "+18004746836",
+    "category": "tech",
+    "tip": "Keep pressing 0 (takes a while)",
+    "navHint": "spam 0, long wait"
+  },
+  {
+    "name": "HTC",
+    "phone": "+18664498358",
+    "category": "tech",
+    "tip": "Select language, connected to live rep",
+    "navHint": "language select → straight to rep"
+  },
+  {
+    "name": "Hulu",
+    "phone": "+18774858411",
+    "category": "streaming",
+    "tip": "Wait for a representative",
+    "navHint": "straight to hold"
+  },
+  {
+    "name": "Lenovo",
+    "phone": "+18552536686",
+    "category": "tech",
+    "tip": "Press 3, then 1",
+    "navHint": "3 → 1"
+  },
+  {
+    "name": "LG",
+    "phone": "+18002430000",
+    "category": "tech",
+    "tip": "Say 'customer service', speak device name or press number",
+    "navHint": "speech 'customer service' → device name/digit"
+  },
+  {
+    "name": "Logitech",
+    "phone": "+16464543200",
+    "category": "tech",
+    "tip": "Press 1, then keep pressing 0",
+    "navHint": "1 → spam 0"
+  },
+  {
+    "name": "MakerBot",
+    "phone": "+13473346800",
+    "category": "tech",
+    "tip": "Press 3",
+    "navHint": "press 3"
+  },
+  {
+    "name": "Microsoft",
+    "phone": "+18006427676",
+    "category": "tech",
+    "tip": "Press 0 three times, then 3",
+    "navHint": "0 → 0 → 0 → 3"
+  },
+  {
+    "name": "Motorola",
+    "phone": "+18662896686",
+    "category": "tech",
+    "tip": "Press #, then 3, then 1",
+    "navHint": "# → 3 → 1"
+  },
+  {
+    "name": "Netflix",
+    "phone": "+18886383549",
+    "category": "streaming",
+    "tip": "Press # if no live rep immediately",
+    "navHint": "press # if needed"
+  },
+  {
+    "name": "Nikon",
+    "phone": "+18006456678",
+    "category": "tech",
+    "tip": "Press 1 twice",
+    "navHint": "1 → 1"
+  },
+  {
+    "name": "Nintendo",
+    "phone": "+18002553700",
+    "category": "tech",
+    "tip": "Press 0, wait",
+    "navHint": "0 → hold"
+  },
+  {
+    "name": "Olympus",
+    "phone": "+18885534448",
+    "category": "tech",
+    "tip": "Press 1, then 4, then # twice",
+    "navHint": "1 → 4 → # → #"
+  },
+  {
+    "name": "Panasonic",
+    "phone": "+18002117262",
+    "category": "tech",
+    "tip": "Press #, then 1, then keep pressing 0",
+    "navHint": "# → 1 → spam 0"
+  },
+  {
+    "name": "Philips",
+    "phone": "+18887445477",
+    "category": "tech",
+    "tip": "Select language, press 0, then 6",
+    "navHint": "language → 0 → 6"
+  },
+  {
+    "name": "PlayStation",
+    "phone": "+18003457669",
+    "category": "tech",
+    "tip": "Press 4",
+    "navHint": "press 4"
+  },
+  {
+    "name": "Razer",
+    "phone": "+18886972037",
+    "category": "tech",
+    "tip": "Press number for topic, wait",
+    "navHint": "topic digit → hold"
+  },
+  {
+    "name": "Samsung",
+    "phone": "+18007267864",
+    "category": "tech",
+    "tip": "Keep pressing #",
+    "navHint": "spam #"
+  },
+  {
+    "name": "Sony",
+    "phone": "+18002227669",
+    "category": "tech",
+    "tip": "Keep pressing 0",
+    "navHint": "spam 0"
+  },
+  {
+    "name": "Sharp",
+    "phone": "+18002374277",
+    "category": "tech",
+    "tip": "Press 1, then number for topic",
+    "navHint": "1 → topic digit"
+  },
+  {
+    "name": "Swagway",
+    "phone": "+18442990625",
+    "category": "tech",
+    "tip": "Press 3",
+    "navHint": "press 3"
+  },
+  {
+    "name": "Toshiba",
+    "phone": "+18004577777",
+    "category": "tech",
+    "tip": "Pick language, press 1, then 2, then 4, then #",
+    "navHint": "language → 1 → 2 → 4 → #"
+  },
+  {
+    "name": "Vizio",
+    "phone": "+18888494623",
+    "category": "tech",
+    "tip": "Press 1",
+    "navHint": "press 1"
+  },
+  {
+    "name": "Xbox",
+    "phone": "+18004699269",
+    "category": "tech",
+    "tip": "Keep pressing 0",
+    "navHint": "spam 0"
+  },
+  {
+    "name": "Costco",
+    "phone": "+18009552292",
+    "category": "retail",
+    "tip": "Press 0 twice",
+    "navHint": "0 → 0"
+  },
+  {
+    "name": "eBay",
+    "phone": "+18665403229",
+    "category": "retail",
+    "tip": "Keep pressing 0",
+    "navHint": "spam 0"
+  },
+  {
+    "name": "GameStop",
+    "phone": "+18776764263",
+    "category": "retail",
+    "tip": "Wait to be connected",
+    "navHint": "straight to hold"
+  },
+  {
+    "name": "Valve",
+    "phone": "+14258899642",
+    "category": "retail",
+    "tip": "Press 0, leave message, wait for callback",
+    "navHint": "0 → voicemail → callback"
+  },
+  {
+    "name": "Boost",
+    "phone": "+18882667848",
+    "category": "wireless",
+    "tip": "Keep pressing #, press number for topic, wait",
+    "navHint": "spam # → topic digit → hold"
+  },
+  {
+    "name": "Metro PCS",
+    "phone": "+18888638768",
+    "category": "wireless",
+    "tip": "Keep pressing 0",
+    "navHint": "spam 0"
+  },
+  {
+    "name": "Sprint",
+    "phone": "+18882114727",
+    "category": "wireless",
+    "tip": "Press # twice, then 0",
+    "navHint": "# → # → 0"
+  },
+  {
+    "name": "Straight Talk",
+    "phone": "+18774302355",
+    "category": "wireless",
+    "tip": "Press 1, then 5, then # three times",
+    "navHint": "1 → 5 → # → # → #"
+  },
+  {
+    "name": "T-Mobile",
+    "phone": "+18774531304",
+    "category": "wireless",
+    "tip": "Press # three times",
+    "navHint": "# → # → #"
+  },
+  {
+    "name": "Virgin Mobile",
+    "phone": "+18883221122",
+    "category": "wireless",
+    "tip": "Press # then 6, enter account phone number, wait",
+    "navHint": "# → 6 → account number → hold"
+  }
+]

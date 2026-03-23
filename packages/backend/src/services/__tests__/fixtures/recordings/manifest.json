@@ -1,0 +1,19 @@
+{
+  "description": "Maps recording files to expected STT phrases for regression testing. Each entry has key phrases that Twilio STT should detect.",
+  "cases": [
+    {
+      "audioFile": "CA5eb62861ba515ce32c0dc2bf60ca361b.mp3",
+      "name": "Short recording - closed office hours",
+      "expectedPhrases": ["closed", "call us back"],
+      "maxPollSeconds": 60,
+      "minTokenOverlap": 0.0
+    },
+    {
+      "audioFile": "costco-loop-ivr.mp3",
+      "name": "Costco IVR menu loop",
+      "expectedPhrases": ["warehouse", "membership", "pharmacy", "press"],
+      "maxPollSeconds": 360,
+      "minTokenOverlap": 0.2
+    }
+  ]
+}
