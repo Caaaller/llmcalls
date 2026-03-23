@@ -1,0 +1,289 @@
+/**
+ * Shared live call execution infrastructure.
+ * Extracted from liveCallEval.test.ts for reuse by replay-or-live fallback.
+ */
+
+import twilioService from '../twilioService';
+import callHistoryService from '../callHistoryService';
+import { TEST_IVR_NUMBERS } from '../liveCallTestCases';
+import type { LiveCallTestCase } from '../liveCallTestCases';
+import type { RecordedTurn } from './recordedCallTypes';
+
+const POLL_INTERVAL_MS = 3000;
+const DEFAULT_TIMEOUT_SECONDS = 600;
+const TERMINAL_STATUSES = [
+  'completed',
+  'failed',
+  'busy',
+  'no-answer',
+  'canceled',
+];
+
+export interface CallResult {
+  callSid: string;
+  status: string;
+  durationSeconds: number;
+  timedOut: boolean;
+}
+
+export function buildTwimlUrl(testCase: LiveCallTestCase): string {
+  const baseUrl = process.env.TWIML_URL || process.env.BASE_URL || '';
+  const transferNumber = process.env.TRANSFER_PHONE_NUMBER || '';
+  const params = new URLSearchParams({
+    transferNumber,
+    callPurpose: testCase.callPurpose || 'speak with a representative',
+  });
+  if (testCase.customInstructions) {
+    params.append('customInstructions', testCase.customInstructions);
+  }
+  if (testCase.skipInfoRequests !== false) {
+    params.append('skipInfoRequests', 'true');
+  }
+  return `${baseUrl}/voice?${params.toString()}`;
+}
+
+export class PhoneNumberPool {
+  private available: Array<string>;
+  private waiters: Array<(number: string) => void> = [];
+
+  constructor(numbers: Array<string>) {
+    this.available = [...numbers];
+  }
+
+  async acquire(): Promise<string> {
+    const number = this.available.pop();
+    if (number) return number;
+    return new Promise(resolve => this.waiters.push(resolve));
+  }
+
+  release(number: string): void {
+    const waiter = this.waiters.shift();
+    if (waiter) {
+      waiter(number);
+    } else {
+      this.available.push(number);
+    }
+  }
+}
+
+export const ivrNumberPool = new PhoneNumberPool(TEST_IVR_NUMBERS);
+
+export function isTestIvrCase(testCase: LiveCallTestCase): boolean {
+  return TEST_IVR_NUMBERS.includes(testCase.phoneNumber);
+}
+
+export async function executeCall(
+  testCase: LiveCallTestCase
+): Promise<CallResult> {
+  const from = process.env.TWILIO_PHONE_NUMBER || '';
+  const twimlUrl = buildTwimlUrl(testCase);
+  const maxDuration =
+    testCase.expectedOutcome.maxDurationSeconds || DEFAULT_TIMEOUT_SECONDS;
+
+  const usePool = isTestIvrCase(testCase);
+  const phoneNumber = usePool
+    ? await ivrNumberPool.acquire()
+    : testCase.phoneNumber;
+
+  try {
+    const call = await twilioService.initiateCall(phoneNumber, from, twimlUrl);
+    const callSid = call.sid;
+    const startTime = Date.now();
+    let status = call.status;
+    let timedOut = false;
+
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+
+      const currentCall = await twilioService.getCallStatus(callSid);
+      status = currentCall.status;
+
+      if (TERMINAL_STATUSES.includes(status)) break;
+
+      const elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed > maxDuration) {
+        await twilioService.terminateCall(callSid);
+        timedOut = true;
+        break;
+      }
+    }
+
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    return { callSid, status, durationSeconds, timedOut };
+  } finally {
+    if (usePool) ivrNumberPool.release(phoneNumber);
+  }
+}
+
+export async function formatCallTimeline(callSid: string): Promise<string> {
+  const call = await callHistoryService.getCall(callSid);
+  if (!call) return `  No call history found for ${callSid}`;
+
+  const lines: Array<string> = [];
+  lines.push(`  Call: ${callSid}`);
+  lines.push(`  Status: ${call.status}`);
+  if (call.metadata) {
+    lines.push(`  To: ${call.metadata.to || 'unknown'}`);
+    lines.push(`  Transfer#: ${call.metadata.transferNumber || 'unknown'}`);
+    lines.push(`  Purpose: ${call.metadata.callPurpose || 'unknown'}`);
+  }
+
+  if (call.events && call.events.length > 0) {
+    lines.push('  --- Event Timeline ---');
+    for (const event of call.events) {
+      const time = event.timestamp
+        ? new Date(event.timestamp).toISOString().slice(11, 19)
+        : '??:??:??';
+      switch (event.eventType) {
+        case 'conversation':
+          lines.push(`  [${time}] ${event.type?.toUpperCase()}: ${event.text}`);
+          break;
+        case 'dtmf':
+          lines.push(
+            `  [${time}] DTMF: ${event.digit} — ${event.reason || ''}`
+          );
+          break;
+        case 'ivr_menu':
+          lines.push(
+            `  [${time}] IVR MENU: ${(event.menuOptions || []).map((o: { digit: string; option: string }) => `${o.digit}=${o.option}`).join(', ')}`
+          );
+          break;
+        case 'transfer':
+          lines.push(
+            `  [${time}] TRANSFER → ${event.transferNumber} (success=${event.success})`
+          );
+          break;
+        case 'hold':
+          lines.push(`  [${time}] HOLD: Hold queue detected`);
+          break;
+        case 'termination':
+          lines.push(`  [${time}] TERMINATED: ${event.reason}`);
+          break;
+        default:
+          lines.push(
+            `  [${time}] ${event.eventType}: ${JSON.stringify(event)}`
+          );
+      }
+    }
+  } else {
+    lines.push('  --- No events recorded ---');
+  }
+
+  return lines.join('\n');
+}
+
+export async function buildRecordedTurns(
+  callSid: string
+): Promise<Array<RecordedTurn>> {
+  const call = await callHistoryService.getCall(callSid);
+  if (!call?.events?.length) return [];
+
+  const turns: Array<RecordedTurn> = [];
+  let turnNumber = 0;
+
+  for (let i = 0; i < call.events.length; i++) {
+    const event = call.events[i];
+    if (event.eventType !== 'conversation' || event.type !== 'user') continue;
+
+    turnNumber++;
+    let aiAction = null;
+    for (let j = i + 1; j < call.events.length; j++) {
+      const next = call.events[j];
+      if (next.eventType === 'dtmf') {
+        aiAction = {
+          action: 'press_digit' as const,
+          digit: next.digit,
+          reason: next.reason || '',
+          detected: {
+            isIVRMenu: true,
+            menuOptions: [],
+            isMenuComplete: true,
+            loopDetected: false,
+            shouldTerminate: false,
+            transferRequested: false,
+          },
+        };
+        break;
+      }
+      if (next.eventType === 'conversation' && next.type === 'ai') {
+        aiAction = {
+          action: 'speak' as const,
+          speech: next.text,
+          reason: '',
+          detected: {
+            isIVRMenu: false,
+            menuOptions: [],
+            isMenuComplete: false,
+            loopDetected: false,
+            shouldTerminate: false,
+            transferRequested: false,
+          },
+        };
+        break;
+      }
+      if (next.eventType === 'conversation' && next.type === 'user') {
+        aiAction = {
+          action: 'wait' as const,
+          reason: 'No action before next speech',
+          detected: {
+            isIVRMenu: false,
+            menuOptions: [],
+            isMenuComplete: false,
+            loopDetected: false,
+            shouldTerminate: false,
+            transferRequested: false,
+          },
+        };
+        break;
+      }
+      if (next.eventType === 'transfer' || next.eventType === 'termination')
+        break;
+    }
+
+    if (aiAction) {
+      turns.push({
+        turnNumber,
+        ivrSpeech: event.text || '',
+        aiAction: aiAction as RecordedTurn['aiAction'],
+      });
+    }
+  }
+
+  return turns;
+}
+
+export async function getCallOutcome(
+  callSid: string,
+  durationSeconds: number,
+  callStatus: string
+): Promise<{
+  finalStatus: string;
+  durationSeconds: number;
+  reachedHuman: boolean;
+  dtmfDigits: Array<string>;
+}> {
+  const digits = await callHistoryService.getDTMFDigits(callSid);
+  const transferred = await callHistoryService.hasSuccessfulTransfer(callSid);
+  const onHold = await callHistoryService.hasReachedHoldQueue(callSid);
+
+  return {
+    finalStatus: callStatus,
+    durationSeconds,
+    reachedHuman: transferred || onHold,
+    dtmfDigits: digits,
+  };
+}
+
+export async function hasBusinessClosed(callSid: string): Promise<boolean> {
+  const reason = await callHistoryService.getTerminationReason(callSid);
+  return reason === 'closed_no_menu';
+}
+
+export function hasTwilioCreds(): boolean {
+  return !!(
+    process.env.TWILIO_ACCOUNT_SID &&
+    process.env.TWILIO_AUTH_TOKEN &&
+    process.env.TWILIO_PHONE_NUMBER &&
+    (process.env.TWIML_URL || process.env.BASE_URL)
+  );
+}
