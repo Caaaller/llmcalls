@@ -108,8 +108,6 @@ describe('Prompt evaluation – multi-step', () => {
   MULTI_STEP_TEST_CASES.forEach(testCase => {
     const flakyMultiStep = [
       'DirecTV - Complete Call Flow with Termination', // DTMF choice for ambiguous menu varies
-      'Loop Detection - NYU Langone Scenario', // shouldNotPressAgain / loop prevention varies
-      'Costco - Administrative Staff Loop', // DTMF press vs no-press varies
     ];
     const isSkipped = flakyMultiStep.includes(testCase.name);
     (isSkipped ? it.skip : it)(testCase.name, async () => {
@@ -154,6 +152,27 @@ describe('Prompt evaluation – multi-step', () => {
         const pr = result.processingResult;
         const expected = expectedFromStepBehavior(step.expectedBehavior);
         const actual = actualFromResult(pr, result.aiAction);
+
+        // Log step details for debugging flakiness
+        console.log(
+          `  [${testCase.name}] Step ${i + 1}/${testCase.steps.length}:` +
+            `\n    Speech: "${step.speech.slice(0, 80)}..."` +
+            `\n    AI action: ${result.aiAction}${pr.dtmfDecision.digit ? ` digit=${pr.dtmfDecision.digit}` : ''}` +
+            `\n    loopDetected: ${pr.loopDetected}` +
+            `\n    isIVRMenu: ${pr.isIVRMenu}` +
+            `\n    menuOptions: ${JSON.stringify(pr.menuOptions?.slice(0, 3))}` +
+            `\n    previousMenus fed in: ${JSON.stringify(previousMenus)}` +
+            `\n    shouldPress: ${pr.dtmfDecision.shouldPress}` +
+            `\n    reason: ${pr.dtmfDecision.reason?.slice(0, 120) || 'N/A'}` +
+            (Object.keys(expected).some(
+              k =>
+                (expected as Record<string, unknown>)[k] !==
+                (actual as Record<string, unknown>)[k]
+            )
+              ? `\n    MISMATCH: expected=${JSON.stringify(expected)} actual=${JSON.stringify(actual)}`
+              : '')
+        );
+
         expect(actual).toMatchObject(expected);
 
         const updatedState = callStateManager.getCallState(testCallSid);

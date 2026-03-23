@@ -65,7 +65,8 @@ export function expectedFromStepBehavior(
     expected.shouldTerminate = eb.shouldTerminate;
   if (eb.terminationReason !== undefined)
     expected.terminationReason = eb.terminationReason;
-  // loopDetected not asserted: heuristic/LLM variance causes flaky failures; DTMF (shouldPress/digit) is the stable contract
+  if (eb.shouldDetectLoop !== undefined)
+    expected.loopDetected = eb.shouldDetectLoop;
   if (eb.shouldNotPressAgain) {
     expected.shouldPreventDTMF = true;
     expected.shouldPress = false;

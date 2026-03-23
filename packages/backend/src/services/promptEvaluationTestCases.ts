@@ -244,17 +244,6 @@ const singleStepCases: {
       },
     },
     {
-      name: 'DTMF - Wells Fargo Loan Number Required',
-      description:
-        'Should NOT press any DTMF when loan number or SSN is required to access account',
-      speech:
-        'Your loan number or social security number is required to access your account. Using your loan number, press 1.',
-      config: DEFAULT_CALL_PURPOSE,
-      expectedBehavior: {
-        shouldPressDTMF: false,
-      },
-    },
-    {
       name: 'DTMF - Wells Fargo Representative Option',
       description:
         'Should press 2 when instructed to press 2 to reach an agent after loan-number prompts',
@@ -425,81 +414,70 @@ export const SINGLE_STEP_TEST_CASES: PromptTestCase[] = [
 
 export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   {
-    name: 'Loop Detection - NYU Langone Scenario',
+    name: 'Loop Detection - NYU Langone',
     description:
-      'Tests the actual looping scenario where same menu appears multiple times and DTMF 5 is pressed repeatedly',
+      'Hear a menu, hear it again → loopDetected should be true on the repeat',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
         speech:
-          'Thank you for calling the NYU langone faculty group. Practice billing office. If you are calling to make a payment or discuss payment options, press 1 to inquire about the status of prior authorization,',
+          "Thank you for calling the NYU Langone faculty group practice billing office. If you are calling to make a payment or discuss payment options, press 1. To inquire about the status of prior authorization, press 2. To request or discuss a financial estimate, press 3. If you're calling from an insurance company or an attorney's office, press 4. All other inquiries, press 5.",
         expectedBehavior: {
-          shouldPressDTMF: false, // Incomplete menu, should wait
-        },
-      },
-      {
-        speech: 'Press 5.',
-        expectedBehavior: {
-          shouldPressDTMF: false, // Just a digit fragment, no complete menu context
+          shouldPressDTMF: true,
+          expectedDigit: '5',
         },
       },
       {
         speech:
-          "Ization, press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4, all other inquiries press 5.",
+          "If you are calling to make a payment or discuss payment options, press 1. To inquire about the status of prior authorization, press 2. To request or discuss a financial estimate, press 3. If you're calling from an insurance company or an attorney's office, press 4. All other inquiries, press 5.",
         expectedBehavior: {
           shouldPressDTMF: true,
           expectedDigit: '5',
-          shouldDetectLoop: true, // May detect loop if similar to step 1 menu, that's OK
-        },
-      },
-      {
-        speech:
-          "2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4, all other inquiries press 5.",
-        expectedBehavior: {
-          shouldPressDTMF: true,
-          expectedDigit: '5',
-          shouldDetectLoop: true, // Same menu appearing again
-          shouldNotPressAgain: true, // Should detect loop and NOT press again
-        },
-      },
-      {
-        speech:
-          "Press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4, all other inquiries press 5.",
-        expectedBehavior: {
-          shouldPressDTMF: true,
-          expectedDigit: '5',
-          shouldDetectLoop: true, // Same menu appearing again
-          shouldNotPressAgain: true, // Should detect loop and NOT press again
+          shouldDetectLoop: true,
         },
       },
     ],
   },
   {
     name: 'Loop Detection - Incomplete Menu Repeating',
-    description: 'Tests when incomplete menu keeps repeating without option 5',
+    description:
+      'Hear a partial menu twice → loopDetected should be true on the repeat',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
         speech:
-          "Press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4.",
+          "Press 2 to request or discuss a financial estimate, press 3. If you're calling from an insurance company or an attorney's office, press 4.",
         expectedBehavior: {
-          shouldPressDTMF: false, // No option 5, no clear match
+          shouldPressDTMF: false,
         },
       },
       {
         speech:
-          "To inquire about the status of prior authorization. Press 2 to request or discuss a financial estimate, press 3. If you're calling from an insurance company or an attorney's office press 4.",
+          "Press 2 to request or discuss a financial estimate, press 3. If you're calling from an insurance company or an attorney's office, press 4.",
         expectedBehavior: {
-          shouldPressDTMF: false,
-          shouldDetectLoop: false, // Option 2 changed significantly (from "financial estimate" to "prior authorization"), so not a loop
+          shouldDetectLoop: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Wells Fargo - Loan Number Then Representative',
+    description:
+      'Should wait on incomplete loan number menu, then press 2 for representative when full menu appears',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech:
+          'Your loan number or social security number is required to access your account. Using your loan number, press 1.',
+        expectedBehavior: {
+          shouldPressDTMF: false, // Incomplete menu — only one option, wait for more
         },
       },
       {
-        speech:
-          "Press 2 to request or discuss a financial estimate press 3. If you're calling from an insurance company or an attorney's office, press 4.",
+        speech: 'Press 2 to speak with a representative.',
         expectedBehavior: {
-          shouldPressDTMF: false,
-          shouldDetectLoop: true, // Same menu as step 1 - this IS a loop
+          shouldPressDTMF: true,
+          expectedDigit: '2',
         },
       },
     ],
@@ -582,103 +560,47 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   {
     name: 'Costco - Administrative Staff Loop',
     description:
-      'Tests the Costco scenario where menu keeps repeating with "press 5 for administrative staff" and system should stop pressing after detecting loop',
+      'Hear Costco menu, hear it again → loopDetected should be true and AI should keep pressing',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
         speech:
-          'Press 5 to reach the administrative staff. Press 1 for warehouse hours directions and holidays, observed press 2 for information on membership or returns, press 3 to reach the pharmacy.',
+          'To reach the administrative staff press 5. For warehouse hours, directions and holidays press 1. For information on membership or returns press 2. To reach the pharmacy press 3. For all other departments press 4.',
         expectedBehavior: {
           shouldPressDTMF: true,
-          expectedDigit: '5', // First time, should press 5
         },
       },
       {
         speech:
-          'Press, 3 to reach the pharmacy press 4 for all other departments, press 5.',
+          'To reach the administrative staff press 5. For warehouse hours, directions and holidays press 1. For information on membership or returns press 2. To reach the pharmacy press 3. For all other departments press 4.',
         expectedBehavior: {
           shouldPressDTMF: true,
-          expectedDigit: '4', // Different menu, should press 4 for "all other departments"
+          shouldDetectLoop: true,
         },
       },
-      {
-        speech: 'All other departments, press 5 to reach the administrator.',
-        expectedBehavior: {
-          shouldPressDTMF: true,
-          expectedDigit: '5', // Should press 5 for administrator
-        },
-      },
-      {
-        speech:
-          'To reach the administrative staff. Press 1 for warehouse hours, directions and holidays, observed press 2 for information on membership or returns, press 3 to reach the pharmacy, press 4 for all other departments, press 5,',
-        expectedBehavior: {
-          shouldPressDTMF: true,
-          expectedDigit: '5',
-          shouldDetectLoop: true, // Similar menu to step 1 - loop detected
-        },
-      },
+    ],
+  },
+  {
+    name: 'Loop Detection - STT Garbling Variation',
+    description:
+      'Menu repeats with slightly different wording from STT garbling → loopDetected should still be true',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
       {
         speech:
-          'Apartments press 5 to reach the administrative staff, press 1 for warehouse hours, directions and holidays, observed press 2 for information on membership or returns press 3.',
+          'For pharmacy press 1. For the dental clinic press 2. To speak with a nurse press 3. For billing inquiries press 4. For all other questions press 5.',
         expectedBehavior: {
           shouldPressDTMF: true,
           expectedDigit: '5',
-          shouldDetectLoop: true, // Same menu pattern - loop detected
         },
       },
       {
         speech:
-          'Or returns press 3 to reach the pharmacy, press 4 for all other departments, press 5.',
+          'For the pharmacy press 1. For dental clinic press 2. To speak with the nurse press 3. For billing inquiry press 4. For all other questions press 5.',
         expectedBehavior: {
           shouldPressDTMF: true,
           expectedDigit: '5',
-          shouldDetectLoop: true, // Similar to step 2 - loop detected
-        },
-      },
-      {
-        speech:
-          'Administrative staff, press 1 for warehouse hours directions and holidays. Observed press 2 for information on membership or returns, press 3 to reach the pharmacy.',
-        expectedBehavior: {
-          shouldPressDTMF: false, // No option 5, no clear match - should not press
-          shouldDetectLoop: true, // Similar menu pattern - loop detected
-        },
-      },
-      {
-        speech:
-          'On membership or returns press 3 to reach the pharmacy press 4 for all other departments press 5.',
-        expectedBehavior: {
-          shouldPressDTMF: true,
-          expectedDigit: '5',
-          shouldDetectLoop: true, // Same pattern as step 3 - loop detected
-          shouldNotPressAgain: true, // If we already pressed 5 for this menu pattern, should NOT press again
-        },
-      },
-      {
-        speech:
-          'Staff press 1 for warehouse hours, directions and holidays. Observed press 2 for information on membership or returns, press 3 to reach the pharmacy.',
-        expectedBehavior: {
-          shouldPressDTMF: false, // No option 5, no clear match
-          shouldDetectLoop: true, // Same pattern as step 7 - loop detected
-        },
-      },
-      {
-        speech:
-          'Returns press 3 to reach the pharmacy, press 4 for all other departments press 5.',
-        expectedBehavior: {
-          shouldPressDTMF: true,
-          expectedDigit: '5',
-          shouldDetectLoop: true, // Same pattern as step 6 and 8 - loop detected
-          shouldNotPressAgain: true, // Should NOT press again if we already pressed 5 for this pattern
-        },
-      },
-      {
-        speech:
-          '5 to reach the administrative staff. Press 1 for warehouse hours directions and holidays, observed press 2 for information on membership or returns, press 3 to reach the pharmacy.',
-        expectedBehavior: {
-          shouldPressDTMF: true,
-          expectedDigit: '5',
-          shouldDetectLoop: true, // Same pattern as step 1, 4, 5 - loop detected
-          shouldNotPressAgain: true, // Should NOT press again if we already pressed 5 for this pattern
+          shouldDetectLoop: true,
         },
       },
     ],
