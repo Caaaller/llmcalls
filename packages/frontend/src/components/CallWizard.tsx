@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import type { WizardData, WizardStep } from '../types/wizard';
@@ -75,6 +75,16 @@ function CallWizard({
       queryClient.invalidateQueries({ queryKey: ['savedCalls'] });
     },
   });
+
+  useEffect(() => {
+    if (!initiateCallMutation.isSuccess) return;
+    const timer = setTimeout(() => {
+      initiateCallMutation.reset();
+      setStep(1);
+      setData({ ...EMPTY_WIZARD, transferNumber: defaultTransferNumber });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [initiateCallMutation.isSuccess, defaultTransferNumber]);
 
   function handleCall(save: boolean, saveName: string) {
     if (save && saveName) {

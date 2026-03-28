@@ -146,6 +146,27 @@ body {
   opacity: 1;
 }
 
+.sidebar-recent-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  gap: 8px;
+}
+
+.sidebar-recent-time {
+  font-size: 0.7rem;
+  color: #7a7e8f;
+  flex-shrink: 0;
+}
+
 .icon-btn {
   background: none;
   border: none;
