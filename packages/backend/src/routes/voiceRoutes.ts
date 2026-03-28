@@ -1,449 +1,355 @@
 /**
- * Voice Routes - Transfer-Only Mode
- * Handles Twilio voice webhooks for transfer-only phone navigation
+ * Voice Routes — Telnyx Call Control
+ * Handles all Telnyx webhook events for outbound IVR navigation
  */
 
 import express, { Request, Response } from 'express';
-import twilio from 'twilio';
-import { TwilioCallStatus, isCallEnded } from '../types/callStatus';
-import transferConfig from '../config/transfer-config';
+import {
+  TelnyxWebhookBody,
+  TelnyxWebhookPayload,
+  decodeClientState,
+} from '../types/telnyx';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
+import telnyxService from '../services/telnyxService';
+import transferConfig from '../config/transfer-config';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
-import {
-  buildProcessSpeechUrl,
-  createSayAttributes,
-  createGatherAttributes,
-  getBaseUrl,
-} from '../utils/twimlHelpers';
 import { processSpeech } from '../services/speechProcessingService';
 import { logOnError } from '../utils/logOnError';
 
 const router: express.Router = express.Router();
 
-// Constants
-/**
- * Default timeout for Twilio Gather speech input (in seconds)
- * This is the maximum time to wait for speech to START, not recording duration.
- * Once speech starts, Twilio records until there's a 2-second pause (speechTimeout: 'auto').
- * Increased to 15 seconds to capture longer IVR menus.
- */
-const DEFAULT_SPEECH_TIMEOUT = 15;
+const STALL_POLL_INTERVAL_MS = 100;
+const STALL_TIMEOUT_MS = 2 * 60 * 1000;
 
-/**
- * Initial voice webhook - called when call starts
- */
-router.post('/', (req: Request, res: Response): void => {
-  try {
-    const callSid = req.body.CallSid;
-    const baseUrl = getBaseUrl(req);
-
-    const config = transferConfig.createConfig({
-      transferNumber:
-        (req.query.transferNumber as string) ||
-        process.env.TRANSFER_PHONE_NUMBER,
-      userPhone:
-        (req.query.userPhone as string) || process.env.USER_PHONE_NUMBER,
-      userEmail: (req.query.userEmail as string) || process.env.USER_EMAIL,
-      callPurpose:
-        (req.query.callPurpose as string) ||
-        process.env.CALL_PURPOSE ||
-        'speak with a representative',
-      customInstructions: (req.query.customInstructions as string) || '',
-    });
-
-    const skipInfoRequests = req.query.skipInfoRequests === 'true';
-
-    callStateManager.updateCallState(callSid, {
-      transferConfig: config as TransferConfigType,
-      previousMenus: [],
-      customInstructions: config.customInstructions,
-      userPhone: config.userPhone,
-      ...(skipInfoRequests && { skipInfoRequests }),
-    });
-
-    logOnError(
-      callHistoryService.startCall(callSid, {
-        to: req.body.To || req.body.Called,
-        from: req.body.From || req.body.Caller,
-        transferNumber: config.transferNumber,
-        callPurpose: config.callPurpose,
-        customInstructions: config.customInstructions,
-      }),
-      'Error starting call history'
-    );
-
-    const response = new twilio.twiml.VoiceResponse();
-    const recordingCallbackUrl = `${baseUrl}/voice/recording-status`;
-    response.start().recording({
-      recordingStatusCallback: recordingCallbackUrl,
-      recordingStatusCallbackEvent: ['completed'],
-      trim: 'do-not-trim',
-    } as any);
-    const initialProcessSpeechUrl = buildProcessSpeechUrl({
-      baseUrl,
-      config,
-      additionalParams: { firstCall: 'true' },
-    });
-    const gatherAttributes = createGatherAttributes(config, {
-      action: initialProcessSpeechUrl,
-      method: 'POST',
-      timeout: DEFAULT_SPEECH_TIMEOUT,
-    });
-    response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
-    // If Gather times out (IVR hasn't spoken yet), keep listening
-    response.redirect({ method: 'POST' }, initialProcessSpeechUrl);
-
-    res.type('text/xml');
-    res.send(response.toString());
-    return;
-  } catch (error) {
-    void (error instanceof Error ? error.message : String(error));
-    const response = new twilio.twiml.VoiceResponse();
-    response.say(
-      { voice: 'alice', language: 'en-US' },
-      'I apologize, but there was an error. Please try again later.'
-    );
-    response.hangup();
-    res.type('text/xml');
-    res.send(response.toString());
+function getTelnyxVoice(config: TransferConfigType): string {
+  const configVoice = config.aiSettings.voice;
+  if (configVoice?.startsWith('Polly.')) {
+    return `AWS.${configVoice}-Neural`;
   }
-});
+  return configVoice || 'AWS.Polly.Matthew-Neural';
+}
 
 /**
- * Process speech - main conversation handler
+ * Start a server-side stall timer.
+ * Polls callStateManager every STALL_POLL_INTERVAL_MS until the user provides
+ * the requested info or 2 minutes elapses, then fires the Telnyx speak action.
  */
-router.post(
-  '/process-speech',
-  async (req: Request, res: Response): Promise<void> => {
-    try {
-      const callSid = req.body.CallSid;
-      const speechResult = req.body.SpeechResult || '';
-      const confidence = req.body.Confidence || '';
-      const isFirstCall = req.query.firstCall === 'true';
-      const baseUrl = getBaseUrl(req);
+export function startStallTimer(callControlId: string): void {
+  const callState = callStateManager.getCallState(callControlId);
+  if (callState.stallTimer) {
+    clearInterval(callState.stallTimer);
+  }
 
-      console.log(`[STT] confidence=${confidence} "${speechResult}"`);
+  const stallStartTime = Date.now();
 
-      const result = await processSpeech({
-        callSid,
-        speechResult,
-        isFirstCall,
-        baseUrl,
-        transferNumber: req.query.transferNumber as string | undefined,
-        callPurpose: req.query.callPurpose as string | undefined,
-        customInstructions: req.query.customInstructions as string | undefined,
-        userPhone: req.query.userPhone as string | undefined,
-        userEmail: req.query.userEmail as string | undefined,
-      });
+  const timer = setInterval(() => {
+    void (async () => {
+      const state = callStateManager.getCallState(callControlId);
+      const pending = state.pendingInfoRequest;
 
-      if (result.shouldSend) {
-        res.type('text/xml');
-        res.send(result.twiml);
+      if (!pending) {
+        clearInterval(timer);
+        callStateManager.updateCallState(callControlId, {
+          stallTimer: undefined,
+        });
+        return;
       }
-    } catch (error) {
-      void (error instanceof Error ? error.message : String(error));
 
-      const errorResponse = new twilio.twiml.VoiceResponse();
-      errorResponse.say(
-        { voice: 'alice', language: 'en-US' },
-        'I apologize, but an application error has occurred. Please try again later.'
-      );
-      errorResponse.hangup();
-      res.type('text/xml');
-      res.send(errorResponse.toString());
-    }
-  }
-);
+      const elapsed = Date.now() - stallStartTime;
+
+      // User provided a response
+      if (pending.userResponse) {
+        clearInterval(timer);
+        callStateManager.updateCallState(callControlId, {
+          stallTimer: undefined,
+        });
+
+        console.log(
+          `✅ Info received (${pending.respondedVia}): ${pending.userResponse}`
+        );
+
+        callHistoryService
+          .addInfoResponse(
+            callControlId,
+            pending.userResponse,
+            pending.respondedVia || 'web'
+          )
+          .catch(err => console.error('Error logging info response:', err));
+
+        const config = transferConfig.createConfig({
+          transferNumber:
+            state.transferConfig?.transferNumber ||
+            process.env.TRANSFER_PHONE_NUMBER,
+          callPurpose: state.transferConfig?.callPurpose,
+          customInstructions: state.customInstructions,
+        });
+
+        const dataEntryMode = pending.dataEntryMode || 'speech';
+        const digits = pending.userResponse.replace(/\D/g, '');
+
+        state.pendingInfoRequest = undefined;
+
+        if (dataEntryMode === 'dtmf' && digits.length > 0) {
+          await telnyxService.sendDTMF(callControlId, `ww${digits}`);
+        } else {
+          await telnyxService.speakText(
+            callControlId,
+            pending.userResponse,
+            getTelnyxVoice(config)
+          );
+        }
+        return;
+      }
+
+      // Timeout
+      if (elapsed >= STALL_TIMEOUT_MS) {
+        clearInterval(timer);
+        callStateManager.updateCallState(callControlId, {
+          stallTimer: undefined,
+        });
+
+        console.log('⏰ Stall timeout — giving up on info request');
+        state.pendingInfoRequest = undefined;
+
+        const config = transferConfig.createConfig({
+          transferNumber:
+            state.transferConfig?.transferNumber ||
+            process.env.TRANSFER_PHONE_NUMBER,
+          callPurpose: state.transferConfig?.callPurpose,
+          customInstructions: state.customInstructions,
+        });
+
+        await telnyxService.speakText(
+          callControlId,
+          "I don't have that information. Can I speak with a representative?",
+          getTelnyxVoice(config)
+        );
+      }
+    })();
+  }, STALL_POLL_INTERVAL_MS);
+
+  callStateManager.updateCallState(callControlId, { stallTimer: timer });
+}
 
 /**
- * Process DTMF - handle DTMF key presses
+ * Handle call.answered event
  */
-router.post('/process-dtmf', (req: Request, res: Response) => {
-  void (req.body.Digits || req.query.Digits);
-  const baseUrl = getBaseUrl(req);
-
-  const callSid = req.body.CallSid;
-  const callState = callStateManager.getCallState(callSid);
-  const customInstructionsFromState = callState.customInstructions;
-  const customInstructionsFromQuery = req.query.customInstructions as
-    | string
-    | undefined;
-  const finalCustomInstructions =
-    customInstructionsFromQuery || customInstructionsFromState || '';
+async function handleCallAnswered(
+  callControlId: string,
+  payload: TelnyxWebhookPayload | undefined
+): Promise<void> {
+  const clientConfig = decodeClientState(payload?.client_state);
 
   const config = transferConfig.createConfig({
     transferNumber:
-      (req.query.transferNumber as string) || process.env.TRANSFER_PHONE_NUMBER,
+      clientConfig?.transferNumber || process.env.TRANSFER_PHONE_NUMBER,
+    userPhone: clientConfig?.userPhone || process.env.USER_PHONE_NUMBER,
+    userEmail: clientConfig?.userEmail || process.env.USER_EMAIL,
     callPurpose:
-      (req.query.callPurpose as string) ||
+      clientConfig?.callPurpose ||
       process.env.CALL_PURPOSE ||
       'speak with a representative',
-    customInstructions: finalCustomInstructions,
+    customInstructions: clientConfig?.customInstructions || '',
   });
 
-  if (finalCustomInstructions) {
-    callStateManager.updateCallState(callSid, {
-      customInstructions: finalCustomInstructions,
-    });
-  }
-
-  const digit = (req.query.Digits as string) || req.body.Digits;
-  const response = new twilio.twiml.VoiceResponse();
-
-  if (digit) {
-    console.log(
-      '[process-dtmf] DTMF digit already sent by speechProcessingService:',
-      digit
-    );
-    // Do NOT re-send the digit here — it was already sent via <Play digits="ww{digit}">
-    // in speechProcessingService before the <Redirect> to this endpoint.
-    // Sending it twice causes IVRs to reject the input.
-  }
-
-  const gatherAttributes = createGatherAttributes(config, {
-    action: buildProcessSpeechUrl({ baseUrl, config }),
-    method: 'POST',
-    timeout: DEFAULT_SPEECH_TIMEOUT,
-    input: ['dtmf', 'speech'],
-    numDigits: 1,
+  callStateManager.updateCallState(callControlId, {
+    transferConfig: config as TransferConfigType,
+    previousMenus: [],
+    customInstructions: config.customInstructions,
+    userPhone: config.userPhone,
+    ...(clientConfig?.skipInfoRequests && { skipInfoRequests: true }),
   });
-  response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
 
-  res.type('text/xml');
-  res.send(response.toString());
-});
+  logOnError(
+    callHistoryService.startCall(callControlId, {
+      to: payload?.to || '',
+      from: payload?.from || '',
+      transferNumber: config.transferNumber,
+      callPurpose: config.callPurpose,
+      customInstructions: config.customInstructions,
+    }),
+    'Error starting call history'
+  );
 
-/**
- * Recording status callback - Twilio POSTs when a call recording is completed
- */
-router.post('/recording-status', async (req: Request, res: Response) => {
-  const callSid = req.body.CallSid;
-  const recordingUrl = req.body.RecordingUrl;
-  const recordingStatus = req.body.RecordingStatus;
-  if (callSid && recordingUrl && recordingStatus === 'completed') {
-    await callHistoryService.setRecordingUrl(callSid, recordingUrl);
+  // Start real-time Deepgram transcription for the IVR's audio
+  try {
+    await telnyxService.startTranscription(callControlId);
+  } catch (err) {
+    console.error('Failed to start transcription:', err);
   }
-  res.status(200).send('OK');
-});
+}
 
 /**
- * Call status callback - handles status updates from Twilio for main calls
+ * Handle call.transcription event — the main speech processing loop
  */
-router.post('/call-status', (req: Request, res: Response) => {
-  const callSid = req.body.CallSid;
-  const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
+async function handleTranscription(
+  callControlId: string,
+  payload: TelnyxWebhookPayload | undefined
+): Promise<void> {
+  const transcriptionData = payload?.transcription_data;
+  if (!transcriptionData?.is_final) return; // Only act on final results
 
-  if (callSid && callStatus) {
-    if (callStatus === 'completed') {
-      logOnError(
-        callHistoryService.endCall(callSid, 'completed'),
-        'Error ending call'
-      );
-    } else if (isCallEnded(callStatus)) {
-      logOnError(
-        callHistoryService.endCall(callSid, 'failed'),
-        'Error ending call'
-      );
+  const speechResult = transcriptionData.transcript || '';
+  const callState = callStateManager.getCallState(callControlId);
+
+  // Don't process transcription while we're speaking (suppress TTS echo)
+  if (callState.isSpeaking) return;
+
+  console.log(
+    `[STT] confidence=${transcriptionData.confidence ?? '?'} "${speechResult}"`
+  );
+
+  await processSpeech({
+    callSid: callControlId,
+    speechResult,
+    isFirstCall: false,
+    baseUrl: '',
+    transferNumber: callState.transferConfig?.transferNumber,
+    callPurpose: callState.transferConfig?.callPurpose,
+    customInstructions: callState.customInstructions,
+    userPhone: callState.userPhone,
+    skipInfoRequests: callState.skipInfoRequests,
+  });
+}
+
+/**
+ * Handle call.hangup event
+ */
+function handleCallHangup(
+  callControlId: string,
+  payload: TelnyxWebhookPayload | undefined
+): void {
+  const cause = payload?.hangup_cause;
+  const internalStatus =
+    cause === 'normal_clearing' || !cause ? 'completed' : 'failed';
+
+  logOnError(
+    callHistoryService.endCall(callControlId, internalStatus),
+    'Error ending call'
+  );
+
+  // Clean up stall timer if active
+  const state = callStateManager.getCallState(callControlId);
+  if (state.stallTimer) {
+    clearInterval(state.stallTimer);
+  }
+
+  callStateManager.clearCallState(callControlId);
+}
+
+/**
+ * Handle call.recording.saved event
+ */
+async function handleRecordingSaved(
+  callControlId: string,
+  payload: TelnyxWebhookPayload | undefined
+): Promise<void> {
+  const recordingUrl = payload?.recording_url;
+  if (recordingUrl) {
+    await callHistoryService.setRecordingUrl(callControlId, recordingUrl);
+  }
+}
+
+/**
+ * Main Telnyx webhook endpoint — receives all call events
+ */
+router.post('/', async (req: Request, res: Response): Promise<void> => {
+  res.status(200).send('OK'); // Acknowledge immediately
+
+  const body = req.body as TelnyxWebhookBody;
+  const event = body?.data;
+  if (!event) return;
+
+  const eventType = event.event_type || '';
+  const payload = event.payload;
+  const callControlId = payload?.call_control_id || '';
+
+  if (!callControlId) return;
+
+  try {
+    switch (eventType) {
+      case 'call.answered':
+        await handleCallAnswered(callControlId, payload);
+        break;
+      case 'call.transcription':
+        await handleTranscription(callControlId, payload);
+        break;
+      case 'call.hangup':
+        handleCallHangup(callControlId, payload);
+        break;
+      case 'call.recording.saved':
+        await handleRecordingSaved(callControlId, payload);
+        break;
+      case 'call.speak.ended':
+        callStateManager.updateCallState(callControlId, { isSpeaking: false });
+        break;
     }
+  } catch (err) {
+    console.error(`Error handling Telnyx event ${eventType}:`, err);
   }
-
-  res.status(200).send('OK');
 });
 
 /**
- * Stall loop — redirects to itself every ~6 seconds while waiting for user info.
- * Breaks out when the user's reply arrives in call state or after 2-minute timeout.
- */
-router.post('/stall', (req: Request, res: Response): void => {
-  const callSid = req.body.CallSid || (req.query.callSid as string);
-  const baseUrl = getBaseUrl(req);
-  const response = new twilio.twiml.VoiceResponse();
-
-  if (!callSid) {
-    response.say({ voice: 'alice', language: 'en-US' }, 'An error occurred.');
-    response.hangup();
-    res.type('text/xml');
-    res.send(response.toString());
-    return;
-  }
-
-  const callState = callStateManager.getCallState(callSid);
-  const pending = callState.pendingInfoRequest;
-
-  // If user has replied, break out of stall
-  if (pending?.userResponse) {
-    console.log(
-      `✅ Info received (${pending.respondedVia}): ${pending.userResponse}`
-    );
-
-    callHistoryService
-      .addInfoResponse(
-        callSid,
-        pending.userResponse,
-        pending.respondedVia || 'web'
-      )
-      .catch(err => console.error('Error logging info response:', err));
-
-    const config = transferConfig.createConfig({
-      transferNumber:
-        callState.transferConfig?.transferNumber ||
-        process.env.TRANSFER_PHONE_NUMBER,
-      callPurpose:
-        callState.transferConfig?.callPurpose || process.env.CALL_PURPOSE,
-      customInstructions: callState.customInstructions,
-    });
-
-    const sayAttributes = createSayAttributes(config);
-
-    // Determine how to provide the info based on dataEntryMode
-    const dataEntryMode = pending.dataEntryMode || 'speech';
-    const digits = pending.userResponse.replace(/\D/g, '');
-
-    if (dataEntryMode === 'dtmf' && digits.length > 0) {
-      response.play({ digits: `ww${digits}` });
-    } else {
-      response.say(
-        sayAttributes as Parameters<typeof response.say>[0],
-        pending.userResponse
-      );
-    }
-
-    // Clear pending request
-    callState.pendingInfoRequest = undefined;
-
-    // Resume normal gather flow
-    const gatherAttributes = createGatherAttributes(config, {
-      action: buildProcessSpeechUrl({ baseUrl, config }),
-      method: 'POST',
-      timeout: DEFAULT_SPEECH_TIMEOUT,
-    });
-    response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
-
-    res.type('text/xml');
-    res.send(response.toString());
-    return;
-  }
-
-  // Check 2-minute timeout
-  const STALL_TIMEOUT_MS = 2 * 60 * 1000;
-  if (
-    pending &&
-    Date.now() - pending.requestedAt.getTime() > STALL_TIMEOUT_MS
-  ) {
-    console.log('⏰ Stall timeout — giving up on info request');
-
-    callState.pendingInfoRequest = undefined;
-
-    const config = transferConfig.createConfig({
-      transferNumber:
-        callState.transferConfig?.transferNumber ||
-        process.env.TRANSFER_PHONE_NUMBER,
-      callPurpose:
-        callState.transferConfig?.callPurpose || process.env.CALL_PURPOSE,
-      customInstructions: callState.customInstructions,
-    });
-    const sayAttributes = createSayAttributes(config);
-    response.say(
-      sayAttributes as Parameters<typeof response.say>[0],
-      "I don't have that information. Can I speak with a representative?"
-    );
-
-    const gatherAttributes = createGatherAttributes(config, {
-      action: buildProcessSpeechUrl({ baseUrl, config }),
-      method: 'POST',
-      timeout: DEFAULT_SPEECH_TIMEOUT,
-    });
-    response.gather(gatherAttributes as Parameters<typeof response.gather>[0]);
-
-    res.type('text/xml');
-    res.send(response.toString());
-    return;
-  }
-
-  // Still waiting — use Gather (not Redirect) to cycle back.
-  // Gather→action is a new HTTP request, not a TwiML redirect,
-  // so it doesn't count toward Twilio's ~20 redirect limit.
-  response.say({ voice: 'Polly.Matthew', language: 'en-US' }, 'Just a moment.');
-  const stallUrl = `${baseUrl}/voice/stall?callSid=${callSid}`;
-  response.gather({
-    input: ['speech'] as any,
-    timeout: 5,
-    action: stallUrl,
-    method: 'POST',
-  } as any);
-
-  res.type('text/xml');
-  res.send(response.toString());
-});
-
-/**
- * SMS reply webhook — Twilio POSTs here when user replies via SMS.
+ * SMS reply webhook — Telnyx POSTs here when user replies via SMS.
  * Finds the active call by phone number and resolves the pending info request.
  */
 router.post('/sms-reply', (req: Request, res: Response): void => {
-  const from = req.body.From || '';
-  const body = (req.body.Body || '').trim();
+  // Support both Telnyx nested payload and flat format
+  const from: string =
+    (req.body?.data?.payload?.from?.phone_number as string) ||
+    (req.body?.From as string) ||
+    '';
+  const text: string = (
+    (req.body?.data?.payload?.text as string) ||
+    (req.body?.Body as string) ||
+    ''
+  ).trim();
 
-  const response = new twilio.twiml.MessagingResponse();
+  res.status(200).send('OK');
 
-  if (!body) {
-    res.type('text/xml');
-    res.send(response.toString());
-    return;
-  }
+  if (!text) return;
 
   const callSid = callStateManager.findCallByUserPhone(from);
-  if (!callSid) {
-    // No active call with pending request for this number
-    res.type('text/xml');
-    res.send(response.toString());
-    return;
-  }
+  if (!callSid) return;
 
-  const resolved = callStateManager.resolveInfoRequest(callSid, body, 'sms');
+  const resolved = callStateManager.resolveInfoRequest(callSid, text, 'sms');
   if (resolved) {
-    console.log(`📱 SMS reply from ${from}: "${body}" → call ${callSid}`);
-    response.message('Got it! Continuing your call now.');
+    console.log(`📱 SMS reply from ${from}: "${text}" → call ${callSid}`);
+    // The stall timer picks up the resolved state on next tick
   }
-
-  res.type('text/xml');
-  res.send(response.toString());
 });
 
 /**
  * Transfer status callback
  */
-router.post('/transfer-status', (req: Request, res: Response) => {
-  const callSid = req.body.CallSid;
-  const callStatus = req.body.CallStatus as TwilioCallStatus | undefined;
+router.post('/transfer-status', (req: Request, res: Response): void => {
+  const callControlId =
+    (req.body?.data?.payload?.call_control_id as string | undefined) ||
+    (req.body?.CallSid as string | undefined);
+  const state =
+    (req.body?.data?.payload?.state as string | undefined) ||
+    (req.body?.CallStatus as string | undefined);
 
-  if (callSid && callStatus) {
-    if (callStatus === 'completed') {
+  if (callControlId && state) {
+    if (state === 'bridged' || state === 'answered') {
       logOnError(
-        callHistoryService.updateTransferStatus(callSid, true),
+        callHistoryService.updateTransferStatus(callControlId, true),
         'Error updating transfer status'
       );
-    } else if (isCallEnded(callStatus)) {
+    } else if (state === 'hangup' || state === 'failed') {
       logOnError(
-        callHistoryService.updateTransferStatus(callSid, false),
+        callHistoryService.updateTransferStatus(callControlId, false),
         'Error updating transfer status'
       );
-    }
-
-    if (isCallEnded(callStatus)) {
-      const internalStatus: 'completed' | 'failed' =
-        callStatus === 'completed' ? 'completed' : 'failed';
       logOnError(
-        callHistoryService.endCall(callSid, internalStatus),
-        'Error ending call'
+        callHistoryService.endCall(callControlId, 'completed'),
+        'Error ending call after transfer'
       );
     }
   }
 
-  const response = new twilio.twiml.VoiceResponse();
-  res.type('text/xml');
-  res.send(response.toString());
+  res.status(200).send('OK');
 });
 
 export default router;

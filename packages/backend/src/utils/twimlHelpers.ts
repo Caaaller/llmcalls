@@ -1,19 +1,11 @@
 /**
- * TwiML Helper Functions
- * Shared utilities for building Twilio TwiML responses
+ * URL Helper Functions
+ * Shared utilities for building webhook URLs
  */
 
-import twilio from 'twilio';
-import { TwilioGatherInput, TwilioSayAttributes } from '../types/twilio-twiml';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
 
-const DEFAULT_SPEECH_TIMEOUT = 15;
-export { DEFAULT_SPEECH_TIMEOUT };
-
-export interface TwiMLDialAttributes {
-  answerOnMedia?: boolean;
-  [key: string]: string | number | boolean | undefined;
-}
+export const DEFAULT_SPEECH_TIMEOUT = 15;
 
 export interface BuildProcessSpeechUrlParams {
   baseUrl: string;
@@ -38,47 +30,6 @@ export function buildProcessSpeechUrl({
     params.append(key, value);
   });
   return `${baseUrl}/voice/process-speech?${params.toString()}`;
-}
-
-export function createGatherAttributes(
-  config: TransferConfigType,
-  overrides: Partial<TwilioGatherInput> = {}
-): TwilioGatherInput {
-  const envSpeechModel = process.env.SPEECH_MODEL;
-  const envSpeechTimeout = process.env.SPEECH_TIMEOUT;
-
-  const defaults: TwilioGatherInput = {
-    input: ['speech'],
-    language: config.aiSettings.language || 'en-US',
-    speechTimeout: envSpeechTimeout
-      ? envSpeechTimeout === 'auto'
-        ? 'auto'
-        : Number(envSpeechTimeout)
-      : 1,
-    speechModel: envSpeechModel || 'experimental_conversations',
-    profanityFilter: false,
-    timeout: DEFAULT_SPEECH_TIMEOUT,
-  };
-
-  return { ...defaults, ...overrides };
-}
-
-export function createSayAttributes(
-  config: TransferConfigType,
-  overrides: Partial<TwilioSayAttributes> = {}
-): TwilioSayAttributes {
-  return {
-    voice: config.aiSettings.voice || 'Polly.Matthew',
-    language: config.aiSettings.language || 'en-US',
-    ...overrides,
-  };
-}
-
-export function dialNumber(
-  dial: ReturnType<twilio.twiml.VoiceResponse['dial']>,
-  phoneNumber: string
-): void {
-  dial.number(phoneNumber);
 }
 
 export function getBaseUrl(req: {

@@ -1,23 +1,16 @@
 /**
  * Speech Processing Service
  * Main function used by BOTH route handler and eval service.
- * Orchestrates full speech processing: state management, AI decisions, and TwiML generation.
+ * Orchestrates full speech processing: state management, AI decisions, and Telnyx API calls.
  */
 
-import twilio from 'twilio';
 import callStateManager from './callStateManager';
 import callHistoryService from './callHistoryService';
 import ivrNavigatorService, { CallAction } from './ivrNavigatorService';
-import twilioService from './twilioService';
+import telnyxService from './telnyxService';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
-import {
-  buildProcessSpeechUrl,
-  createSayAttributes,
-  createGatherAttributes,
-  DEFAULT_SPEECH_TIMEOUT,
-} from '../utils/twimlHelpers';
 
 export interface ProcessSpeechParams {
   callSid: string;
@@ -89,15 +82,22 @@ function mapActionToProcessingResult(
   };
 }
 
+function getTelnyxVoice(aiVoice?: string): string {
+  if (aiVoice?.startsWith('Polly.')) {
+    return `AWS.${aiVoice}-Neural`;
+  }
+  return aiVoice || 'AWS.Polly.Matthew-Neural';
+}
+
 /**
  * Process a speech turn end-to-end.
- * Used by both route handler (with TwiML) and eval service (test mode).
+ * Used by both the transcription webhook handler and eval service (testMode).
  */
 export async function processSpeech({
   callSid,
   speechResult,
   isFirstCall: _isFirstCall,
-  baseUrl,
+  baseUrl: _baseUrl,
   transferNumber,
   callPurpose,
   customInstructions,
@@ -106,8 +106,6 @@ export async function processSpeech({
   testMode = false,
   skipInfoRequests,
 }: ProcessSpeechParams): Promise<ProcessSpeechResult> {
-  const response = new twilio.twiml.VoiceResponse();
-
   try {
     if (!callSid) throw new Error('Call SID is missing');
 
@@ -190,7 +188,7 @@ export async function processSpeech({
       reason: action.reason,
     });
 
-    // ── 3b. Store detected menu options for loop detection (regardless of action) ──
+    // ── 3b. Store detected menu options for loop detection ───────────────────
     const detectedMenuOptions = action.detected.menuOptions as MenuOption[];
     if (detectedMenuOptions.length > 0) {
       callStateManager.updateCallState(callSid, {
@@ -217,16 +215,16 @@ export async function processSpeech({
           .endCall(callSid, 'terminated')
           .catch(err => console.error('Error ending call:', err));
 
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          'Thank you. Goodbye.'
+        await telnyxService.speakText(
+          callSid,
+          'Thank you. Goodbye.',
+          getTelnyxVoice(config.aiSettings.voice)
         );
-        response.hangup();
+        await telnyxService.terminateCall(callSid);
         callStateManager.clearCallState(callSid);
       }
       return {
-        twiml: response.toString(),
+        twiml: '',
         shouldSend: !testMode,
         processingResult: result,
         aiAction: action.action,
@@ -241,22 +239,15 @@ export async function processSpeech({
           .addTransfer(callSid, config.transferNumber, true)
           .catch(err => console.error('Error adding transfer:', err));
 
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          'Ok, one second please.'
+        await telnyxService.speakText(
+          callSid,
+          'Ok, one second please.',
+          getTelnyxVoice(config.aiSettings.voice)
         );
-        response.pause({ length: 1 });
-        const dial = response.dial({
-          action: `${baseUrl}/voice/transfer-status`,
-          method: 'POST',
-          timeout: 30,
-        });
-        (dial as any).answerOnMedia = true;
-        dial.number(config.transferNumber);
+        await telnyxService.transfer(callSid, config.transferNumber);
       }
       return {
-        twiml: response.toString(),
+        twiml: '',
         shouldSend: !testMode,
         processingResult: result,
         aiAction: action.action,
@@ -276,23 +267,15 @@ export async function processSpeech({
       });
 
       if (!testMode) {
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          'Hey, are you a real person?'
-        );
-
-        const gatherAttributes = createGatherAttributes(config, {
-          action: buildProcessSpeechUrl({ baseUrl, config }),
-          method: 'POST',
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
+        callStateManager.updateCallState(callSid, { isSpeaking: true });
+        await telnyxService.speakText(
+          callSid,
+          'Hey, are you a real person?',
+          getTelnyxVoice(config.aiSettings.voice)
         );
       }
       return {
-        twiml: response.toString(),
+        twiml: '',
         shouldSend: !testMode,
         processingResult: result,
         aiAction: action.action,
@@ -331,7 +314,7 @@ export async function processSpeech({
         const userPhoneNumber =
           config.userPhone || process.env.USER_PHONE_NUMBER;
         if (userPhoneNumber) {
-          twilioService
+          telnyxService
             .sendSMS(
               userPhoneNumber,
               `Your call needs: ${requestedInfo}. Reply with the info to continue the call.`
@@ -342,16 +325,21 @@ export async function processSpeech({
             );
         }
 
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          'One moment, let me look that up.'
+        callStateManager.updateCallState(callSid, { isSpeaking: true });
+        await telnyxService.speakText(
+          callSid,
+          'One moment, let me look that up.',
+          getTelnyxVoice(config.aiSettings.voice)
         );
-        response.redirect(`${baseUrl}/voice/stall?callSid=${callSid}`);
+        callStateManager.updateCallState(callSid, { isSpeaking: false });
+
+        // Dynamically import to avoid circular dependency
+        const { startStallTimer } = await import('../routes/voiceRoutes');
+        startStallTimer(callSid);
       }
 
       return {
-        twiml: response.toString(),
+        twiml: '',
         shouldSend: !testMode,
         processingResult: result,
         aiAction: action.action,
@@ -362,7 +350,6 @@ export async function processSpeech({
     if (action.action === 'press_digit' && action.digit) {
       const menuOptions = action.detected.menuOptions as MenuOption[];
 
-      // Update menu state
       if (menuOptions.length > 0) {
         if (!testMode) {
           callHistoryService.addIVRMenu(callSid, menuOptions);
@@ -387,24 +374,10 @@ export async function processSpeech({
           .addDTMF(callSid, action.digit, `AI selected: ${action.reason}`)
           .catch(err => console.error('Error adding DTMF:', err));
 
-        // Send DTMF and immediately set up Gather for the IVR's response.
-        // No redirect to /process-dtmf — that caused a redundant network round-trip
-        // and previously sent the digit a second time.
-        response.play({ digits: `${action.digit}` });
-
-        const processSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
-        const gatherAttributes = createGatherAttributes(config, {
-          action: processSpeechUrl,
-          method: 'POST',
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        response.redirect({ method: 'POST' }, processSpeechUrl);
+        await telnyxService.sendDTMF(callSid, action.digit);
       }
       return {
-        twiml: response.toString(),
+        twiml: '',
         shouldSend: !testMode,
         processingResult: result,
         aiAction: action.action,
@@ -414,15 +387,12 @@ export async function processSpeech({
 
     // ── 7. Handle wait (incomplete menu, silence, etc.) ──────────────────────
     if (action.action === 'wait') {
-      // If transfer was announced or hold detected, mark transferAnnounced
-      // so human detection (maybe_human) becomes active
       if (action.detected.transferRequested || action.detected.holdDetected) {
         callStateManager.updateCallState(callSid, {
           transferAnnounced: true,
         });
       }
 
-      // If hold queue detected, record it
       if (action.detected.holdDetected && !testMode) {
         console.log(`📞 Hold queue detected: ${action.reason}`);
         callHistoryService
@@ -430,7 +400,6 @@ export async function processSpeech({
           .catch(err => console.error('Error adding hold event:', err));
       }
 
-      // If menu detected but incomplete, track it
       if (action.detected.isIVRMenu && !action.detected.isMenuComplete) {
         const menuOptions = action.detected.menuOptions as MenuOption[];
         if (!testMode && menuOptions.length > 0) {
@@ -441,20 +410,9 @@ export async function processSpeech({
         }
       }
 
-      if (!testMode) {
-        const processSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
-        const gatherAttributes = createGatherAttributes(config, {
-          action: processSpeechUrl,
-          method: 'POST',
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        response.redirect({ method: 'POST' }, processSpeechUrl);
-      }
+      // wait: transcription continues; nothing to do on our side
       return {
-        twiml: response.toString(),
+        twiml: '',
         shouldSend: !testMode,
         processingResult: result,
         aiAction: action.action,
@@ -500,11 +458,13 @@ export async function processSpeech({
             .addConversation(callSid, 'ai', formatDigitsForSpeech(dtmfDigits))
             .catch(err => console.error('Error adding conversation:', err));
 
-          const sayAttributes = createSayAttributes(config);
-          response.say(
-            sayAttributes as Parameters<typeof response.say>[0],
-            formatDigitsForSpeech(dtmfDigits)
+          callStateManager.updateCallState(callSid, { isSpeaking: true });
+          await telnyxService.speakText(
+            callSid,
+            formatDigitsForSpeech(dtmfDigits),
+            getTelnyxVoice(config.aiSettings.voice)
           );
+          callStateManager.updateCallState(callSid, { isSpeaking: false });
         } else {
           console.log(
             `🔢 Data entry DTMF: ${dtmfDigits} (from AI response "${aiResponse.trim()}")`
@@ -517,23 +477,12 @@ export async function processSpeech({
             .addDTMF(callSid, dtmfDigits, 'AI data entry response')
             .catch(err => console.error('Error adding DTMF:', err));
 
-          response.play({ digits: `ww${dtmfDigits}` });
+          await telnyxService.sendDTMF(callSid, `ww${dtmfDigits}`);
         }
 
-        const dtmfProcessSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
-        const gatherAttributes = createGatherAttributes(config, {
-          action: dtmfProcessSpeechUrl,
-          method: 'POST',
-          timeout: DEFAULT_SPEECH_TIMEOUT,
-        });
-        response.gather(
-          gatherAttributes as Parameters<typeof response.gather>[0]
-        );
-        response.redirect({ method: 'POST' }, dtmfProcessSpeechUrl);
-
         return {
-          twiml: response.toString(),
-          shouldSend: true,
+          twiml: '',
+          shouldSend: !testMode,
           processingResult: result,
           aiAction: action.action,
           digitPressed: dtmfDigits,
@@ -546,31 +495,18 @@ export async function processSpeech({
           .addConversation(callSid, 'ai', aiResponse)
           .catch(err => console.error('Error adding conversation:', err));
 
-        const sayAttributes = createSayAttributes(config);
-        response.say(
-          sayAttributes as Parameters<typeof response.say>[0],
-          aiResponse
+        callStateManager.updateCallState(callSid, { isSpeaking: true });
+        await telnyxService.speakText(
+          callSid,
+          aiResponse,
+          getTelnyxVoice(config.aiSettings.voice)
         );
+        callStateManager.updateCallState(callSid, { isSpeaking: false });
       }
     }
 
-    if (!testMode) {
-      const processSpeechUrl = buildProcessSpeechUrl({ baseUrl, config });
-      const gatherAttributes = createGatherAttributes(config, {
-        action: processSpeechUrl,
-        method: 'POST',
-        timeout: DEFAULT_SPEECH_TIMEOUT,
-      });
-      response.gather(
-        gatherAttributes as Parameters<typeof response.gather>[0]
-      );
-      // If Gather times out (no speech), redirect back to keep listening
-      // instead of silently ending the call
-      response.redirect({ method: 'POST' }, processSpeechUrl);
-    }
-
     return {
-      twiml: response.toString(),
+      twiml: '',
       shouldSend: !testMode,
       processingResult: result,
       aiAction: action.action,
@@ -580,14 +516,16 @@ export async function processSpeech({
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (!testMode) {
       console.error('❌ Error in processSpeech:', errorMessage);
+      try {
+        await telnyxService.speakText(
+          callSid,
+          'I apologize, but an application error has occurred. Please try again later.'
+        );
+        await telnyxService.terminateCall(callSid);
+      } catch {
+        // Best effort — call may already be ended
+      }
     }
-
-    const errorResponse = new twilio.twiml.VoiceResponse();
-    errorResponse.say(
-      { voice: 'alice', language: 'en-US' },
-      'I apologize, but an application error has occurred. Please try again later.'
-    );
-    errorResponse.hangup();
-    return { twiml: errorResponse.toString(), shouldSend: !testMode };
+    return { twiml: '', shouldSend: !testMode };
   }
 }

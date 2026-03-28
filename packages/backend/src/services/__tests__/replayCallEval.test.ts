@@ -28,7 +28,7 @@ import {
   formatCallTimeline,
   buildRecordedTurns,
   getCallOutcome,
-  hasTwilioCreds,
+  hasTelnyxCreds,
 } from './liveCallRunner';
 import { mergePathIntoTree, saveTreeFixture } from './treeUtils';
 import type { ActionHistoryEntry } from '../../config/prompts';
@@ -125,9 +125,9 @@ async function runLiveFallback(
   treeFilePath: string,
   tree: RecordedCallTree
 ): Promise<void> {
-  if (!hasTwilioCreds()) {
+  if (!hasTelnyxCreds()) {
     throw new Error(
-      `${divergenceMsg}\n\nWould fall back to live call, but Twilio credentials are missing.`
+      `${divergenceMsg}\n\nWould fall back to live call, but Telnyx credentials are missing.`
     );
   }
 
