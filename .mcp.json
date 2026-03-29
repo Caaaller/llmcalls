@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "vercel": {
+      "type": "stdio",
+      "command": "/opt/homebrew/bin/vercel-mcp",
+      "args": [
+        "VERCEL_API_KEY=vcp_88c9HU295iRxjSOIFDFP5d6PF1YK2W10HkcJHxlXnwN6j18Ukr2prGVe"
+      ],
+      "env": {}
+    },
+    "telnyx": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["telnyx-mcp"],
+      "env": {
+        "TELNYX_API_KEY": "KEY019D360D04301E5B306EC7115ADEA8C7_FUH7m9EJbbohvW5o51RfKY"
+      }
+    },
+    "supabase": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase"],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_bbeb9edad35d43200ffa9d1d1a1ce070010336c6"
+      }
+    }
+  }
+}
