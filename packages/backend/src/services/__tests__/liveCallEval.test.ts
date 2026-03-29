@@ -179,13 +179,13 @@ const totalTimeoutMs =
 
 describe('Live call evaluations', () => {
   beforeAll(async () => {
-    const baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
+    const baseUrl = process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL;
     if (!baseUrl)
       throw new Error(
-        'TWIML_URL or BASE_URL must be set to run live call tests'
+        'TELNYX_WEBHOOK_URL or BASE_URL must be set to run live call tests'
       );
-    if (!process.env.TWILIO_PHONE_NUMBER)
-      throw new Error('TWILIO_PHONE_NUMBER must be set');
+    if (!process.env.TELNYX_PHONE_NUMBER)
+      throw new Error('TELNYX_PHONE_NUMBER must be set');
     if (!process.env.TRANSFER_PHONE_NUMBER)
       throw new Error('TRANSFER_PHONE_NUMBER must be set');
 

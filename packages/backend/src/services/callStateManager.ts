@@ -52,6 +52,8 @@ export interface CallState {
   pendingInfoRequest?: PendingInfoRequest;
   userPhone?: string;
   skipInfoRequests?: boolean;
+  isSpeaking?: boolean;
+  stallTimer?: ReturnType<typeof setInterval>;
 }
 
 export function createDefaultCallState(callSid: string): CallState {

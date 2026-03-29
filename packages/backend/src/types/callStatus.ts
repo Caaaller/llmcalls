@@ -1,19 +1,15 @@
 /**
  * Call Status Types
- * Defines call status types for Twilio webhooks and internal use
+ * Internal call statuses and Telnyx status mapping
  */
 
-/**
- * Twilio call statuses - all possible statuses from Twilio webhooks
- * Reference: https://www.twilio.com/docs/voice/api/call-resource#call-status-values
- */
-export type TwilioCallStatus =
-  | 'queued'
+export type TelnyxCallStatus =
+  | 'initiated'
   | 'ringing'
-  | 'in-progress'
-  | 'completed'
-  | 'busy'
+  | 'answered'
+  | 'hangup'
   | 'failed'
+  | 'busy'
   | 'no-answer'
   | 'canceled';
 
@@ -23,22 +19,23 @@ export type TwilioCallStatus =
 export type CallStatus = 'in-progress' | 'completed' | 'failed' | 'terminated';
 
 /**
- * Map Twilio call status to internal call status
+ * Map Telnyx call status to internal call status
  */
-export function mapTwilioStatusToCallStatus(
-  twilioStatus: TwilioCallStatus
+export function mapTelnyxStatusToCallStatus(
+  telnyxStatus: TelnyxCallStatus
 ): CallStatus {
-  switch (twilioStatus) {
-    case 'completed':
+  switch (telnyxStatus) {
+    case 'answered':
+      return 'in-progress';
+    case 'hangup':
       return 'completed';
     case 'failed':
     case 'busy':
     case 'no-answer':
     case 'canceled':
       return 'failed';
-    case 'queued':
+    case 'initiated':
     case 'ringing':
-    case 'in-progress':
       return 'in-progress';
     default:
       return 'failed';
@@ -46,25 +43,24 @@ export function mapTwilioStatusToCallStatus(
 }
 
 /**
- * Check if a Twilio status indicates the call has ended
+ * Check if a Telnyx event type indicates the call has ended
  */
-export function isCallEnded(twilioStatus: TwilioCallStatus): boolean {
+export function isCallEnded(eventType: string): boolean {
   return (
-    twilioStatus === 'completed' ||
-    twilioStatus === 'failed' ||
-    twilioStatus === 'busy' ||
-    twilioStatus === 'no-answer' ||
-    twilioStatus === 'canceled'
+    eventType === 'call.hangup' ||
+    eventType === 'hangup' ||
+    eventType === 'failed' ||
+    eventType === 'busy' ||
+    eventType === 'no-answer' ||
+    eventType === 'canceled'
   );
 }
 
 /**
- * Check if a Twilio status indicates the call is still active
+ * Check if a Telnyx status indicates the call is still active
  */
-export function isCallActive(twilioStatus: TwilioCallStatus): boolean {
+export function isCallActive(status: TelnyxCallStatus): boolean {
   return (
-    twilioStatus === 'queued' ||
-    twilioStatus === 'ringing' ||
-    twilioStatus === 'in-progress'
+    status === 'initiated' || status === 'ringing' || status === 'answered'
   );
 }

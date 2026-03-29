@@ -3,7 +3,7 @@
  * Extracted from liveCallEval.test.ts for reuse by replay-or-live fallback.
  */
 
-import twilioService from '../twilioService';
+import telnyxService from '../telnyxService';
 import callHistoryService from '../callHistoryService';
 import { TEST_IVR_NUMBERS } from '../liveCallTestCases';
 import type { LiveCallTestCase } from '../liveCallTestCases';
@@ -11,13 +11,7 @@ import type { RecordedTurn } from './recordedCallTypes';
 
 const POLL_INTERVAL_MS = 3000;
 const DEFAULT_TIMEOUT_SECONDS = 600;
-const TERMINAL_STATUSES = [
-  'completed',
-  'failed',
-  'busy',
-  'no-answer',
-  'canceled',
-];
+const TERMINAL_STATUSES = ['hangup', 'failed', 'busy', 'no-answer', 'canceled'];
 
 export interface CallResult {
   callSid: string;
@@ -26,20 +20,9 @@ export interface CallResult {
   timedOut: boolean;
 }
 
-export function buildTwimlUrl(testCase: LiveCallTestCase): string {
-  const baseUrl = process.env.TWIML_URL || process.env.BASE_URL || '';
-  const transferNumber = process.env.TRANSFER_PHONE_NUMBER || '';
-  const params = new URLSearchParams({
-    transferNumber,
-    callPurpose: testCase.callPurpose || 'speak with a representative',
-  });
-  if (testCase.customInstructions) {
-    params.append('customInstructions', testCase.customInstructions);
-  }
-  if (testCase.skipInfoRequests !== false) {
-    params.append('skipInfoRequests', 'true');
-  }
-  return `${baseUrl}/voice?${params.toString()}`;
+export function buildWebhookUrl(): string {
+  const baseUrl = process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL || '';
+  return baseUrl.endsWith('/voice') ? baseUrl : `${baseUrl}/voice`;
 }
 
 export class PhoneNumberPool {
@@ -75,8 +58,8 @@ export function isTestIvrCase(testCase: LiveCallTestCase): boolean {
 export async function executeCall(
   testCase: LiveCallTestCase
 ): Promise<CallResult> {
-  const from = process.env.TWILIO_PHONE_NUMBER || '';
-  const twimlUrl = buildTwimlUrl(testCase);
+  const from = process.env.TELNYX_PHONE_NUMBER || '';
+  const webhookUrl = buildWebhookUrl();
   const maxDuration =
     testCase.expectedOutcome.maxDurationSeconds || DEFAULT_TIMEOUT_SECONDS;
 
@@ -85,8 +68,24 @@ export async function executeCall(
     ? await ivrNumberPool.acquire()
     : testCase.phoneNumber;
 
+  // Encode call config into client_state for Telnyx
+  const { encodeClientState } = await import('../../types/telnyx');
+  const clientState = encodeClientState({
+    transferNumber: process.env.TRANSFER_PHONE_NUMBER || '',
+    callPurpose: testCase.callPurpose || 'speak with a representative',
+    ...(testCase.customInstructions && {
+      customInstructions: testCase.customInstructions,
+    }),
+    ...(testCase.skipInfoRequests !== false && { skipInfoRequests: true }),
+  });
+
   try {
-    const call = await twilioService.initiateCall(phoneNumber, from, twimlUrl);
+    const call = await telnyxService.initiateCall(
+      phoneNumber,
+      from,
+      clientState,
+      webhookUrl
+    );
     const callSid = call.sid;
     const startTime = Date.now();
     let status = call.status;
@@ -95,14 +94,15 @@ export async function executeCall(
     while (true) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
 
-      const currentCall = await twilioService.getCallStatus(callSid);
-      status = currentCall.status;
+      const currentCall = await telnyxService.getCallStatus(callSid);
+      const data = currentCall.data as { state?: string };
+      status = data?.state || status;
 
       if (TERMINAL_STATUSES.includes(status)) break;
 
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed > maxDuration) {
-        await twilioService.terminateCall(callSid);
+        await telnyxService.terminateCall(callSid);
         timedOut = true;
         break;
       }
@@ -279,11 +279,11 @@ export async function hasBusinessClosed(callSid: string): Promise<boolean> {
   return reason === 'closed_no_menu';
 }
 
-export function hasTwilioCreds(): boolean {
+export function hasTelnyxCreds(): boolean {
   return !!(
-    process.env.TWILIO_ACCOUNT_SID &&
-    process.env.TWILIO_AUTH_TOKEN &&
-    process.env.TWILIO_PHONE_NUMBER &&
-    (process.env.TWIML_URL || process.env.BASE_URL)
+    process.env.TELNYX_API_KEY &&
+    process.env.TELNYX_CONNECTION_ID &&
+    process.env.TELNYX_PHONE_NUMBER &&
+    (process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL)
   );
 }

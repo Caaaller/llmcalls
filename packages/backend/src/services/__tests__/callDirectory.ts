@@ -9,7 +9,8 @@
 import '../../../jest.setup';
 import * as fs from 'fs';
 import * as path from 'path';
-import twilioService from '../twilioService';
+import telnyxService from '../telnyxService';
+import { encodeClientState } from '../../types/telnyx';
 import callHistoryService from '../callHistoryService';
 import { connect, disconnect } from '../database';
 
@@ -23,42 +24,42 @@ interface DirectoryEntry {
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_DURATION_SECONDS = 120; // 2 minutes per call
-const TERMINAL_STATUSES = [
-  'completed',
-  'failed',
-  'busy',
-  'no-answer',
-  'canceled',
-];
+const TERMINAL_STATUSES = ['hangup', 'failed', 'busy', 'no-answer', 'canceled'];
 
 async function makeCall(
   entry: DirectoryEntry
 ): Promise<{ callSid: string; status: string; durationSeconds: number }> {
-  const baseUrl = process.env.TWIML_URL || '';
-  const from = process.env.TWILIO_PHONE_NUMBER || '';
+  const baseUrl = process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL || '';
+  const from = process.env.TELNYX_PHONE_NUMBER || '';
   const transferNumber = process.env.TRANSFER_PHONE_NUMBER || '+13033962866';
+  const webhookUrl = baseUrl.endsWith('/voice') ? baseUrl : `${baseUrl}/voice`;
 
-  const params = new URLSearchParams({
+  const clientState = encodeClientState({
     transferNumber,
     callPurpose: 'speak with a representative',
   });
-  const twimlUrl = `${baseUrl}/voice?${params.toString()}`;
 
-  const call = await twilioService.initiateCall(entry.phone, from, twimlUrl);
+  const call = await telnyxService.initiateCall(
+    entry.phone,
+    from,
+    clientState,
+    webhookUrl
+  );
   const callSid = call.sid;
   const startTime = Date.now();
   let status = call.status;
 
   while (true) {
     await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
-    const currentCall = await twilioService.getCallStatus(callSid);
-    status = currentCall.status;
+    const currentCall = await telnyxService.getCallStatus(callSid);
+    const data = currentCall.data as { state?: string };
+    status = data?.state || status;
 
     if (TERMINAL_STATUSES.includes(status)) break;
 
     const elapsed = (Date.now() - startTime) / 1000;
     if (elapsed > MAX_DURATION_SECONDS) {
-      await twilioService.terminateCall(callSid);
+      await telnyxService.terminateCall(callSid);
       break;
     }
   }

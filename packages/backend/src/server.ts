@@ -14,13 +14,10 @@ import path from 'path';
 import fs from 'fs';
 import { connect, disconnect } from './services/database';
 import voiceRoutes from './routes/voiceRoutes';
-import testIvrRoutes from './routes/testIvrRoutes';
 import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
 import testRunRoutes from './routes/testRunRoutes';
-import sttTestRoutes from './routes/sttTestRoutes';
 import { requestLogger } from './middleware/requestLogger';
-import twilio from 'twilio';
 
 const app: express.Application = express();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -67,8 +64,6 @@ app.use(requestLogger);
 console.log('📋 Registering routes...');
 app.use('/voice', voiceRoutes);
 console.log('  ✅ /voice routes registered');
-app.use('/voice/test-ivr', testIvrRoutes);
-console.log('  ✅ /voice/test-ivr routes registered');
 app.use('/api/auth', authRoutes);
 console.log('  ✅ /api/auth routes registered');
 app.use('/api', apiRoutes);
@@ -76,8 +71,6 @@ console.log('  ✅ /api routes registered');
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api/test-runs', testRunRoutes);
   console.log('  ✅ /api/test-runs routes registered (dev only)');
-  app.use('/voice/stt-test', sttTestRoutes);
-  console.log('  ✅ /voice/stt-test routes registered (dev only)');
 }
 
 // Serve static files from public directory (after routes to avoid conflicts)
@@ -162,22 +155,6 @@ app.use((req: Request, res: Response) => {
 // Error handling middleware
 const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   console.error(`Unhandled error on ${req.method} ${req.path}:`, err);
-
-  if (
-    req.path.includes('voice') ||
-    req.path.includes('process-speech') ||
-    req.path.includes('process-dtmf')
-  ) {
-    const response = new twilio.twiml.VoiceResponse();
-    response.say(
-      { voice: 'alice', language: 'en-US' },
-      'I apologize, but there was an error. Please try again later.'
-    );
-    response.hangup();
-    res.type('text/xml');
-    res.send(response.toString());
-    return;
-  }
 
   res.status(500).json({
     success: false,

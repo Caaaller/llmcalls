@@ -1,52 +1,46 @@
 import 'dotenv/config';
-import twilio from 'twilio';
 import transferConfig from './config/transfer-config';
+import telnyxService from './services/telnyxService';
+import { encodeClientState } from './types/telnyx';
 import { getErrorMessage } from './utils/errorUtils';
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
-const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
+const apiKey = process.env.TELNYX_API_KEY?.trim();
+const connectionId = process.env.TELNYX_CONNECTION_ID?.trim();
 
-if (!accountSid || !authToken) {
-  console.error('❌ Missing Twilio credentials!');
-  console.error('Account SID:', accountSid ? '✅ Set' : '❌ Missing');
-  console.error('Auth Token:', authToken ? '✅ Set' : '❌ Missing');
+if (!apiKey || !connectionId) {
+  console.error('❌ Missing Telnyx credentials!');
+  console.error('TELNYX_API_KEY:', apiKey ? '✅ Set' : '❌ Missing');
+  console.error(
+    'TELNYX_CONNECTION_ID:',
+    connectionId ? '✅ Set' : '❌ Missing'
+  );
   process.exit(1);
 }
 
-if (!accountSid.startsWith('AC')) {
-  console.error('⚠️  Warning: Account SID should start with "AC"');
-}
-
-const client = twilio(accountSid, authToken);
+const TERMINAL_STATES = ['hangup', 'failed', 'busy', 'no-answer', 'canceled'];
 
 /**
- * Initiates a phone call using Twilio
+ * Initiates a phone call using Telnyx
  */
-async function initiateCall(to: string, from: string, url: string) {
+async function initiateCall(
+  to: string,
+  from: string,
+  webhookUrl: string,
+  clientState: string
+) {
   try {
-    const call = await client.calls.create({
-      to: to,
-      from: from,
-      url: url,
-    });
-
+    const call = await telnyxService.initiateCall(
+      to,
+      from,
+      clientState,
+      webhookUrl
+    );
     console.log('Call initiated successfully!');
-    console.log('Call SID:', call.sid);
+    console.log('Call Control ID:', call.sid);
     console.log('Status:', call.status);
     return call;
   } catch (error: unknown) {
-    const twilioError = error as {
-      message?: string;
-      code?: number;
-      moreInfo?: string;
-    };
     console.error('Error initiating call:', getErrorMessage(error));
-    if (twilioError.code) {
-      console.error('Error code:', twilioError.code);
-    }
-    if (twilioError.moreInfo) {
-      console.error('More info:', twilioError.moreInfo);
-    }
     throw error;
   }
 }
@@ -54,10 +48,11 @@ async function initiateCall(to: string, from: string, url: string) {
 /**
  * Fetches the current status and details of a call
  */
-async function getCallStatus(callSid: string) {
+async function getCallStatus(callControlId: string) {
   try {
-    const call = await client.calls(callSid).fetch();
-    return call;
+    const response = await telnyxService.getCallStatus(callControlId);
+    const data = response.data as { state?: string };
+    return { state: data?.state || 'unknown' };
   } catch (error: unknown) {
     console.error('Error fetching call status:', getErrorMessage(error));
     throw error;
@@ -68,34 +63,20 @@ async function getCallStatus(callSid: string) {
  * Monitors a call and checks its status periodically
  */
 async function monitorCall(
-  callSid: string,
+  callControlId: string,
   intervalMs: number = 2000,
   maxChecks: number = 10
 ) {
-  console.log(`\nMonitoring call ${callSid}...`);
+  console.log(`\nMonitoring call ${callControlId}...`);
 
   for (let i = 0; i < maxChecks; i++) {
     try {
-      const call = await getCallStatus(callSid);
-      console.log(`\n[Check ${i + 1}/${maxChecks}] Status: ${call.status}`);
+      const call = await getCallStatus(callControlId);
+      console.log(`\n[Check ${i + 1}/${maxChecks}] State: ${call.state}`);
 
-      if (
-        call.status === 'completed' ||
-        call.status === 'failed' ||
-        call.status === 'busy' ||
-        call.status === 'no-answer' ||
-        call.status === 'canceled'
-      ) {
-        console.log('\n=== Final Call Details ===');
-        console.log('Status:', call.status);
-        console.log(
-          'Duration:',
-          call.duration ? `${call.duration} seconds` : 'N/A'
-        );
-        console.log(
-          'Price:',
-          call.price ? `$${call.price} ${call.priceUnit}` : 'N/A'
-        );
+      if (TERMINAL_STATES.includes(call.state)) {
+        console.log('\n=== Final Call State ===');
+        console.log('State:', call.state);
         return call;
       }
 
@@ -109,34 +90,24 @@ async function monitorCall(
   }
 
   console.log('\n⚠️  Max checks reached. Call may still be in progress.');
-  return await getCallStatus(callSid);
+  return await getCallStatus(callControlId);
 }
 
 // Main execution
 if (require.main === module) {
   const args = process.argv.slice(2);
-  let callSidToCheck: string | null = args[0] || null;
+  let callControlIdToCheck: string | null = args[0] || null;
 
-  if (callSidToCheck && callSidToCheck.trim() === '') {
-    callSidToCheck = null;
+  if (callControlIdToCheck && callControlIdToCheck.trim() === '') {
+    callControlIdToCheck = null;
   }
 
-  if (callSidToCheck) {
-    console.log(`Checking status of call: ${callSidToCheck}`);
-    getCallStatus(callSidToCheck)
+  if (callControlIdToCheck) {
+    console.log(`Checking status of call: ${callControlIdToCheck}`);
+    getCallStatus(callControlIdToCheck)
       .then(call => {
         console.log('\n=== Call Details ===');
-        console.log('Status:', call.status);
-        console.log('To:', call.to);
-        console.log('From:', call.from);
-        console.log(
-          'Duration:',
-          call.duration ? `${call.duration} seconds` : 'N/A'
-        );
-        console.log(
-          'Price:',
-          call.price ? `$${call.price} ${call.priceUnit}` : 'N/A'
-        );
+        console.log('State:', call.state);
       })
       .catch(error => {
         console.error('Failed to check call status:', error);
@@ -144,8 +115,12 @@ if (require.main === module) {
       });
   } else {
     const to = process.env.TO_PHONE_NUMBER || '+1234567890';
-    const from = process.env.TWILIO_PHONE_NUMBER || '+1234567890';
-    let url = process.env.TWIML_URL || 'http://demo.twilio.com/docs/voice.xml';
+    const from = process.env.TELNYX_PHONE_NUMBER || '+1234567890';
+    const baseUrl =
+      process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL || '';
+    const webhookUrl = baseUrl.endsWith('/voice')
+      ? baseUrl
+      : `${baseUrl}/voice`;
 
     const config = transferConfig.createConfig({
       transferNumber: process.env.TRANSFER_PHONE_NUMBER,
@@ -156,34 +131,20 @@ if (require.main === module) {
       customInstructions: args[2] || '',
     });
 
-    if (
-      url.includes('ngrok') ||
-      url.includes('localhost') ||
-      url.includes('http')
-    ) {
-      url = url.endsWith('/') ? url + 'voice' : url + '/voice';
-      const params = new URLSearchParams({
-        transferNumber: config.transferNumber,
-        callPurpose:
-          config.callPurpose ||
-          process.env.CALL_PURPOSE ||
-          'speak with a representative',
-      });
-      if (config.customInstructions) {
-        params.append('customInstructions', config.customInstructions);
-      }
-      url += '?' + params.toString();
-    }
+    const clientState = encodeClientState({
+      transferNumber: config.transferNumber,
+      callPurpose: config.callPurpose || 'speak with a representative',
+      customInstructions: config.customInstructions || '',
+    });
 
-    console.log('\n📋 Transfer-Only Call Configuration:');
+    console.log('\n📋 Call Configuration:');
     console.log('  To:', to);
     console.log('  From:', from);
     console.log('  Transfer Number:', config.transferNumber);
     console.log('  Call Purpose:', config.callPurpose);
-    console.log('  Webhook URL:', url);
-    console.log('  Account SID:', accountSid.substring(0, 10) + '...');
+    console.log('  Webhook URL:', webhookUrl);
 
-    initiateCall(to, from, url)
+    initiateCall(to, from, webhookUrl, clientState)
       .then(async call => {
         console.log('\nCall details:', call);
         console.log('\nWaiting a moment, then checking call status...');

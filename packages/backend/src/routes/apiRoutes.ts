@@ -7,7 +7,8 @@ import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { validatedRoute } from '../middleware/validateQuery';
 import transferConfig from '../config/transfer-config';
-import twilioService from '../services/twilioService';
+import telnyxService from '../services/telnyxService';
+import { encodeClientState } from '../types/telnyx';
 import callHistoryService from '../services/callHistoryService';
 import callStateManager from '../services/callStateManager';
 import evaluationService from '../services/evaluationService';
@@ -163,22 +164,20 @@ router.get(
         error: 'Call or recording not found',
       });
     }
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    if (!accountSid || !authToken) {
+    const apiKey = process.env.TELNYX_API_KEY;
+    if (!apiKey) {
       return res.status(503).json({
         success: false,
         error: 'Recording proxy not configured',
       });
     }
-    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
     const recordingResponse = await fetch(call.recordingUrl, {
-      headers: { Authorization: `Basic ${auth}` },
+      headers: { Authorization: `Bearer ${apiKey}` },
     });
     if (!recordingResponse.ok) {
       return res.status(recordingResponse.status).json({
         success: false,
-        error: 'Failed to fetch recording from Twilio',
+        error: 'Failed to fetch recording from Telnyx',
       });
     }
     const contentType =
@@ -246,7 +245,7 @@ router.post(
         hasCustomInstructions: !!config.customInstructions,
       });
 
-      let baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
+      let baseUrl = process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL;
 
       if (!baseUrl) {
         // Try to detect ngrok URL from request headers
@@ -276,39 +275,28 @@ router.post(
         baseUrl = baseUrl.replace('/voice', '');
       }
 
-      const params = new URLSearchParams({
+      const webhookUrl = `${baseUrl}/voice`;
+
+      const clientState = encodeClientState({
         transferNumber: config.transferNumber,
         callPurpose: config.callPurpose || 'speak with a representative',
+        customInstructions: config.customInstructions || '',
+        ...(userPhone && { userPhone }),
+        ...(skipInfoRequests && { skipInfoRequests: true }),
       });
-      if (config.customInstructions) {
-        params.append('customInstructions', config.customInstructions);
-      }
-      if (userPhone) {
-        params.append('userPhone', userPhone);
-      }
-      if (skipInfoRequests) {
-        params.append('skipInfoRequests', 'true');
-      }
-      const twimlUrl = `${baseUrl}/voice?${params.toString()}`;
 
-      // Set up status callback URL to track call status changes
-      const statusCallbackUrl = `${baseUrl}/voice/call-status`;
-      const recordingCallbackUrl = `${baseUrl}/voice/recording-status`;
+      const fromNumber = from || process.env.TELNYX_PHONE_NUMBER || '';
 
-      const call = await twilioService.initiateCall(
+      const call = await telnyxService.initiateCall(
         to,
-        from || process.env.TWILIO_PHONE_NUMBER || '',
-        twimlUrl,
-        {
-          statusCallback: statusCallbackUrl,
-          statusCallbackMethod: 'POST',
-          recordingStatusCallback: recordingCallbackUrl,
-        }
+        fromNumber,
+        clientState,
+        webhookUrl
       );
 
       await callHistoryService.startCall(call.sid, {
-        to: call.to,
-        from: call.from,
+        to,
+        from: fromNumber,
         transferNumber: config.transferNumber,
         callPurpose: config.callPurpose,
         customInstructions: config.customInstructions,
@@ -319,8 +307,8 @@ router.post(
         call: {
           sid: call.sid,
           status: call.status,
-          to: call.to,
-          from: call.from,
+          to,
+          from: fromNumber,
         },
       });
       return;
@@ -532,7 +520,7 @@ if (process.env.NODE_ENV !== 'production') {
       callStateManager.updateCallState(callSid, {
         userPhone,
         transferConfig: {
-          transferNumber: process.env.TWILIO_PHONE_NUMBER || '',
+          transferNumber: process.env.TELNYX_PHONE_NUMBER || '',
           userPhone,
           callPurpose: 'test',
           customInstructions: '',
