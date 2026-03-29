@@ -524,7 +524,11 @@ if (process.env.NODE_ENV !== 'production') {
           userPhone,
           callPurpose: 'test',
           customInstructions: '',
-          aiSettings: { model: 'gpt-4o', maxTokens: 500, temperature: 0.3 },
+          aiSettings: {
+            model: 'claude-haiku-4-5-20251001',
+            maxTokens: 500,
+            temperature: 0.3,
+          },
         } as any,
       });
       callStateManager.setPendingInfoRequest(
