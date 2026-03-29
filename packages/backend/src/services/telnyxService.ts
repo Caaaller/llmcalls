@@ -76,7 +76,18 @@ class TelnyxService {
   }
 
   async terminateCall(callControlId: string): Promise<void> {
-    await this.client.calls.actions.hangup(callControlId, {});
+    try {
+      await this.client.calls.actions.hangup(callControlId, {});
+    } catch (error) {
+      const err = toError(error);
+      // 90018 = call already ended — not an error we need to propagate
+      if (
+        !err.message.includes('90018') &&
+        !err.message.includes('already ended')
+      ) {
+        throw error;
+      }
+    }
   }
 
   async transfer(callControlId: string, to: string): Promise<void> {
@@ -87,16 +98,14 @@ class TelnyxService {
     return this.client.calls.retrieveStatus(callControlId);
   }
 
-  async startTranscription(callControlId: string): Promise<void> {
-    await this.client.calls.actions.startTranscription(callControlId, {
-      transcription_engine: 'Deepgram',
-      transcription_tracks: 'outbound',
-      transcription_engine_config: {
-        transcription_engine: 'deepgram/nova-2',
-        transcription_model: 'deepgram/nova-2',
-        language: 'en-US',
-        interim_results: false,
-      },
+  async startStreaming(
+    callControlId: string,
+    streamUrl: string
+  ): Promise<void> {
+    await this.client.calls.actions.startStreaming(callControlId, {
+      stream_url: streamUrl,
+      stream_track: 'inbound_track',
+      stream_codec: 'PCMU',
     });
   }
 

@@ -18,6 +18,7 @@ import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
 import testRunRoutes from './routes/testRunRoutes';
 import { requestLogger } from './middleware/requestLogger';
+import { attachStreamServer } from './routes/streamRoutes';
 
 const app: express.Application = express();
 const port = parseInt(process.env.PORT || '3000', 10);
@@ -208,10 +209,11 @@ async function startServer(): Promise<void> {
   }
 
   const serverStartTime = Date.now();
-  app.listen(port, '0.0.0.0', () => {
+  const httpServer = app.listen(port, '0.0.0.0', () => {
     const startupTime = Date.now() - serverStartTime;
     console.log(`Server running on port ${port} (startup: ${startupTime}ms)`);
   });
+  attachStreamServer(httpServer);
 
   process.on('uncaughtException', (err: Error) => {
     console.error('Uncaught exception:', err.message, err.stack);

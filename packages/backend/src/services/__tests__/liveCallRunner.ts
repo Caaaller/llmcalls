@@ -11,7 +11,17 @@ import type { RecordedTurn } from './recordedCallTypes';
 
 const POLL_INTERVAL_MS = 3000;
 const DEFAULT_TIMEOUT_SECONDS = 600;
-const TERMINAL_STATUSES = ['hangup', 'failed', 'busy', 'no-answer', 'canceled'];
+// Telnyx call states that indicate the call has ended
+const TERMINAL_STATUSES = [
+  'hangup',
+  'failed',
+  'busy',
+  'no-answer',
+  'canceled',
+  'completed',
+  'terminated',
+  'done',
+];
 
 export interface CallResult {
   callSid: string;
@@ -91,24 +101,39 @@ export async function executeCall(
     let status = call.status;
     let timedOut = false;
 
+    let durationSeconds = 0;
+
     while (true) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
 
-      const currentCall = await telnyxService.getCallStatus(callSid);
-      const data = currentCall.data as { state?: string };
-      status = data?.state || status;
+      try {
+        const currentCall = await telnyxService.getCallStatus(callSid);
+        const data = currentCall.data as { state?: string };
+        status = data?.state || status;
+      } catch {
+        // 422 "Call has already ended" or 404 — treat as terminal
+        break;
+      }
 
       if (TERMINAL_STATUSES.includes(status)) break;
 
+      // Also check DB — server writes 'completed'/'failed' on call.hangup webhook
+      const dbCall = await callHistoryService.getCall(callSid);
+      if (dbCall?.status === 'completed' || dbCall?.status === 'failed') break;
+
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed > maxDuration) {
+        // Cap at maxDuration to avoid off-by-one from polling interval
+        durationSeconds = Math.min(maxDuration, Math.round(elapsed));
         await telnyxService.terminateCall(callSid);
         timedOut = true;
         break;
       }
     }
 
-    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    if (durationSeconds === 0) {
+      durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    }
     return { callSid, status, durationSeconds, timedOut };
   } finally {
     if (usePool) ivrNumberPool.release(phoneNumber);
