@@ -201,7 +201,7 @@ Analyze the current speech and decide what to do. Consider:
 9. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
 
     const response = await this.client.messages.create({
-      model: config.aiSettings?.model || 'claude-haiku-4-5-20251001',
+      model: config.aiSettings?.model || 'claude-sonnet-4-6',
       system: systemPrompt.system,
       messages: [{ role: 'user', content: userMessage }],
       max_tokens: 500,

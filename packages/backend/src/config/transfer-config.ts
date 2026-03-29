@@ -39,7 +39,7 @@ const transferConfig = {
     userEmail: process.env.USER_EMAIL || 'oliverullman@gmail.com',
     callPurpose: process.env.CALL_PURPOSE || 'speak with a representative',
     aiSettings: {
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       maxTokens: 150,
       temperature: 0.7,
       voice: 'Polly.Matthew',

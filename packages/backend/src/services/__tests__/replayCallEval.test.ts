@@ -104,7 +104,7 @@ function buildConfig(tree: RecordedCallTree): TransferConfig {
     callPurpose: tree.config.callPurpose,
     customInstructions: tree.config.customInstructions,
     aiSettings: {
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-sonnet-4-6',
       maxTokens: 500,
       temperature: 0.3,
     },
