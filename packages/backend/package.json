@@ -11,7 +11,7 @@
     "test:info-request": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=infoRequest",
     "test:live": "jest --runInBand --testPathIgnorePatterns=/node_modules/ --testPathPatterns=liveCallEval",
     "test:live:record": "RECORD_CALLS=1 jest --runInBand --testPathIgnorePatterns=/node_modules/ --testPathPatterns=liveCallEval",
-    "test:replay": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=replayCallEval",
+    "test:replay": "REPLAY_EVAL_CONCURRENCY=1 jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=replayCallEval",
     "test:replay-or-live": "TEST_MODE=replay-or-live jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=replayCallEval",
     "test:stt": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=sttEval",
     "test:stt-compare": "jest --runInBand --forceExit --testPathPatterns=sttModelComparison",
@@ -22,6 +22,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,json}\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@deepgram/sdk": "^5.0.0",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.2.3",

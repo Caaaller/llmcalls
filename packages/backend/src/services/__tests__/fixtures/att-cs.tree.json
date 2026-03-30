@@ -2,7 +2,7 @@
   "version": 2,
   "id": "att-cs",
   "testCaseId": "att-cs",
-  "lastRecordedAt": "2026-03-22T21:08:47.773Z",
+  "lastRecordedAt": "2026-03-29T18:25:18.885Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,8 +23,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-03-21T00:06:31.007Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-03-29T18:25:18.885Z",
+        "isLatestPath": true,
         "child": {
           "id": "n1",
           "ivrSpeech": "What's the issue you're calling about?",
@@ -43,8 +43,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-20T23:52:10.425Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-03-29T18:25:18.885Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "So, I can help you what's the account number or phone number on the account.",
@@ -63,8 +63,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-03-20T23:52:10.425Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-03-29T18:25:18.885Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n3",
                       "ivrSpeech": "1 moment please, I found multiple Mobility accounts. What is the wireless number you are calling about",
@@ -83,8 +83,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-03-20T23:52:10.425Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-03-29T18:25:18.885Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n4",
                             "ivrSpeech": "Thank you.",
@@ -291,6 +291,143 @@
                                     }
                                   ]
                                 }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "Representative",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-29T18:25:18.885Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n32",
+                                  "ivrSpeech": "Let me find someone to help you. One moment, please, while I handle your request. One moment while I get an agent to help you.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-29T18:25:18.885Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n33",
+                                        "ivrSpeech": "Para Español, marca nueve.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-03-29T18:25:18.885Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 116,
+                                              "reachedHuman": true,
+                                              "dtmfDigits": []
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-03-29T18:13:43.033Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n30",
+                      "ivrSpeech": "Can you tell me the account number or phone number on the account?",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "7 2 0 5 8 4 6 3 5 8",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-03-29T18:13:43.033Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n31",
+                            "ivrSpeech": "If I don't hear something from you soon, I will need to disconnect the call. Can you tell me the account number or phone number on the account?",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "7 2 0 5 8 4 6 3 5 8",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-29T18:13:43.033Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 91,
+                                  "reachedHuman": false,
+                                  "dtmfDigits": []
+                                }
                               }
                             ]
                           }
@@ -314,7 +451,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-21T00:06:31.007Z",
+              "recordedAt": "2026-03-29T18:01:07.740Z",
               "isLatestPath": false,
               "child": {
                 "id": "n13",
@@ -333,7 +470,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-03-21T00:06:31.007Z",
+                    "recordedAt": "2026-03-29T18:01:07.740Z",
                     "isLatestPath": false,
                     "child": {
                       "id": "n14",
@@ -353,7 +490,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-03-21T00:06:31.007Z",
+                          "recordedAt": "2026-03-29T18:01:07.740Z",
                           "isLatestPath": false,
                           "child": {
                             "id": "n15",
@@ -373,7 +510,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-03-21T00:06:31.007Z",
+                                "recordedAt": "2026-03-29T18:01:07.740Z",
                                 "isLatestPath": false,
                                 "child": {
                                   "id": "n16",
@@ -424,6 +561,282 @@
                                           }
                                         ]
                                       }
+                                    },
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "Representative",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-29T18:01:07.740Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n28",
+                                        "ivrSpeech": "I got 840.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "No",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-03-29T18:01:07.740Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n29",
+                                              "ivrSpeech": "Please wait. One moment, please, while I handle your request. One moment while I get an agent to help you.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-03-29T18:01:07.740Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 78,
+                                                    "reachedHuman": true,
+                                                    "dtmfDigits": []
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "I need help with my account and would like to speak with a representative.",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-03-29T17:52:42.523Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n20",
+                      "ivrSpeech": "How can I assist you today?",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "I need help with my account and would like to speak with a representative.",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-03-29T17:52:42.523Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n21",
+                            "ivrSpeech": "so I can help you.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-29T17:52:42.523Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n22",
+                                  "ivrSpeech": "Can you repeat the number please?",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "7 2 0 5 8 4 6 3 5 8",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-29T17:52:42.523Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n23",
+                                        "ivrSpeech": "Are you still there? Can you tell me the account number or phone number on the account?",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "7 2 0 5 8 4 6 3 5 8",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-03-29T17:52:42.523Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n24",
+                                              "ivrSpeech": "which product.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "Wireless.",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-03-29T17:52:42.523Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n25",
+                                                    "ivrSpeech": "Which are you calling about, a personal or business account?",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "Personal.",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-03-29T17:52:42.523Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n26",
+                                                          "ivrSpeech": "Which are you calling about, a personal or business account?",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "Personal.",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-03-29T17:52:42.523Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n27",
+                                                                "ivrSpeech": "If I don't hear something from you soon, I will need to disconnect the call. Which are you calling about, a personal or business account?",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "speak",
+                                                                      "speech": "Personal.",
+                                                                      "reason": "",
+                                                                      "detected": {
+                                                                        "isIVRMenu": false,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": false,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-03-29T17:52:42.523Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "terminal": true,
+                                                                      "finalStatus": "initiated",
+                                                                      "durationSeconds": 119,
+                                                                      "reachedHuman": false,
+                                                                      "dtmfDigits": []
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
                                     }
                                   ]
                                 }
@@ -455,7 +868,7 @@
           }
         },
         "recordedAt": "2026-03-22T21:08:47.772Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n18",
           "ivrSpeech": "So, I can help you what's the account number or phone number on the account.",
@@ -475,7 +888,7 @@
                 }
               },
               "recordedAt": "2026-03-22T21:08:47.773Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n19",
                 "ivrSpeech": "If I don't hear something from you soon, I will need to disconnect the call.  Can you tell me the account number or phone number on the account?",
@@ -495,7 +908,7 @@
                       }
                     },
                     "recordedAt": "2026-03-22T21:08:47.773Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "terminal": true,
                       "finalStatus": "completed",

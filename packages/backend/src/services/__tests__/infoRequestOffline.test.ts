@@ -35,7 +35,11 @@ function setupPendingCall(
       transferNumber: '+17205550000',
       callPurpose: 'test',
       customInstructions: '',
-      aiSettings: { model: 'gpt-4o', maxTokens: 500, temperature: 0.3 },
+      aiSettings: {
+        model: 'claude-sonnet-4-6',
+        maxTokens: 500,
+        temperature: 0.3,
+      },
     } as any,
   });
   callStateManager.setPendingInfoRequest(

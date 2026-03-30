@@ -4,7 +4,7 @@ import { getToken } from '../utils/auth';
 // Get API URL from environment variable, default to relative URL in production or localhost for development
 const API_URL =
   process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000');
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:8068');
 
 /**
  * Shared API types
@@ -182,6 +182,14 @@ export interface TestCaseResult {
   durationSeconds: number;
   error?: string;
   timedOut: boolean;
+}
+
+export interface FailureAnalysis {
+  explanation: string;
+  fix: {
+    description: string;
+    customInstructions: string;
+  };
 }
 
 export interface TestRunSummary {
@@ -418,6 +426,27 @@ export const api = {
         `/api/test-runs/${encodeURIComponent(runId)}`,
         { method: 'DELETE' }
       ),
+    analyzeFailure: (
+      callSid: string,
+      testCaseName: string,
+      testCaseId: string
+    ) =>
+      apiFetch<{ success: boolean; analysis: FailureAnalysis }>(
+        `/api/calls/${callSid}/analyze-failure`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ testCaseName, testCaseId }),
+        }
+      ),
+    saveOverride: (testCaseId: string, customInstructions: string) =>
+      apiFetch<{ success: boolean }>(`/api/test-cases/${testCaseId}/override`, {
+        method: 'POST',
+        body: JSON.stringify({ customInstructions }),
+      }),
+    deleteOverride: (testCaseId: string) =>
+      apiFetch<{ success: boolean }>(`/api/test-cases/${testCaseId}/override`, {
+        method: 'DELETE',
+      }),
   },
 
   // Evaluation endpoints

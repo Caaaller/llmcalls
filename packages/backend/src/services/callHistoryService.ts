@@ -19,6 +19,7 @@ export interface CallMetadata {
   transferNumber?: string;
   callPurpose?: string;
   customInstructions?: string;
+  userId?: string;
 }
 
 class CallHistoryService {
@@ -34,6 +35,7 @@ class CallHistoryService {
     try {
       const callHistory = new CallHistory({
         callSid,
+        ...(metadata.userId && { userId: metadata.userId }),
         startTime: new Date(),
         status: 'in-progress',
         metadata: {
@@ -483,8 +485,20 @@ class CallHistoryService {
   /**
    * Get recent calls
    */
-  async getRecentCalls(limit: number = 20) {
-    return this.getAllCalls(limit);
+  async getRecentCalls(limit: number = 20, userId?: string) {
+    if (!isMongoAvailable()) return [];
+
+    try {
+      const query = userId ? { userId } : {};
+      const calls = await CallHistory.find(query)
+        .sort({ startTime: -1 })
+        .limit(limit)
+        .lean();
+      return calls;
+    } catch (error: unknown) {
+      console.error('❌ Error getting recent calls:', getErrorMessage(error));
+      return [];
+    }
   }
 
   /**

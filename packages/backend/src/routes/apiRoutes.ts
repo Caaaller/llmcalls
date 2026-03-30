@@ -15,6 +15,8 @@ import evaluationService from '../services/evaluationService';
 import { isDbConnected } from '../services/database';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import SavedCall from '../models/SavedCall';
+import TestCaseOverride from '../models/TestCaseOverride';
+import Anthropic from '@anthropic-ai/sdk';
 import fs from 'fs';
 import path from 'path';
 
@@ -73,8 +75,10 @@ router.get(
   authenticate,
   async (req: Request, res: Response) => {
     try {
+      const authReq = req as AuthRequest;
       const limit = parseInt(req.query.limit as string) || 50;
-      const calls = await callHistoryService.getRecentCalls(limit);
+      const userId = authReq.user?._id?.toString();
+      const calls = await callHistoryService.getRecentCalls(limit, userId);
 
       res.json({
         success: true,
@@ -212,6 +216,7 @@ router.post(
   authenticate,
   async (req: Request, res: Response): Promise<void> => {
     try {
+      const authReq = req as AuthRequest;
       const {
         to,
         from,
@@ -300,6 +305,7 @@ router.post(
         transferNumber: config.transferNumber,
         callPurpose: config.callPurpose,
         customInstructions: config.customInstructions,
+        userId: authReq.user?._id?.toString(),
       });
 
       res.json({
@@ -524,7 +530,11 @@ if (process.env.NODE_ENV !== 'production') {
           userPhone,
           callPurpose: 'test',
           customInstructions: '',
-          aiSettings: { model: 'gpt-4o', maxTokens: 500, temperature: 0.3 },
+          aiSettings: {
+            model: 'claude-sonnet-4-6',
+            maxTokens: 500,
+            temperature: 0.3,
+          },
         } as any,
       });
       callStateManager.setPendingInfoRequest(
@@ -618,6 +628,147 @@ router.delete(
       res.status(404).json({ success: false, error: 'Saved call not found' });
       return;
     }
+    res.json({ success: true });
+  }
+);
+
+/**
+ * Analyze why a call failed and propose a fix
+ */
+router.post(
+  '/calls/:callSid/analyze-failure',
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const { callSid } = req.params;
+    const { testCaseName, testCaseId } = req.body as {
+      testCaseName?: string;
+      testCaseId?: string;
+    };
+
+    const call = await callHistoryService.getCall(callSid as string);
+    if (!call) {
+      res.status(404).json({ success: false, error: 'Call not found' });
+      return;
+    }
+
+    const events = call.events || [];
+    const eventsText = events
+      .map(e => {
+        if (e.eventType === 'conversation')
+          return `[${e.type?.toUpperCase()}] ${e.text}`;
+        if (e.eventType === 'dtmf')
+          return `[DTMF] Press ${e.digit}${e.reason ? ` — ${e.reason}` : ''}`;
+        if (e.eventType === 'ivr_menu')
+          return `[IVR MENU] ${e.menuOptions?.map(o => `${o.digit}=${o.option}`).join(', ')}`;
+        if (e.eventType === 'transfer')
+          return `[TRANSFER] ${e.success ? 'SUCCESS' : 'ATTEMPT'} to ${e.transferNumber}`;
+        if (e.eventType === 'termination') return `[TERMINATED] ${e.reason}`;
+        if (e.eventType === 'hold') return `[HOLD] Hold queue detected`;
+        if (e.eventType === 'info_request') return `[INFO REQUEST] ${e.text}`;
+        if (e.eventType === 'info_response') return `[INFO RESPONSE] ${e.text}`;
+        return `[${e.eventType}]`;
+      })
+      .join('\n');
+
+    const currentOverride = testCaseId
+      ? await TestCaseOverride.findOne({ testCaseId })
+      : null;
+
+    const prompt = `You are analyzing a failed automated phone call test. The goal of the call was to navigate the IVR phone system and reach a live human representative.
+
+Test case: ${testCaseName || call.metadata?.callPurpose || 'Unknown'}
+Phone: ${call.metadata?.to || 'Unknown'}
+Call purpose: ${call.metadata?.callPurpose || 'speak with a representative'}
+${currentOverride ? `Current custom instructions: ${currentOverride.customInstructions}` : ''}
+
+Call event timeline:
+${eventsText || '(no events recorded)'}
+
+Analyze what went wrong and why the call failed. Then propose specific custom instructions that would help the AI succeed on the next attempt. Custom instructions are extra guidance given to the AI before it starts navigating the IVR.
+
+Respond in this exact JSON format (no markdown, raw JSON only):
+{
+  "explanation": "2-3 sentence explanation of exactly what went wrong and why",
+  "fix": {
+    "description": "One sentence summary of the proposed fix",
+    "customInstructions": "The exact custom instructions text to add (be specific about digits, menu options, what to say, etc.)"
+  }
+}`;
+
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw =
+      message.content[0].type === 'text' ? message.content[0].text : '';
+    let analysis: {
+      explanation: string;
+      fix: { description: string; customInstructions: string };
+    };
+    try {
+      analysis = JSON.parse(raw);
+    } catch {
+      res
+        .status(500)
+        .json({ success: false, error: 'AI returned invalid JSON', raw });
+      return;
+    }
+
+    res.json({ success: true, analysis });
+  }
+);
+
+/**
+ * Get the current custom instructions override for a test case
+ */
+router.get(
+  '/test-cases/:testCaseId/override',
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const override = await TestCaseOverride.findOne({
+      testCaseId: req.params.testCaseId,
+    });
+    res.json({ success: true, override: override ?? null });
+  }
+);
+
+/**
+ * Save a custom instructions override for a test case
+ */
+router.post(
+  '/test-cases/:testCaseId/override',
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    const { customInstructions } = req.body as { customInstructions: string };
+    if (!customInstructions || typeof customInstructions !== 'string') {
+      res
+        .status(400)
+        .json({ success: false, error: 'customInstructions is required' });
+      return;
+    }
+    await TestCaseOverride.findOneAndUpdate(
+      { testCaseId: req.params.testCaseId },
+      { customInstructions },
+      { upsert: true, new: true }
+    );
+    res.json({ success: true });
+  }
+);
+
+/**
+ * Delete a custom instructions override for a test case
+ */
+router.delete(
+  '/test-cases/:testCaseId/override',
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    await TestCaseOverride.deleteOne({ testCaseId: req.params.testCaseId });
     res.json({ success: true });
   }
 );

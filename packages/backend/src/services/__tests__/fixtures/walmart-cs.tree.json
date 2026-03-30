@@ -2,7 +2,7 @@
   "version": 2,
   "id": "walmart-cs",
   "testCaseId": "walmart-cs",
-  "lastRecordedAt": "2026-03-21T00:06:30.963Z",
+  "lastRecordedAt": "2026-03-29T18:25:18.865Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-03-21T00:06:30.963Z",
+        "recordedAt": "2026-03-29T18:25:18.864Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -44,8 +44,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-20T23:52:10.403Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-03-29T18:25:18.864Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "Okay, I hear you.",
@@ -63,8 +63,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-03-20T23:52:10.403Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-03-29T18:25:18.864Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n3",
                       "ivrSpeech": "I understand you want to speak with a representative. I'll do my best to help you right now. Can you tell me what you need help with today?",
@@ -273,6 +273,51 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "wait",
+                            "reason": "No action before next speech",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-03-29T18:25:18.864Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n24",
+                            "ivrSpeech": "Hello, thank you so much for calling Walmart.com. This is Stephanie speaking. And tell me, how are you doing today?",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-29T18:25:18.864Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 119,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": []
+                                }
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
@@ -294,7 +339,7 @@
                 }
               },
               "recordedAt": "2026-03-21T00:06:30.963Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n12",
                 "ivrSpeech": "Or is there something new I can help with?",
@@ -314,7 +359,7 @@
                       }
                     },
                     "recordedAt": "2026-03-21T00:06:30.963Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n13",
                       "ivrSpeech": "I hear you like to speak with a representative. I can help with most things right now.",
@@ -333,7 +378,7 @@
                             }
                           },
                           "recordedAt": "2026-03-21T00:06:30.963Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n14",
                             "ivrSpeech": "Just checking in. Are you still there?",
@@ -353,7 +398,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-03-21T00:06:30.963Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n15",
                                   "ivrSpeech": "Great. Go ahead and tell me what you need help with.",
@@ -373,7 +418,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-03-21T00:06:30.963Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n16",
                                         "ivrSpeech": "I understand you'd like to speak with a representative. I can help with most things right now. What do you need help with?",
@@ -393,7 +438,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-03-21T00:06:30.963Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n17",
                                               "ivrSpeech": "I know you want to speak with a representative. I can help with most things right now.",
@@ -412,7 +457,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-03-21T00:06:30.963Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n18",
                                                     "ivrSpeech": "Are you still there?",
@@ -432,7 +477,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-03-21T00:06:30.963Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n19",
                                                           "ivrSpeech": "All right. What do you need help with today?",
@@ -452,7 +497,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-03-21T00:06:30.963Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "id": "n20",
                                                                 "ivrSpeech": "I'm transferring you to the customer support team to help you with your issue.",
@@ -471,7 +516,7 @@
                                                                       }
                                                                     },
                                                                     "recordedAt": "2026-03-21T00:06:30.963Z",
-                                                                    "isLatestPath": true,
+                                                                    "isLatestPath": false,
                                                                     "child": {
                                                                       "id": "n21",
                                                                       "ivrSpeech": "There's 1 caller ahead of you.",
@@ -490,7 +535,7 @@
                                                                             }
                                                                           },
                                                                           "recordedAt": "2026-03-21T00:06:30.963Z",
-                                                                          "isLatestPath": true,
+                                                                          "isLatestPath": false,
                                                                           "child": {
                                                                             "id": "n22",
                                                                             "ivrSpeech": "1 minute this call in your voice, may be recorded for quality or other business purposes, including fraud prevention.",
@@ -509,7 +554,7 @@
                                                                                   }
                                                                                 },
                                                                                 "recordedAt": "2026-03-21T00:06:30.963Z",
-                                                                                "isLatestPath": true,
+                                                                                "isLatestPath": false,
                                                                                 "child": {
                                                                                   "id": "n23",
                                                                                   "ivrSpeech": "So much for calling.",
@@ -528,7 +573,7 @@
                                                                                         }
                                                                                       },
                                                                                       "recordedAt": "2026-03-21T00:06:30.963Z",
-                                                                                      "isLatestPath": true,
+                                                                                      "isLatestPath": false,
                                                                                       "child": {
                                                                                         "terminal": true,
                                                                                         "finalStatus": "in-progress",

@@ -11,7 +11,17 @@ import type { RecordedTurn } from './recordedCallTypes';
 
 const POLL_INTERVAL_MS = 3000;
 const DEFAULT_TIMEOUT_SECONDS = 600;
-const TERMINAL_STATUSES = ['hangup', 'failed', 'busy', 'no-answer', 'canceled'];
+// Telnyx call states that indicate the call has ended
+const TERMINAL_STATUSES = [
+  'hangup',
+  'failed',
+  'busy',
+  'no-answer',
+  'canceled',
+  'completed',
+  'terminated',
+  'done',
+];
 
 export interface CallResult {
   callSid: string;
@@ -68,14 +78,30 @@ export async function executeCall(
     ? await ivrNumberPool.acquire()
     : testCase.phoneNumber;
 
+  // Check for saved override instructions (applied via the Fix button in the UI)
+  let customInstructions = testCase.customInstructions;
+  try {
+    const TestCaseOverride = (await import('../../models/TestCaseOverride'))
+      .default;
+    const override = await TestCaseOverride.findOne({
+      testCaseId: testCase.id,
+    });
+    if (override) {
+      customInstructions = override.customInstructions;
+      console.log(
+        `🔧 Applying saved override for ${testCase.id}: "${customInstructions.slice(0, 80)}..."`
+      );
+    }
+  } catch {
+    // DB not available during unit tests — skip silently
+  }
+
   // Encode call config into client_state for Telnyx
   const { encodeClientState } = await import('../../types/telnyx');
   const clientState = encodeClientState({
     transferNumber: process.env.TRANSFER_PHONE_NUMBER || '',
     callPurpose: testCase.callPurpose || 'speak with a representative',
-    ...(testCase.customInstructions && {
-      customInstructions: testCase.customInstructions,
-    }),
+    ...(customInstructions && { customInstructions }),
     ...(testCase.skipInfoRequests !== false && { skipInfoRequests: true }),
   });
 
@@ -91,24 +117,39 @@ export async function executeCall(
     let status = call.status;
     let timedOut = false;
 
+    let durationSeconds = 0;
+
     while (true) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
 
-      const currentCall = await telnyxService.getCallStatus(callSid);
-      const data = currentCall.data as { state?: string };
-      status = data?.state || status;
+      try {
+        const currentCall = await telnyxService.getCallStatus(callSid);
+        const data = currentCall.data as { state?: string };
+        status = data?.state || status;
+      } catch {
+        // 422 "Call has already ended" or 404 — treat as terminal
+        break;
+      }
 
       if (TERMINAL_STATUSES.includes(status)) break;
 
+      // Also check DB — server writes 'completed'/'failed' on call.hangup webhook
+      const dbCall = await callHistoryService.getCall(callSid);
+      if (dbCall?.status === 'completed' || dbCall?.status === 'failed') break;
+
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed > maxDuration) {
+        // Cap at maxDuration to avoid off-by-one from polling interval
+        durationSeconds = Math.min(maxDuration, Math.round(elapsed));
         await telnyxService.terminateCall(callSid);
         timedOut = true;
         break;
       }
     }
 
-    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    if (durationSeconds === 0) {
+      durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    }
     return { callSid, status, durationSeconds, timedOut };
   } finally {
     if (usePool) ivrNumberPool.release(phoneNumber);
@@ -276,7 +317,17 @@ export async function getCallOutcome(
 
 export async function hasBusinessClosed(callSid: string): Promise<boolean> {
   const reason = await callHistoryService.getTerminationReason(callSid);
-  return reason === 'closed_no_menu';
+  if (reason === 'closed_no_menu') return true;
+
+  // Secondary check: scan IVR speech for closed/hours language in case the AI
+  // didn't record a termination event (e.g. short call, immediate rejection)
+  const call = await callHistoryService.getCall(callSid);
+  if (!call?.events) return false;
+  const CLOSED_PATTERN =
+    /\b(closed|not available|business hours|call back|outside.*hours|hours.*monday|our hours|after hours|operating hours)\b/i;
+  return call.events
+    .filter(e => e.eventType === 'conversation' && e.type === 'user')
+    .some(e => CLOSED_PATTERN.test(e.text || ''));
 }
 
 export function hasTelnyxCreds(): boolean {

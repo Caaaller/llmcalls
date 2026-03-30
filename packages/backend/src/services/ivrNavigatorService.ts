@@ -4,7 +4,7 @@
  * voiceProcessingService, and aiService with one unified decision.
  */
 
-import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { TransferConfig } from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { transferPrompt } from '../prompts/transfer-prompt';
@@ -132,11 +132,12 @@ ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 }
 
 class IVRNavigatorService {
-  private client: OpenAI;
+  private client: Anthropic;
 
   constructor() {
-    this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+    this.client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      maxRetries: 5,
     });
   }
 
@@ -199,23 +200,26 @@ Analyze the current speech and decide what to do. Consider:
 8. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.
 9. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
 
-    const completion = await this.client.chat.completions.create({
-      model: config.aiSettings?.model || 'gpt-5.4',
-      messages: [
-        { role: 'system', content: systemPrompt.system },
-        { role: 'user', content: userMessage },
-      ],
-      max_completion_tokens: 500,
+    const response = await this.client.messages.create({
+      model: config.aiSettings?.model || 'claude-sonnet-4-6',
+      system: systemPrompt.system,
+      messages: [{ role: 'user', content: userMessage }],
+      max_tokens: 500,
       temperature: 0.3,
-      response_format: { type: 'json_object' },
     });
 
-    const content = completion.choices[0].message.content;
+    const block = response.content[0];
+    const content = block.type === 'text' ? block.text : null;
     if (!content) {
       throw new Error('No response from IVR navigator AI');
     }
 
-    const action = JSON.parse(content) as CallAction;
+    // Extract JSON from response (Claude may wrap it in markdown code fences)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error(`Could not parse JSON from AI response: ${content}`);
+    }
+    const action = JSON.parse(jsonMatch[0]) as CallAction;
 
     // Normalize menu options to lowercase
     if (action.detected?.menuOptions) {

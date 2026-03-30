@@ -14,7 +14,6 @@ import callHistoryService from '../services/callHistoryService';
 import telnyxService from '../services/telnyxService';
 import transferConfig from '../config/transfer-config';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
-import { processSpeech } from '../services/speechProcessingService';
 import { logOnError } from '../utils/logOnError';
 
 const router: express.Router = express.Router();
@@ -172,45 +171,21 @@ async function handleCallAnswered(
     'Error starting call history'
   );
 
-  // Start real-time Deepgram transcription for the IVR's audio
+  // Start audio streaming to our WebSocket for Whisper transcription
   try {
-    await telnyxService.startTranscription(callControlId);
+    const baseUrl =
+      process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL || '';
+    const wsBase = baseUrl
+      .replace(/^https?:\/\//, 'wss://')
+      .replace(/\/voice$/, '');
+    const streamUrl = `${wsBase}/voice/stream`;
+    await telnyxService.startStreaming(callControlId, streamUrl);
+    console.log(
+      `[STREAM] Started for ${callControlId.slice(-20)} → ${streamUrl}`
+    );
   } catch (err) {
-    console.error('Failed to start transcription:', err);
+    console.error('Failed to start audio streaming:', err);
   }
-}
-
-/**
- * Handle call.transcription event — the main speech processing loop
- */
-async function handleTranscription(
-  callControlId: string,
-  payload: TelnyxWebhookPayload | undefined
-): Promise<void> {
-  const transcriptionData = payload?.transcription_data;
-  if (!transcriptionData?.is_final) return; // Only act on final results
-
-  const speechResult = transcriptionData.transcript || '';
-  const callState = callStateManager.getCallState(callControlId);
-
-  // Don't process transcription while we're speaking (suppress TTS echo)
-  if (callState.isSpeaking) return;
-
-  console.log(
-    `[STT] confidence=${transcriptionData.confidence ?? '?'} "${speechResult}"`
-  );
-
-  await processSpeech({
-    callSid: callControlId,
-    speechResult,
-    isFirstCall: false,
-    baseUrl: '',
-    transferNumber: callState.transferConfig?.transferNumber,
-    callPurpose: callState.transferConfig?.callPurpose,
-    customInstructions: callState.customInstructions,
-    userPhone: callState.userPhone,
-    skipInfoRequests: callState.skipInfoRequests,
-  });
 }
 
 /**
@@ -272,18 +247,22 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       case 'call.answered':
         await handleCallAnswered(callControlId, payload);
         break;
-      case 'call.transcription':
-        await handleTranscription(callControlId, payload);
-        break;
       case 'call.hangup':
         handleCallHangup(callControlId, payload);
         break;
       case 'call.recording.saved':
         await handleRecordingSaved(callControlId, payload);
         break;
+      case 'call.speak.started':
+        callStateManager.updateCallState(callControlId, { isSpeaking: true });
+        break;
       case 'call.speak.ended':
         callStateManager.updateCallState(callControlId, { isSpeaking: false });
         break;
+      default:
+        if (eventType.startsWith('call.')) {
+          console.log(`[EVENT] Unhandled: ${eventType}`);
+        }
     }
   } catch (err) {
     console.error(`Error handling Telnyx event ${eventType}:`, err);

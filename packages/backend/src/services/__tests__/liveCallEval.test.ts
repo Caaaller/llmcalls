@@ -279,7 +279,7 @@ describe('Live call evaluations', () => {
       }
 
       // Post test run results to the API for the Test Runs UI
-      const baseUrl = process.env.TWIML_URL || process.env.BASE_URL;
+      const baseUrl = process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL;
       if (baseUrl) {
         try {
           const postRes = await fetch(`${baseUrl}/api/test-runs`, {

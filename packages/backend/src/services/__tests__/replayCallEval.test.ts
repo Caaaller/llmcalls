@@ -103,7 +103,11 @@ function buildConfig(tree: RecordedCallTree): TransferConfig {
     userEmail: '',
     callPurpose: tree.config.callPurpose,
     customInstructions: tree.config.customInstructions,
-    aiSettings: { model: 'gpt-5.4', maxTokens: 500, temperature: 0.3 },
+    aiSettings: {
+      model: 'claude-sonnet-4-6',
+      maxTokens: 500,
+      temperature: 0.3,
+    },
   };
 }
 
@@ -334,13 +338,13 @@ if (fixtures.length === 0) {
   });
 } else {
   const maxTurns = Math.max(...fixtures.map(f => getLatestPath(f.tree).length));
+  const batches = Number.isFinite(MAX_CONCURRENT)
+    ? Math.ceil(fixtures.length / MAX_CONCURRENT)
+    : 1;
   const totalTimeoutMs =
     TEST_MODE === 'replay-or-live'
       ? 600_000
-      : Math.max(
-          60_000,
-          Math.ceil(fixtures.length / MAX_CONCURRENT) * maxTurns * 10_000
-        );
+      : Math.max(300_000, batches * maxTurns * 15_000);
 
   describe('Replay call evaluations', () => {
     it(

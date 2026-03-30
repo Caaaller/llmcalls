@@ -2,7 +2,7 @@
   "version": 2,
   "id": "bestbuy-cs",
   "testCaseId": "bestbuy-cs",
-  "lastRecordedAt": "2026-03-22T21:57:22.949Z",
+  "lastRecordedAt": "2026-03-29T18:25:18.876Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -434,7 +434,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-03-22T21:57:22.949Z",
+        "recordedAt": "2026-03-29T18:25:18.876Z",
         "isLatestPath": true,
         "child": {
           "id": "n17",
@@ -454,7 +454,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-22T21:57:22.949Z",
+              "recordedAt": "2026-03-29T18:25:18.876Z",
               "isLatestPath": true,
               "child": {
                 "id": "n18",
@@ -475,7 +475,7 @@
                       }
                     },
                     "recordedAt": "2026-03-22T21:57:22.949Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n19",
                       "ivrSpeech": "I didn't hear that. Which are you calling about an order including a product or an appointment? Only?",
@@ -587,13 +587,221 @@
                             }
                           },
                           "recordedAt": "2026-03-22T21:57:22.949Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "terminal": true,
                             "finalStatus": "completed",
                             "durationSeconds": 135,
                             "reachedHuman": false,
                             "dtmfDigits": ["7"]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-03-29T18:25:18.876Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n23",
+                      "ivrSpeech": "To get you the right support, please tell us why you're calling. Press 1 for Product Availability or Purchasing. Press 2 for a Recent Order. Press 3 for Tech Support or Computer Repair. Press 4 for In-Home Installation or Delivery. Press 5 for Appliance or Home Theater Repair. Press 6 for Memberships or Subscriptions. Press 7 for none of these.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "7",
+                            "reason": "AI selected: This is a complete IVR menu. The best truthful catch-all option for reaching a representative is 'none of these.'",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-03-29T18:01:07.728Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 120,
+                            "reachedHuman": false,
+                            "dtmfDigits": ["7"]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "An order.",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-03-29T18:25:18.876Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n24",
+                            "ivrSpeech": "I'd hear that.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-29T18:13:43.021Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n25",
+                                  "ivrSpeech": "I didn't get that. Could you say that again?",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "An order.",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-29T18:13:43.021Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n26",
+                                        "ivrSpeech": "I didn't hear that, I didn't get that.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "Representative",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-03-29T18:13:43.021Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n27",
+                                              "ivrSpeech": "I didn't get that. Could you say that again?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "Representative",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-03-29T18:13:43.021Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 115,
+                                                    "reachedHuman": false,
+                                                    "dtmfDigits": []
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "Representative",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-03-29T18:25:18.876Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n28",
+                                  "ivrSpeech": "What was the phone number on this order?",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "7 2 0 5 8 4 6 3 5 8",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-03-29T18:25:18.876Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 103,
+                                        "reachedHuman": false,
+                                        "dtmfDigits": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
                           }
                         }
                       ]

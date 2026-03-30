@@ -23,19 +23,10 @@ export interface LiveCallTestCase {
 
 export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   {
-    id: 'amazon-cs',
-    name: 'Amazon Customer Service',
-    description: 'Call Amazon customer service and navigate through IVR',
-    phoneNumber: '+18882804331',
-    callPurpose: 'speak with a representative',
-    expectedOutcome: {
-      maxDurationSeconds: 300,
-    },
-  },
-  {
     id: 'walmart-cs',
-    name: 'Walmart Customer Service',
-    description: 'Call Walmart customer service and navigate to representative',
+    name: 'Walmart CS — bypass AI assistant to reach a human',
+    description:
+      'Walmart uses a conversational AI assistant. AI must redirect past it to reach a human.',
     phoneNumber: '+18009256278',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
@@ -44,8 +35,9 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   },
   {
     id: 'target-cs',
-    name: 'Target Guest Services',
-    description: 'Call Target guest services and navigate to representative',
+    name: 'Target CS — navigate DTMF menu to reach a human',
+    description:
+      'Target uses a standard DTMF menu. AI must select the correct option to reach a human.',
     phoneNumber: '+18004400680',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
@@ -54,12 +46,13 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   },
   {
     id: 'bestbuy-cs',
-    name: 'Best Buy Customer Service',
+    name: 'Best Buy CS — multi-step IVR to reach a human',
     description:
-      'Call Best Buy customer service and navigate to representative',
+      'Best Buy has a virtual assistant followed by DTMF menus and account lookup. AI must navigate all steps to reach a human.',
     phoneNumber: '+18882378289',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
+      shouldReachHuman: true,
       maxDurationSeconds: 300,
     },
   },
@@ -78,18 +71,21 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   // },
   {
     id: 'wellsfargo-cs',
-    name: 'Wells Fargo Customer Service',
-    description: 'Call Wells Fargo and navigate to representative',
+    name: 'Wells Fargo CS — navigate hold menu to reach a human',
+    description:
+      'Wells Fargo has multiple DTMF menus and hold queues. AI must navigate correctly without getting routed to new account opening.',
     phoneNumber: '+18008693557',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
+      shouldReachHuman: true,
       maxDurationSeconds: 300,
     },
   },
   {
     id: 'att-cs',
-    name: 'AT&T Customer Service',
-    description: 'Call AT&T customer service and navigate to representative',
+    name: 'AT&T CS — phone number lookup then reach a human',
+    description:
+      'AT&T asks for account phone number to look up the account before routing. AI must speak the user phone number and then reach a human.',
     phoneNumber: '+18003310500',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
@@ -98,20 +94,22 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   },
   {
     id: 'verizon-cs',
-    name: 'Verizon Customer Service',
-    description: 'Call Verizon customer service and navigate to representative',
+    name: 'Verizon CS — personal vs business routing to reach a human',
+    description:
+      'Verizon repeatedly asks business/personal and service type. AI must press 2 for personal and reach a live agent.',
     phoneNumber: '+18009220204',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
+      shouldReachHuman: true,
       maxDTMFPresses: 5,
       maxDurationSeconds: 300,
     },
   },
   {
     id: 'loop-test-720',
-    name: 'Loop Detection Test (720-587-1000)',
+    name: 'Costco Warehouse — looping menu, press 1 for Admin Staff',
     description:
-      'IVR with known looping menu — verifies loop detection and correct DTMF behavior',
+      'Costco IVR loops its menu indefinitely. AI must recognize the menu mid-loop, press 1 for Administrative Staff, and wait for transfer.',
     phoneNumber: '+17205871000',
     callPurpose: 'speak with a representative',
     customInstructions:
@@ -125,8 +123,9 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
 export const LONG_TEST_CASES: LiveCallTestCase[] = [
   {
     id: 'amazon-cs-long',
-    name: 'Amazon Customer Service (Long)',
-    description: 'Call Amazon customer service and wait to reach a human',
+    name: 'Amazon CS (Long) — persist through verification loop to reach a human',
+    description:
+      'Amazon keeps pushing verification texts. AI must keep refusing until a human connects.',
     phoneNumber: '+18882804331',
     callPurpose: 'speak with a representative',
     expectedOutcome: {

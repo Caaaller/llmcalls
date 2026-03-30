@@ -18,9 +18,10 @@ import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
 import testRunRoutes from './routes/testRunRoutes';
 import { requestLogger } from './middleware/requestLogger';
+import { attachStreamServer } from './routes/streamRoutes';
 
 const app: express.Application = express();
-const port = parseInt(process.env.PORT || '3000', 10);
+const port = parseInt(process.env.PORT || '8068', 10);
 
 // Trust proxy (needed for ngrok and other reverse proxies)
 app.set('trust proxy', true);
@@ -32,7 +33,8 @@ app.use(express.json());
 // CORS for React frontend
 const allowedOrigins = [
   'http://localhost:3001',
-  'http://localhost:3000',
+  'http://localhost:8069',
+  'http://localhost:8068',
   process.env.FRONTEND_URL,
   process.env.BASE_URL,
 ].filter(Boolean) as string[];
@@ -208,10 +210,11 @@ async function startServer(): Promise<void> {
   }
 
   const serverStartTime = Date.now();
-  app.listen(port, '0.0.0.0', () => {
+  const httpServer = app.listen(port, '0.0.0.0', () => {
     const startupTime = Date.now() - serverStartTime;
     console.log(`Server running on port ${port} (startup: ${startupTime}ms)`);
   });
+  attachStreamServer(httpServer);
 
   process.on('uncaughtException', (err: Error) => {
     console.error('Uncaught exception:', err.message, err.stack);
