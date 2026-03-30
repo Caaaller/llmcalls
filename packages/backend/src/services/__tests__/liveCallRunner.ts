@@ -78,14 +78,30 @@ export async function executeCall(
     ? await ivrNumberPool.acquire()
     : testCase.phoneNumber;
 
+  // Check for saved override instructions (applied via the Fix button in the UI)
+  let customInstructions = testCase.customInstructions;
+  try {
+    const TestCaseOverride = (await import('../../models/TestCaseOverride'))
+      .default;
+    const override = await TestCaseOverride.findOne({
+      testCaseId: testCase.id,
+    });
+    if (override) {
+      customInstructions = override.customInstructions;
+      console.log(
+        `🔧 Applying saved override for ${testCase.id}: "${customInstructions.slice(0, 80)}..."`
+      );
+    }
+  } catch {
+    // DB not available during unit tests — skip silently
+  }
+
   // Encode call config into client_state for Telnyx
   const { encodeClientState } = await import('../../types/telnyx');
   const clientState = encodeClientState({
     transferNumber: process.env.TRANSFER_PHONE_NUMBER || '',
     callPurpose: testCase.callPurpose || 'speak with a representative',
-    ...(testCase.customInstructions && {
-      customInstructions: testCase.customInstructions,
-    }),
+    ...(customInstructions && { customInstructions }),
     ...(testCase.skipInfoRequests !== false && { skipInfoRequests: true }),
   });
 

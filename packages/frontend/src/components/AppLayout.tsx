@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import Sidebar, { type ActiveView } from './Sidebar';
+import Sidebar from './Sidebar';
 import CallWizard from './CallWizard';
 import HistoryTab from '../HistoryTab';
 import EvaluationsTab from '../EvaluationsTab';
@@ -8,6 +8,7 @@ import TestRunsTab from '../TestRunsTab';
 import { api } from '../api/client';
 import type { WizardData, WizardStep } from '../types/wizard';
 import type { User } from '../utils/auth';
+import { useAppRoute } from '../hooks/useAppRoute';
 
 interface AppLayoutProps {
   user: User;
@@ -16,10 +17,13 @@ interface AppLayoutProps {
 }
 
 function AppLayout({ user, defaultTransferNumber, onLogout }: AppLayoutProps) {
-  const [activeView, setActiveView] = useState<ActiveView>('wizard');
-  const [wizardKey, setWizardKey] = useState(0);
-  const [wizardInitial, setWizardInitial] = useState<WizardData | undefined>();
-  const [wizardInitialStep, setWizardInitialStep] = useState<
+  const { route, navigateToView, navigateToRun, clearRun } = useAppRoute();
+  const activeView = route.view;
+  const [wizardKey, setWizardKey] = React.useState(0);
+  const [wizardInitial, setWizardInitial] = React.useState<
+    WizardData | undefined
+  >();
+  const [wizardInitialStep, setWizardInitialStep] = React.useState<
     WizardStep | undefined
   >();
 
@@ -42,15 +46,18 @@ function AppLayout({ user, defaultTransferNumber, onLogout }: AppLayoutProps) {
     setWizardInitial(undefined);
     setWizardInitialStep(undefined);
     setWizardKey(k => k + 1);
-    setActiveView('wizard');
-  }, []);
+    navigateToView('wizard');
+  }, [navigateToView]);
 
-  const handlePrefill = useCallback((data: WizardData) => {
-    setWizardInitial(data);
-    setWizardInitialStep(4);
-    setWizardKey(k => k + 1);
-    setActiveView('wizard');
-  }, []);
+  const handlePrefill = useCallback(
+    (data: WizardData) => {
+      setWizardInitial(data);
+      setWizardInitialStep(4);
+      setWizardKey(k => k + 1);
+      navigateToView('wizard');
+    },
+    [navigateToView]
+  );
 
   const handleQuickCall = useCallback(
     (data: WizardData) => {
@@ -66,7 +73,7 @@ function AppLayout({ user, defaultTransferNumber, onLogout }: AppLayoutProps) {
     <div className="app-layout">
       <Sidebar
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={navigateToView}
         onPrefill={handlePrefill}
         onQuickCall={handleQuickCall}
         onNewCall={handleNewCall}
@@ -74,7 +81,6 @@ function AppLayout({ user, defaultTransferNumber, onLogout }: AppLayoutProps) {
 
       <main className="main-content">
         <header className="main-header">
-          <div />
           <div className="user-info">
             <span className="user-name">{user.name || user.email}</span>
             <button className="logout-btn" onClick={onLogout}>
@@ -108,7 +114,13 @@ function AppLayout({ user, defaultTransferNumber, onLogout }: AppLayoutProps) {
           )}
           {activeView === 'history' && <HistoryTab />}
           {activeView === 'evaluations' && <EvaluationsTab />}
-          {activeView === 'test-runs' && <TestRunsTab />}
+          {activeView === 'test-runs' && (
+            <TestRunsTab
+              initialRunId={route.runId}
+              onRunSelect={navigateToRun}
+              onRunDeselect={clearRun}
+            />
+          )}
         </div>
       </main>
     </div>

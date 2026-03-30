@@ -9,6 +9,7 @@ import {
   type CallDetails,
   type CallDetailsResponse,
   type CallEvent,
+  type FailureAnalysis,
 } from './api/client';
 
 function formatRunDate(date: string | Date): string {
@@ -21,10 +22,13 @@ function formatRunDate(date: string | Date): string {
   });
 }
 
-function formatDurationSeconds(seconds: number): string {
-  const m = Math.floor(seconds / 60);
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
-  return `${m}m ${s}s`;
+  if (h > 0) return `${h}h ${m}m`;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
 }
 
 function formatTime(date: Date | string | null | undefined): string {
@@ -38,7 +42,7 @@ function computeRunDuration(run: {
 }): string {
   const ms =
     new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime();
-  return formatDurationSeconds(Math.round(ms / 1000));
+  return formatDuration(Math.round(ms / 1000));
 }
 
 function renderEvent(event: CallEvent, idx: number) {
@@ -52,7 +56,7 @@ function renderEvent(event: CallEvent, idx: number) {
             {event.reason && (
               <span style={{ fontWeight: 400, color: '#666' }}>
                 {' '}
-                — {event.reason}
+                — <em>{event.reason}</em>
               </span>
             )}
           </span>
@@ -204,9 +208,32 @@ function CallDetailInline({ callSid }: { callSid: string }) {
   );
 }
 
-function TestRunsTab() {
-  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+interface TestRunsTabProps {
+  initialRunId?: string | null;
+  onRunSelect?: (runId: string) => void;
+  onRunDeselect?: () => void;
+}
+
+function TestRunsTab({
+  initialRunId,
+  onRunSelect,
+  onRunDeselect,
+}: TestRunsTabProps = {}) {
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(
+    initialRunId ?? null
+  );
   const [expandedCallSid, setExpandedCallSid] = useState<string | null>(null);
+  const [analysisState, setAnalysisState] = useState<
+    Record<
+      string,
+      {
+        loading: boolean;
+        data: FailureAnalysis | null;
+        error: string | null;
+        applied: boolean;
+      }
+    >
+  >({});
   const queryClient = useQueryClient();
 
   const {
@@ -229,7 +256,7 @@ function TestRunsTab() {
     mutationFn: (runId: string) => api.testRuns.delete(runId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['testRuns'] });
-      setSelectedRunId(null);
+      handleDeselectRun();
     },
   });
 
@@ -239,10 +266,63 @@ function TestRunsTab() {
   function handleSelectRun(runId: string) {
     setSelectedRunId(runId);
     setExpandedCallSid(null);
+    onRunSelect?.(runId);
+  }
+
+  function handleDeselectRun() {
+    setSelectedRunId(null);
+    setExpandedCallSid(null);
+    onRunDeselect?.();
   }
 
   function toggleCallDetail(callSid: string) {
     setExpandedCallSid(prev => (prev === callSid ? null : callSid));
+  }
+
+  async function analyzeFailure(tc: TestCaseResult) {
+    setAnalysisState(prev => ({
+      ...prev,
+      [tc.testCaseId]: {
+        loading: true,
+        data: null,
+        error: null,
+        applied: false,
+      },
+    }));
+    try {
+      const result = await api.testRuns.analyzeFailure(
+        tc.callSid,
+        tc.name,
+        tc.testCaseId
+      );
+      setAnalysisState(prev => ({
+        ...prev,
+        [tc.testCaseId]: {
+          loading: false,
+          data: result.analysis,
+          error: null,
+          applied: false,
+        },
+      }));
+    } catch (err) {
+      setAnalysisState(prev => ({
+        ...prev,
+        [tc.testCaseId]: {
+          loading: false,
+          data: null,
+          error: err instanceof Error ? err.message : 'Analysis failed',
+          applied: false,
+        },
+      }));
+    }
+  }
+
+  async function applyFix(testCaseId: string, customInstructions: string) {
+    await api.testRuns.saveOverride(testCaseId, customInstructions);
+    setAnalysisState(prev => ({
+      ...prev,
+      [testCaseId]: { ...prev[testCaseId], applied: true },
+    }));
   }
 
   return (
@@ -386,46 +466,113 @@ function TestRunsTab() {
 
               <div className="test-cases-section">
                 <h4>Test Cases ({selectedRun.testCases.length})</h4>
-                {selectedRun.testCases.map((tc: TestCaseResult) => (
-                  <React.Fragment key={tc.testCaseId}>
-                    <div
-                      className={`test-case-row ${tc.status === 'failed' ? 'fail' : ''} ${tc.status === 'business_closed' ? 'closed' : ''} ${expandedCallSid === tc.callSid ? 'expanded' : ''}`}
-                      onClick={() => toggleCallDetail(tc.callSid)}
-                    >
-                      <span className="test-case-icon">
-                        {tc.status === 'passed'
-                          ? '\u2705'
-                          : tc.status === 'business_closed'
-                            ? '\ud83d\udd5b'
-                            : '\u274C'}
-                      </span>
-                      <span className="test-case-name">{tc.name}</span>
-                      {tc.error && (
-                        <span
-                          className="test-case-error-badge"
-                          title={tc.error}
-                        >
-                          {tc.error}
-                        </span>
-                      )}
-                      <span className="test-case-duration">
-                        {tc.durationSeconds}s
-                      </span>
-                      <button
-                        className="btn-view-call"
-                        onClick={e => {
-                          e.stopPropagation();
-                          toggleCallDetail(tc.callSid);
-                        }}
+                {[...selectedRun.testCases]
+                  .sort((a, b) => {
+                    const order = { failed: 0, business_closed: 1, passed: 2 };
+                    return order[a.status] - order[b.status];
+                  })
+                  .map((tc: TestCaseResult) => (
+                    <React.Fragment key={tc.testCaseId}>
+                      <div
+                        className={`test-case-row ${tc.status === 'failed' ? 'fail' : ''} ${tc.status === 'business_closed' ? 'closed' : ''} ${expandedCallSid === tc.callSid ? 'expanded' : ''}`}
+                        onClick={() => toggleCallDetail(tc.callSid)}
                       >
-                        {expandedCallSid === tc.callSid ? 'Hide' : 'View Call'}
-                      </button>
-                    </div>
-                    {expandedCallSid === tc.callSid && (
-                      <CallDetailInline callSid={tc.callSid} />
-                    )}
-                  </React.Fragment>
-                ))}
+                        <span className="test-case-icon">
+                          {tc.status === 'passed'
+                            ? '\u2705'
+                            : tc.status === 'business_closed'
+                              ? '\ud83d\udd5b'
+                              : '\u274C'}
+                        </span>
+                        <span className="test-case-name">{tc.name}</span>
+                        {tc.error && (
+                          <span
+                            className="test-case-error-badge"
+                            title={tc.error}
+                          >
+                            {tc.error}
+                          </span>
+                        )}
+                        <span className="test-case-duration">
+                          {formatDuration(
+                            Math.round(
+                              tc.durationSeconds > 3600
+                                ? tc.durationSeconds / 1000
+                                : tc.durationSeconds
+                            )
+                          )}
+                        </span>
+                        <button
+                          className="btn-view-call"
+                          onClick={e => {
+                            e.stopPropagation();
+                            toggleCallDetail(tc.callSid);
+                          }}
+                        >
+                          {expandedCallSid === tc.callSid
+                            ? 'Hide'
+                            : 'View Call'}
+                        </button>
+                        {tc.status === 'failed' && (
+                          <button
+                            className="btn-why-failed"
+                            onClick={e => {
+                              e.stopPropagation();
+                              analyzeFailure(tc);
+                            }}
+                            disabled={analysisState[tc.testCaseId]?.loading}
+                          >
+                            {analysisState[tc.testCaseId]?.loading
+                              ? 'Analyzing...'
+                              : 'Why?'}
+                          </button>
+                        )}
+                      </div>
+                      {analysisState[tc.testCaseId]?.data && (
+                        <div className="failure-analysis-panel">
+                          <div className="failure-analysis-explanation">
+                            {analysisState[tc.testCaseId].data!.explanation}
+                          </div>
+                          <div className="failure-analysis-fix">
+                            <strong>Proposed fix:</strong>{' '}
+                            {analysisState[tc.testCaseId].data!.fix.description}
+                            <div className="failure-analysis-instructions">
+                              <code>
+                                {
+                                  analysisState[tc.testCaseId].data!.fix
+                                    .customInstructions
+                                }
+                              </code>
+                            </div>
+                            <button
+                              className={`btn-apply-fix ${analysisState[tc.testCaseId].applied ? 'applied' : ''}`}
+                              onClick={e => {
+                                e.stopPropagation();
+                                applyFix(
+                                  tc.testCaseId,
+                                  analysisState[tc.testCaseId].data!.fix
+                                    .customInstructions
+                                );
+                              }}
+                              disabled={analysisState[tc.testCaseId].applied}
+                            >
+                              {analysisState[tc.testCaseId].applied
+                                ? '✓ Fix Applied'
+                                : 'Apply Fix'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {analysisState[tc.testCaseId]?.error && (
+                        <div className="failure-analysis-error">
+                          {analysisState[tc.testCaseId].error}
+                        </div>
+                      )}
+                      {expandedCallSid === tc.callSid && (
+                        <CallDetailInline callSid={tc.callSid} />
+                      )}
+                    </React.Fragment>
+                  ))}
               </div>
             </>
           ) : (

@@ -58,6 +58,7 @@ export interface CallHistoryMetadata {
 
 export interface ICallHistory extends Document {
   callSid: string;
+  userId?: string;
   startTime: Date;
   endTime?: Date;
   duration?: number;
@@ -147,6 +148,10 @@ const callHistorySchema = new Schema<ICallHistory>(
       type: String,
       required: true,
       unique: true,
+      index: true,
+    },
+    userId: {
+      type: String,
       index: true,
     },
     startTime: {
