@@ -39,6 +39,9 @@ coverage/
 *.pem
 *.key
 
+# MCP config (contains API keys)
+.mcp.json
+
 # Worktrees
 worktrees/
 
