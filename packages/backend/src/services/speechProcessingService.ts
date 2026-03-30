@@ -236,7 +236,7 @@ export async function processSpeech({
       if (!testMode) {
         console.log(`🔄 Human confirmed, dialing user: ${action.reason}`);
         callHistoryService
-          .addTransfer(callSid, config.transferNumber, true)
+          .addTransfer(callSid, config.transferNumber, false)
           .catch(err => console.error('Error adding transfer:', err));
 
         await telnyxService.speakText(

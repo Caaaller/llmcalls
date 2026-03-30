@@ -301,7 +301,17 @@ export async function getCallOutcome(
 
 export async function hasBusinessClosed(callSid: string): Promise<boolean> {
   const reason = await callHistoryService.getTerminationReason(callSid);
-  return reason === 'closed_no_menu';
+  if (reason === 'closed_no_menu') return true;
+
+  // Secondary check: scan IVR speech for closed/hours language in case the AI
+  // didn't record a termination event (e.g. short call, immediate rejection)
+  const call = await callHistoryService.getCall(callSid);
+  if (!call?.events) return false;
+  const CLOSED_PATTERN =
+    /\b(closed|not available|business hours|call back|outside.*hours|hours.*monday|our hours|after hours|operating hours)\b/i;
+  return call.events
+    .filter(e => e.eventType === 'conversation' && e.type === 'user')
+    .some(e => CLOSED_PATTERN.test(e.text || ''));
 }
 
 export function hasTelnyxCreds(): boolean {
