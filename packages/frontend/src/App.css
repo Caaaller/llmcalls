@@ -157,13 +157,17 @@ body {
 
 .nav-label {
   opacity: 0;
-  transition: opacity 0.15s 0.05s;
+  max-width: 0;
+  transition:
+    opacity 0.15s 0.05s,
+    max-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   overflow: hidden;
 }
 
 .sidebar:hover .nav-label {
   opacity: 1;
+  max-width: 200px;
 }
 
 /* Sidebar sections — hidden until expanded */
