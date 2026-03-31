@@ -6,6 +6,14 @@
 import Telnyx from 'telnyx';
 import { toError } from '../utils/errorUtils';
 
+function toE164(phone: string): string | null {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  if (phone.startsWith('+') && digits.length >= 7) return `+${digits}`;
+  return null;
+}
+
 class TelnyxService {
   private client: Telnyx;
 
@@ -91,7 +99,10 @@ class TelnyxService {
   }
 
   async transfer(callControlId: string, to: string): Promise<void> {
-    await this.client.calls.actions.transfer(callControlId, { to });
+    const e164 = toE164(to);
+    await this.client.calls.actions.transfer(callControlId, {
+      to: e164 ?? to,
+    });
   }
 
   async getCallStatus(callControlId: string) {
