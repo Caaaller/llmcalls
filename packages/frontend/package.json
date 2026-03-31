@@ -29,8 +29,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "prebuild": "node -e \"require('fs').writeFileSync('.env.production.local', 'REACT_APP_BUILD_TIME=' + new Date().toISOString())\"",
-    "build": "react-scripts build",
+    "build": "node -e \"require('fs').writeFileSync('.env.production.local', 'REACT_APP_BUILD_TIME=' + new Date().toISOString())\" && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "echo 'ESLint is handled by react-scripts. Run npm start to see linting errors.'",
