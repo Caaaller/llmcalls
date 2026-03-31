@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import './Login.css';
 import { api } from '../api/client';
 import { setAuth, type User } from '../utils/auth';
+import BUILD_TIME from '../buildInfo';
 
 interface LoginProps {
   onLogin: (user: User, token: string) => void;
@@ -124,14 +125,9 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
             </button>
           </p>
         </div>
-        {(process.env.REACT_APP_BUILD_TIME ||
-          process.env.REACT_APP_COMMIT_SHA) && (
-          <p className="build-time">
-            {process.env.REACT_APP_BUILD_TIME
-              ? `Built ${new Date(process.env.REACT_APP_BUILD_TIME).toLocaleString()}`
-              : `Commit ${(process.env.REACT_APP_COMMIT_SHA || '').slice(0, 7)}`}
-          </p>
-        )}
+        <p className="build-time">
+          Built {new Date(BUILD_TIME).toLocaleString()}
+        </p>
       </div>
     </div>
   );
