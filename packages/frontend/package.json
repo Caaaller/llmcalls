@@ -29,7 +29,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "node -e \"require('fs').writeFileSync('src/buildInfo.ts', 'const BUILD_TIME = ' + JSON.stringify(new Date().toISOString()) + ';\\nexport default BUILD_TIME;\\n')\" && react-scripts build",
+    "build": "node -e \"require('fs').writeFileSync('src/buildInfo.ts', 'const BUILD_TIME = ' + JSON.stringify(new Date().toISOString()) + ';\\nexport default BUILD_TIME;\\n')\" && rm -rf node_modules/.cache && react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "lint": "echo 'ESLint is handled by react-scripts. Run npm start to see linting errors.'",
