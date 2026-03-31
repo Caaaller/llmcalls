@@ -22,6 +22,14 @@ import path from 'path';
 
 const router: express.Router = express.Router();
 
+function toE164(phone: string): string | null {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  if (phone.startsWith('+') && digits.length >= 7) return `+${digits}`;
+  return null;
+}
+
 /**
  * Get transfer configuration defaults
  */
@@ -235,6 +243,15 @@ router.post(
         return;
       }
 
+      const normalizedTo = toE164(to);
+      if (!normalizedTo) {
+        res.status(400).json({
+          success: false,
+          error: `Invalid phone number: "${to}". Please use a US number (10 digits) or E164 format (+1XXXXXXXXXX).`,
+        });
+        return;
+      }
+
       const config = transferConfig.createConfig({
         transferNumber: transferNumber || process.env.TRANSFER_PHONE_NUMBER,
         callPurpose:
@@ -293,14 +310,14 @@ router.post(
       const fromNumber = from || process.env.TELNYX_PHONE_NUMBER || '';
 
       const call = await telnyxService.initiateCall(
-        to,
+        normalizedTo,
         fromNumber,
         clientState,
         webhookUrl
       );
 
       await callHistoryService.startCall(call.sid, {
-        to,
+        to: normalizedTo,
         from: fromNumber,
         transferNumber: config.transferNumber,
         callPurpose: config.callPurpose,
