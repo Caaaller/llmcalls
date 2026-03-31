@@ -124,9 +124,12 @@ function Login({ onLogin, onSwitchToSignup }: LoginProps) {
             </button>
           </p>
         </div>
-        {process.env.REACT_APP_BUILD_TIME && (
+        {(process.env.REACT_APP_BUILD_TIME ||
+          process.env.REACT_APP_COMMIT_SHA) && (
           <p className="build-time">
-            Built {new Date(process.env.REACT_APP_BUILD_TIME).toLocaleString()}
+            {process.env.REACT_APP_BUILD_TIME
+              ? `Built ${new Date(process.env.REACT_APP_BUILD_TIME).toLocaleString()}`
+              : `Commit ${(process.env.REACT_APP_COMMIT_SHA || '').slice(0, 7)}`}
           </p>
         )}
       </div>
