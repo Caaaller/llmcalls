@@ -98,12 +98,12 @@ function Sidebar({
 
   const savedNameByPhone = useMemo(() => {
     const map = new Map<string, string>();
-    for (const sc of savedCalls) {
+    for (const sc of savedCallsData?.savedCalls ?? []) {
       const digits = sc.toPhoneNumber.replace(/\D/g, '');
       if (!map.has(digits)) map.set(digits, sc.name);
     }
     return map;
-  }, [savedCalls]);
+  }, [savedCallsData?.savedCalls]);
 
   const deduplicatedRecent = recentCalls
     .filter(c => c.metadata?.to)

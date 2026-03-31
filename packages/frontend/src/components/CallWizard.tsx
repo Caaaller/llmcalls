@@ -84,7 +84,7 @@ function CallWizard({
       setData({ ...EMPTY_WIZARD, transferNumber: defaultTransferNumber });
     }, 2000);
     return () => clearTimeout(timer);
-  }, [initiateCallMutation.isSuccess, defaultTransferNumber]);
+  }, [initiateCallMutation, defaultTransferNumber]);
 
   function handleCall(save: boolean, saveName: string) {
     if (save && saveName) {
