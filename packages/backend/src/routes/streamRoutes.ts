@@ -25,15 +25,17 @@ type V1Response =
 
 interface StreamState {
   callControlId: string;
-  dgSocket: V1Socket;
+  dgSocket: V1Socket | null; // null while connecting
+  audioBuffer: Buffer[]; // holds frames received before socket is ready
   transcript: string;
 }
 
-async function createDgSocket(
-  callControlId: string,
+async function connectDeepgram(
+  state: StreamState,
   onUtterance: (text: string) => Promise<void>
-): Promise<V1Socket> {
+): Promise<void> {
   const dg = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY || '' });
+
   const socket = await dg.listen.v1.connect({
     Authorization: `Token ${process.env.DEEPGRAM_API_KEY || ''}`,
     model: 'nova-2-phonecall',
@@ -46,29 +48,35 @@ async function createDgSocket(
     interim_results: 'true',
   });
 
-  let transcript = '';
-
   socket.on('message', (msg: V1Response) => {
     if (msg.type === 'Results') {
       const text = msg.channel?.alternatives?.[0]?.transcript ?? '';
       if (msg.is_final && text) {
-        transcript += (transcript ? ' ' : '') + text;
+        state.transcript += (state.transcript ? ' ' : '') + text;
       }
     } else if (msg.type === 'UtteranceEnd') {
-      const text = transcript.trim();
-      transcript = '';
+      const text = state.transcript.trim();
+      state.transcript = '';
       if (text) void onUtterance(text);
     }
   });
 
   socket.on('error', (err: Error) => {
     console.error(
-      `[STREAM-STT] Deepgram error (${callControlId.slice(-10)}):`,
+      `[STREAM-STT] Deepgram error (${state.callControlId.slice(-10)}):`,
       err.message
     );
   });
 
-  return socket;
+  // Socket ready — drain any buffered audio
+  state.dgSocket = socket;
+  console.log(
+    `[STREAM-STT] Deepgram connected, draining ${state.audioBuffer.length} buffered frames`
+  );
+  for (const chunk of state.audioBuffer) {
+    socket.sendMedia(chunk);
+  }
+  state.audioBuffer = [];
 }
 
 export function attachStreamServer(httpServer: Server): void {
@@ -95,7 +103,14 @@ export function attachStreamServer(httpServer: Server): void {
         const callControlId = (startData?.call_control_id as string) || '';
         console.log(`[STREAM] Started for ${callControlId.slice(-20)}`);
 
-        void createDgSocket(callControlId, async text => {
+        state = {
+          callControlId,
+          dgSocket: null,
+          audioBuffer: [],
+          transcript: '',
+        };
+
+        void connectDeepgram(state, async text => {
           const callState = callStateManager.getCallState(callControlId);
           if (callState.isSpeaking) return; // suppress TTS echo
 
@@ -118,27 +133,31 @@ export function attachStreamServer(httpServer: Server): void {
               toError(err).message
             );
           }
-        })
-          .then(socket => {
-            state = { callControlId, dgSocket: socket, transcript: '' };
-          })
-          .catch(err => {
-            console.error(
-              '[STREAM] Failed to connect to Deepgram:',
-              toError(err).message
-            );
-          });
+        }).catch(err => {
+          console.error(
+            '[STREAM] Failed to connect to Deepgram:',
+            toError(err).message
+          );
+        });
       } else if (event === 'media' && state) {
         const mediaData = msg.media as Record<string, unknown> | undefined;
         const track = (mediaData?.track as string) || '';
         if (track !== 'inbound') return; // only transcribe IVR audio
         const payload = (mediaData?.payload as string) || '';
-        if (payload) {
-          const pcmuBytes = Buffer.from(payload, 'base64');
+        if (!payload) return;
+
+        const pcmuBytes = Buffer.from(payload, 'base64');
+        if (state.dgSocket) {
+          // Socket ready — send directly
           state.dgSocket.sendMedia(pcmuBytes);
+        } else {
+          // Socket still connecting — buffer
+          state.audioBuffer.push(pcmuBytes);
         }
       } else if (event === 'stop' && state) {
-        state.dgSocket.sendCloseStream({ type: 'CloseStream' });
+        if (state.dgSocket) {
+          state.dgSocket.sendCloseStream({ type: 'CloseStream' });
+        }
         console.log(`[STREAM] Stopped for ${state.callControlId.slice(-20)}`);
         state = null;
       }
@@ -149,7 +168,7 @@ export function attachStreamServer(httpServer: Server): void {
     });
 
     ws.on('close', () => {
-      if (state) {
+      if (state?.dgSocket) {
         state.dgSocket.sendCloseStream({ type: 'CloseStream' });
         state = null;
       }
