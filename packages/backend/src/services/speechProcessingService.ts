@@ -239,11 +239,7 @@ export async function processSpeech({
           .addTransfer(callSid, config.transferNumber, false)
           .catch(err => console.error('Error adding transfer:', err));
 
-        await telnyxService.speakText(
-          callSid,
-          'Ok, one second please.',
-          getTelnyxVoice(config.aiSettings.voice)
-        );
+        // Transfer immediately — no speech delay, the human agent hangs up within seconds
         await telnyxService.transfer(callSid, config.transferNumber);
       }
       return {
