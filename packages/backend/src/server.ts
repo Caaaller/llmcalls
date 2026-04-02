@@ -33,6 +33,7 @@ app.use(express.json());
 // CORS for React frontend
 const allowedOrigins = [
   'http://localhost:3001',
+  'http://localhost:5180',
   'http://localhost:8069',
   'http://localhost:8068',
   process.env.FRONTEND_URL,
