@@ -159,9 +159,41 @@ export async function processSpeech({
         .catch(err => console.error('Error adding conversation:', err));
     }
 
+    // ── 1b. Fast retry: if IVR says "didn't hear/get that" and we just spoke, replay immediately
+    const actionHistory = callState.actionHistory || [];
+    const lastAction = actionHistory[actionHistory.length - 1];
+    const isRetryPrompt =
+      /didn't (hear|get)|did not (hear|get)|try again|please repeat|sorry.*(didn't|did not)/i.test(
+        speechResult
+      );
+    if (
+      isRetryPrompt &&
+      lastAction?.action === 'speak' &&
+      lastAction.speech &&
+      !testMode
+    ) {
+      console.log(
+        `⚡ Fast retry: replaying "${lastAction.speech}" (skipping AI call)`
+      );
+      callStateManager.updateCallState(callSid, { isSpeaking: true });
+      await telnyxService.speakText(
+        callSid,
+        lastAction.speech,
+        getTelnyxVoice(config.aiSettings.voice)
+      );
+      callStateManager.updateCallState(callSid, { isSpeaking: false });
+      callStateManager.addActionToHistory(callSid, {
+        turnNumber: actionHistory.length + 1,
+        ivrSpeech: speechResult,
+        action: 'speak',
+        speech: lastAction.speech,
+        reason: 'fast retry — IVR did not hear previous response',
+      });
+      return { twiml: '', shouldSend: true, aiAction: 'speak' };
+    }
+
     // ── 2. Single AI call ────────────────────────────────────────────────────
     const conversationHistory = callState.conversationHistory || [];
-    const actionHistory = callState.actionHistory || [];
 
     const aiStartAt = Date.now();
     const action = await ivrNavigatorService.decideAction({
