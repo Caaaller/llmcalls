@@ -118,6 +118,19 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
       maxDurationSeconds: 300,
     },
   },
+  {
+    id: 'umr-coverage',
+    name: 'UMR Insurance — conversational AI with short listen window',
+    description:
+      'UMR uses a conversational AI that asks yes/no questions then "How can I help you?". AI must give ultra-short keyword answers — the system has a very short listen window and rejects long responses.',
+    phoneNumber: '+18002073172',
+    callPurpose: 'Coverage question',
+    skipInfoRequests: true,
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
 ];
 
 export const LONG_TEST_CASES: LiveCallTestCase[] = [
