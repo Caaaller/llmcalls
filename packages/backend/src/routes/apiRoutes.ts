@@ -183,9 +183,28 @@ router.get(
         error: 'Recording proxy not configured',
       });
     }
-    const recordingResponse = await fetch(call.recordingUrl, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
+
+    // Resolve recording URL — stored as "telnyx:<recording_id>" or a direct URL
+    let downloadUrl = call.recordingUrl;
+    if (downloadUrl.startsWith('telnyx:')) {
+      const recordingId = downloadUrl.replace('telnyx:', '');
+      const telnyxRes = await fetch(
+        `https://api.telnyx.com/v2/recordings/${recordingId}`,
+        { headers: { Authorization: `Bearer ${apiKey}` } }
+      );
+      if (!telnyxRes.ok) {
+        return res.status(502).json({
+          success: false,
+          error: 'Failed to fetch recording metadata from Telnyx',
+        });
+      }
+      const telnyxData = (await telnyxRes.json()) as {
+        data: { download_urls: { mp3: string } };
+      };
+      downloadUrl = telnyxData.data.download_urls.mp3;
+    }
+
+    const recordingResponse = await fetch(downloadUrl);
     if (!recordingResponse.ok) {
       return res.status(recordingResponse.status).json({
         success: false,

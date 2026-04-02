@@ -220,9 +220,18 @@ async function handleRecordingSaved(
   callControlId: string,
   payload: TelnyxWebhookPayload | undefined
 ): Promise<void> {
-  const recordingUrl = payload?.recording_url;
-  if (recordingUrl) {
-    await callHistoryService.setRecordingUrl(callControlId, recordingUrl);
+  // Store recording_id (not the expiring S3 URL) so we can fetch fresh URLs on demand
+  const recordingId =
+    payload?.recording_id ||
+    ((payload as Record<string, unknown>)?.id as string | undefined);
+  if (recordingId) {
+    console.log(
+      `🎙️ Recording saved: ${recordingId} for ${callControlId.slice(-20)}`
+    );
+    await callHistoryService.setRecordingUrl(
+      callControlId,
+      `telnyx:${recordingId}`
+    );
   }
 }
 

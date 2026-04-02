@@ -24,6 +24,7 @@ export interface ProcessSpeechParams {
   userEmail?: string;
   testMode?: boolean;
   skipInfoRequests?: boolean;
+  _sttDoneAt?: number;
 }
 
 export interface ProcessSpeechResult {
@@ -105,8 +106,13 @@ export async function processSpeech({
   userEmail,
   testMode = false,
   skipInfoRequests,
+  _sttDoneAt,
 }: ProcessSpeechParams): Promise<ProcessSpeechResult> {
   try {
+    const enterAt = Date.now();
+    if (_sttDoneAt) {
+      console.log(`⏱️ STT→processSpeech: ${enterAt - _sttDoneAt}ms`);
+    }
     if (!callSid) throw new Error('Call SID is missing');
 
     // ── 1. State & config setup ──────────────────────────────────────────────
@@ -157,6 +163,7 @@ export async function processSpeech({
     const conversationHistory = callState.conversationHistory || [];
     const actionHistory = callState.actionHistory || [];
 
+    const aiStartAt = Date.now();
     const action = await ivrNavigatorService.decideAction({
       config,
       conversationHistory: conversationHistory.map(h => ({
@@ -172,6 +179,11 @@ export async function processSpeech({
       awaitingHumanConfirmation: callState.awaitingHumanConfirmation,
       skipInfoRequests: skipInfoRequests ?? callState.skipInfoRequests,
     });
+
+    const aiDoneAt = Date.now();
+    console.log(
+      `⏱️ AI decision: ${aiDoneAt - aiStartAt}ms → ${action.action}${action.speech ? ` "${action.speech}"` : ''}${action.digit ? ` digit=${action.digit}` : ''}`
+    );
 
     const result = mapActionToProcessingResult(
       action,
@@ -492,11 +504,16 @@ export async function processSpeech({
           .catch(err => console.error('Error adding conversation:', err));
 
         callStateManager.updateCallState(callSid, { isSpeaking: true });
+        const ttsStartAt = Date.now();
         await telnyxService.speakText(
           callSid,
           aiResponse,
           getTelnyxVoice(config.aiSettings.voice)
         );
+        console.log(`⏱️ TTS API call: ${Date.now() - ttsStartAt}ms`);
+        if (_sttDoneAt) {
+          console.log(`⏱️ TOTAL STT→TTS: ${Date.now() - _sttDoneAt}ms`);
+        }
         callStateManager.updateCallState(callSid, { isSpeaking: false });
       }
     }

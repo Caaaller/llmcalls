@@ -28,11 +28,15 @@ const DEEPGRAM_URL =
 interface DeepgramResult {
   type: 'Results';
   is_final: boolean;
+  speech_final: boolean;
+  start: number;
+  duration: number;
   channel: { alternatives: Array<{ transcript: string }> };
 }
 
 interface DeepgramUtteranceEnd {
   type: 'UtteranceEnd';
+  last_word_end: number;
 }
 
 interface StreamState {
@@ -74,10 +78,16 @@ function openDeepgram(
       const r = msg as DeepgramResult;
       const text = r.channel?.alternatives?.[0]?.transcript ?? '';
       if (r.is_final && text) {
+        console.log(
+          `[DG] is_final: "${text.substring(0, 80)}" start=${r.start.toFixed(2)}s dur=${r.duration.toFixed(2)}s speech_final=${r.speech_final}`
+        );
         state.transcript += (state.transcript ? ' ' : '') + text;
       }
     } else if (msg.type === 'UtteranceEnd') {
       const text = state.transcript.trim();
+      console.log(
+        `[DG] UtteranceEnd last_word=${msg.last_word_end?.toFixed(2)}s transcript="${text.substring(0, 80)}"`
+      );
       state.transcript = '';
       if (text) void onUtterance(text);
     }
@@ -130,9 +140,11 @@ export function attachStreamServer(httpServer: Server): void {
           const callState = callStateManager.getCallState(callControlId);
           if (callState.isSpeaking) return;
 
+          const sttDoneAt = Date.now();
           console.log(`[STREAM-STT] "${text}"`);
           try {
             await processSpeech({
+              _sttDoneAt: sttDoneAt,
               callSid: callControlId,
               speechResult: text,
               isFirstCall: false,
