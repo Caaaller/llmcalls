@@ -100,8 +100,13 @@ class TelnyxService {
 
   async transfer(callControlId: string, to: string): Promise<void> {
     const e164 = toE164(to);
+    const from = process.env.TELNYX_PHONE_NUMBER;
+    console.log(
+      `🔄 Transferring ${callControlId.slice(-20)} to ${e164 ?? to} from ${from}`
+    );
     await this.client.calls.actions.transfer(callControlId, {
       to: e164 ?? to,
+      from: from || undefined,
     });
   }
 
