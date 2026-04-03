@@ -4,7 +4,7 @@ export interface ITestCaseResult {
   testCaseId: string;
   name: string;
   callSid: string;
-  status: 'passed' | 'failed' | 'business_closed';
+  status: 'passed' | 'failed' | 'business_closed' | 'skipped';
   durationSeconds: number;
   error?: string;
   timedOut: boolean;
@@ -27,15 +27,15 @@ const TestCaseResultSchema = new Schema<ITestCaseResult>(
   {
     testCaseId: { type: String, required: true },
     name: { type: String, required: true },
-    callSid: { type: String, required: true },
+    callSid: { type: String, default: '' },
     status: {
       type: String,
-      enum: ['passed', 'failed', 'business_closed'],
+      enum: ['passed', 'failed', 'business_closed', 'skipped'],
       required: true,
     },
-    durationSeconds: { type: Number, required: true },
+    durationSeconds: { type: Number, default: 0 },
     error: { type: String },
-    timedOut: { type: Boolean, required: true },
+    timedOut: { type: Boolean, default: false },
   },
   { _id: false }
 );
