@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './TestRunsTab.css';
 import {
@@ -11,18 +11,8 @@ import {
   type CallEvent,
   type FailureAnalysis,
 } from './api/client';
-
-function getSeekSeconds(
-  eventTimestamp: Date | string | undefined,
-  callStartTime: Date | string | undefined
-): number {
-  if (!eventTimestamp || !callStartTime) return 0;
-  return Math.max(
-    0,
-    (new Date(eventTimestamp).getTime() - new Date(callStartTime).getTime()) /
-      1000
-  );
-}
+import { useCallRecording, getSeekSeconds } from './hooks/useCallRecording';
+import { CallRecordingPlayer } from './components/CallRecordingPlayer';
 
 function formatRunDate(date: string | Date): string {
   return new Date(date).toLocaleString(undefined, {
@@ -153,11 +143,9 @@ function renderEvent(
 }
 
 function CallDetailInline({ callSid }: { callSid: string }) {
-  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
-  const [recordingError, setRecordingError] = useState<string | null>(null);
-  const [recordingLoading, setRecordingLoading] = useState(false);
-  const [audioCurrentTime, setAudioCurrentTime] = useState<number>(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recording = useCallRecording(callSid);
+  const { recordingUrl, audioRef, audioCurrentTime, handleSeekToEvent } =
+    recording;
 
   const { data, isLoading } = useQuery<CallDetailsResponse>({
     queryKey: ['calls', callSid],
@@ -165,22 +153,6 @@ function CallDetailInline({ callSid }: { callSid: string }) {
   });
 
   const call: CallDetails | null = data?.call ?? null;
-
-  const handleSeekToEvent = useCallback(
-    (
-      eventTimestamp: Date | string | undefined,
-      callStartTime: Date | string | undefined
-    ) => {
-      const audio = audioRef.current;
-      if (!audio || !audio.src) return;
-      const seconds = getSeekSeconds(eventTimestamp, callStartTime);
-      audio.currentTime = seconds;
-      if (audio.paused) {
-        audio.play();
-      }
-    },
-    []
-  );
 
   if (isLoading)
     return (
@@ -194,19 +166,6 @@ function CallDetailInline({ callSid }: { callSid: string }) {
         <div style={{ color: '#999' }}>Call data not found</div>
       </div>
     );
-
-  async function loadRecording() {
-    setRecordingError(null);
-    setRecordingLoading(true);
-    try {
-      const url = await api.calls.getRecordingUrl(callSid);
-      setRecordingUrl(url);
-    } catch {
-      setRecordingError('Failed to load recording');
-    } finally {
-      setRecordingLoading(false);
-    }
-  }
 
   return (
     <div className="call-detail-inline">
@@ -228,49 +187,12 @@ function CallDetailInline({ callSid }: { callSid: string }) {
       {call.recordingUrl && (
         <div className="inline-audio-player">
           <div className="inline-audio-label">Call Recording</div>
-          {recordingUrl ? (
-            <div className="inline-audio-player-sticky">
-              <audio
-                ref={audioRef}
-                controls
-                autoPlay
-                src={recordingUrl}
-                onTimeUpdate={() => {
-                  if (audioRef.current) {
-                    setAudioCurrentTime(audioRef.current.currentTime);
-                  }
-                }}
-              />
-              <a
-                href={recordingUrl}
-                download="call-recording.mp3"
-                className="btn-download-recording"
-              >
-                Download
-              </a>
-            </div>
-          ) : (
-            <>
-              <button
-                className="btn-view-call"
-                onClick={loadRecording}
-                disabled={recordingLoading}
-              >
-                {recordingLoading ? 'Loading...' : 'Load Recording'}
-              </button>
-              {recordingError && (
-                <span
-                  style={{
-                    color: '#dc3545',
-                    fontSize: '0.85rem',
-                    marginLeft: 8,
-                  }}
-                >
-                  {recordingError}
-                </span>
-              )}
-            </>
-          )}
+          <CallRecordingPlayer
+            recording={recording}
+            callSid={callSid}
+            hasRecordingUrl={!!call.recordingUrl}
+            autoPlay
+          />
         </div>
       )}
 

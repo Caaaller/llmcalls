@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import './HistoryTab.css';
 import {
@@ -7,78 +7,14 @@ import {
   type CallDetailsResponse,
   type CallDetails,
 } from './api/client';
-
-function getSeekSeconds(
-  eventTimestamp: Date | string | undefined,
-  callStartTime: Date | string | undefined
-): number {
-  if (!eventTimestamp || !callStartTime) return 0;
-  return Math.max(
-    0,
-    (new Date(eventTimestamp).getTime() - new Date(callStartTime).getTime()) /
-      1000
-  );
-}
+import { useCallRecording, getSeekSeconds } from './hooks/useCallRecording';
+import { CallRecordingPlayer } from './components/CallRecordingPlayer';
 
 function HistoryTab() {
   const [selectedCallSid, setSelectedCallSid] = useState<string | null>(null);
-  const [recordingLoading, setRecordingLoading] = useState(false);
-  const [recordingError, setRecordingError] = useState<string | null>(null);
-  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
-  const [audioCurrentTime, setAudioCurrentTime] = useState<number>(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const prevCallSidRef = useRef<string | null>(null);
-
-  const handleLoadRecording = useCallback(async (callSid: string) => {
-    setRecordingError(null);
-    setRecordingLoading(true);
-    try {
-      const blobUrl = await api.calls.getRecordingUrl(callSid);
-      setRecordingUrl(blobUrl);
-    } catch {
-      setRecordingError('Failed to load recording');
-    } finally {
-      setRecordingLoading(false);
-    }
-  }, []);
-
-  const handleSeekToEvent = useCallback(
-    (
-      eventTimestamp: Date | string | undefined,
-      callStartTime: Date | string | undefined
-    ) => {
-      const audio = audioRef.current;
-      if (!audio || !audio.src) return;
-      const seconds = getSeekSeconds(eventTimestamp, callStartTime);
-      audio.currentTime = seconds;
-      if (audio.paused) {
-        audio.play();
-      }
-    },
-    []
-  );
-
-  // Clean up blob URL when call changes or component unmounts
-  useEffect(() => {
-    if (prevCallSidRef.current !== selectedCallSid) {
-      if (recordingUrl) {
-        URL.revokeObjectURL(recordingUrl);
-        setRecordingUrl(null);
-      }
-      setAudioCurrentTime(0);
-      setRecordingError(null);
-      prevCallSidRef.current = selectedCallSid;
-    }
-  }, [selectedCallSid, recordingUrl]);
-
-  useEffect(() => {
-    return () => {
-      if (recordingUrl) {
-        URL.revokeObjectURL(recordingUrl);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const recording = useCallRecording(selectedCallSid);
+  const { recordingUrl, audioRef, audioCurrentTime, handleSeekToEvent } =
+    recording;
 
   // Fetch call history with auto-refresh
   const {
@@ -280,25 +216,11 @@ function HistoryTab() {
                   <div className="info-row">
                     <strong>Recording:</strong>{' '}
                     {!recordingUrl ? (
-                      <>
-                        <button
-                          type="button"
-                          className="btn-play-recording"
-                          disabled={recordingLoading}
-                          onClick={() => {
-                            if (selectedCallSid) {
-                              handleLoadRecording(selectedCallSid);
-                            }
-                          }}
-                        >
-                          {recordingLoading ? 'Loading…' : '▶ Load recording'}
-                        </button>
-                        {recordingError && (
-                          <span className="recording-error">
-                            {recordingError}
-                          </span>
-                        )}
-                      </>
+                      <CallRecordingPlayer
+                        recording={recording}
+                        callSid={selectedCall.callSid}
+                        hasRecordingUrl={!!selectedCall.recordingUrl}
+                      />
                     ) : (
                       <span className="recording-loaded">
                         Loaded — playing below
@@ -309,27 +231,11 @@ function HistoryTab() {
               </div>
 
               {recordingUrl && (
-                <div className="audio-player-sticky">
-                  <audio
-                    ref={audioRef}
-                    src={recordingUrl}
-                    controls
-                    onTimeUpdate={() => {
-                      if (audioRef.current) {
-                        setAudioCurrentTime(audioRef.current.currentTime);
-                      }
-                    }}
-                  />
-                  {recordingUrl && (
-                    <a
-                      href={recordingUrl}
-                      download="call-recording.mp3"
-                      className="btn-download-recording"
-                    >
-                      Download
-                    </a>
-                  )}
-                </div>
+                <CallRecordingPlayer
+                  recording={recording}
+                  callSid={selectedCall.callSid}
+                  hasRecordingUrl={!!selectedCall.recordingUrl}
+                />
               )}
 
               {/* DTMF Presses */}
