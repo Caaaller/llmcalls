@@ -176,6 +176,31 @@ export function attachStreamServer(httpServer: Server): void {
           state.audioBuffer.push(pcmuBytes);
         }
       } else if (event === 'stop' && state) {
+        // Flush any accumulated transcript that Deepgram hasn't sent UtteranceEnd for
+        const remaining = state.transcript.trim();
+        if (remaining) {
+          console.log(`[STREAM-STT] Flushing on stop: "${remaining}"`);
+          const callControlId = state.callControlId;
+          const callState = callStateManager.getCallState(callControlId);
+          if (!callState.isSpeaking) {
+            processSpeech({
+              callSid: callControlId,
+              speechResult: remaining,
+              isFirstCall: false,
+              baseUrl: '',
+              transferNumber: callState.transferConfig?.transferNumber,
+              callPurpose: callState.transferConfig?.callPurpose,
+              customInstructions: callState.customInstructions,
+              userPhone: callState.userPhone,
+              skipInfoRequests: callState.skipInfoRequests,
+            }).catch(err =>
+              console.error(
+                '[STREAM-STT] flush processSpeech error:',
+                toError(err).message
+              )
+            );
+          }
+        }
         if (state.dgWs?.readyState === WS.OPEN) {
           state.dgWs.close();
         }

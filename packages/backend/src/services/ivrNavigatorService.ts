@@ -182,7 +182,7 @@ class IVRNavigatorService {
     ).length;
     const rutWarning =
       repCount >= 2
-        ? `\n⚠️ STUCK IN A RUT: You've said "representative" ${repCount} times and the system keeps asking for more detail. STOP saying "representative". Instead, pick the closest option from what the IVR has offered and creatively fit it to your call purpose. If the IVR listed categories or menu options, choose one. If it asked "why are you calling?", give a specific reason.\n`
+        ? `\n⚠️ STUCK IN A RUT: You've said "representative" ${repCount} times and the system keeps asking for more detail. STOP saying "representative". Instead, creatively pick the closest option from what the IVR has offered and fit it to your call purpose. If the IVR listed categories or menu options, choose one. If it asked "why are you calling?", give a specific reason.\n`
         : '';
 
     const userMessage = `${formatConversationForAI(actionHistory)}
