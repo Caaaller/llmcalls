@@ -173,12 +173,24 @@ class IVRNavigatorService {
         ? `\n⚠️ FAILED DIGITS (got "invalid entry" after pressing these): ${failedDigits.join(', ')} — do NOT press these again.${allDigitsFailed ? ' ALL DTMF digits have been rejected. This IVR may not accept DTMF tones. Try SPEAKING your choice instead (e.g., say "administrative staff" or "representative" or "one") using action "speak".' : ' Try a different digit.'}\n`
         : '';
 
+    // Detect "representative" rut — if AI said "representative" 2+ times recently
+    const recentSpeeches = actionHistory
+      .slice(-4)
+      .filter(a => a.action === 'speak');
+    const repCount = recentSpeeches.filter(a =>
+      /^representative$/i.test(a.speech?.trim() || '')
+    ).length;
+    const rutWarning =
+      repCount >= 2
+        ? `\n⚠️ STUCK IN A RUT: You've said "representative" ${repCount} times and the system keeps asking for more detail. STOP saying "representative". Instead, pick the closest option from what the IVR has offered and creatively fit it to your call purpose. If the IVR listed categories or menu options, choose one. If it asked "why are you calling?", give a specific reason.\n`
+        : '';
+
     const userMessage = `${formatConversationForAI(actionHistory)}
 
 PREVIOUS MENUS SEEN THIS CALL:
 ${previousMenusSummary}
 ${lastPressedDTMF ? `Last DTMF pressed: ${lastPressedDTMF}` : ''}
-${failedDigitsWarning}
+${failedDigitsWarning}${rutWarning}
 CURRENT IVR SPEECH:
 "${currentSpeech}"
 
