@@ -405,10 +405,8 @@ function TestRunsTab({
   );
   const selectedRun: TestRunDetail | null = detailData?.run ?? null;
 
-  const maxTests = useMemo(
-    () => runs.reduce((max, r) => Math.max(max, r.totalTests), 0),
-    [runs]
-  );
+  // Each run defines its own total — no cross-run comparison for "skipped"
+  const maxTests = 0;
 
   function handleSelectRun(runId: string) {
     setSelectedRunId(runId);
