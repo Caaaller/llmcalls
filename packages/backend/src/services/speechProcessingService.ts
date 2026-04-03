@@ -540,12 +540,15 @@ export async function processSpeech({
 
         callStateManager.updateCallState(callSid, { isSpeaking: true });
         const ttsStartAt = Date.now();
+        console.log(`⏱️ TTS SEND at ${new Date().toISOString()}`);
         await telnyxService.speakText(
           callSid,
           aiResponse,
           getTelnyxVoice(config.aiSettings.voice)
         );
-        console.log(`⏱️ TTS API call: ${Date.now() - ttsStartAt}ms`);
+        console.log(
+          `⏱️ TTS API returned: ${Date.now() - ttsStartAt}ms at ${new Date().toISOString()}`
+        );
         if (_sttDoneAt) {
           console.log(`⏱️ TOTAL STT→TTS: ${Date.now() - _sttDoneAt}ms`);
         }

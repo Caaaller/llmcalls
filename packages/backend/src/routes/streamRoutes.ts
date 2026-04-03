@@ -22,7 +22,7 @@ const DEEPGRAM_URL =
   '&channels=1' +
   '&language=en-US' +
   '&smart_format=true' +
-  '&utterance_end_ms=600' +
+  '&utterance_end_ms=1000' +
   '&interim_results=true';
 
 interface DeepgramResult {
