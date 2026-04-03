@@ -40,7 +40,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     description:
       'Target uses a standard DTMF menu. AI must select the correct option to reach a human.',
     phoneNumber: '+18004400680',
-    callPurpose: 'speak with a representative',
+    callPurpose: 'question about a recent in-store purchase',
     expectedOutcome: {
       shouldReachHuman: true,
       maxDurationSeconds: 300,

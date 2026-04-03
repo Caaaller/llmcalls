@@ -75,7 +75,10 @@ class TelnyxService {
 
   async sendDTMF(callControlId: string, digits: string): Promise<boolean> {
     try {
-      await this.client.calls.actions.sendDtmf(callControlId, { digits });
+      await this.client.calls.actions.sendDtmf(callControlId, {
+        digits,
+        duration_millis: 500,
+      });
       return true;
     } catch (error) {
       console.error('Error sending DTMF:', toError(error).message);
