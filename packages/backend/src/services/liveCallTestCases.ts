@@ -30,6 +30,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18009256278',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
+      shouldReachHuman: true,
       maxDurationSeconds: 300,
     },
   },
@@ -41,6 +42,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18004400680',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
+      shouldReachHuman: true,
       maxDurationSeconds: 300,
     },
   },
@@ -89,6 +91,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     phoneNumber: '+18003310500',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
+      shouldReachHuman: true,
       maxDurationSeconds: 300,
     },
   },
