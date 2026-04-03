@@ -160,14 +160,17 @@ export async function processSpeech({
     }
 
     // ── 1b. Fast retry: if IVR says "didn't hear/get that" and we just spoke, replay immediately
+    //    BUT only if the message is short (no new info). If the IVR lists options
+    //    ("I can help with X, Y, Z"), let the AI see the list and pick from it.
     const actionHistory = callState.actionHistory || [];
     const lastAction = actionHistory[actionHistory.length - 1];
     const isRetryPrompt =
       /didn't (hear|get)|did not (hear|get)|try again|please repeat|sorry.*(didn't|did not)/i.test(
         speechResult
       );
+    const isShortRetry = isRetryPrompt && speechResult.length < 80;
     if (
-      isRetryPrompt &&
+      isShortRetry &&
       lastAction?.action === 'speak' &&
       lastAction.speech &&
       !testMode
