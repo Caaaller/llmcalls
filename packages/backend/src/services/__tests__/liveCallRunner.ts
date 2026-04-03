@@ -137,6 +137,24 @@ export async function executeCall(
       const dbCall = await callHistoryService.getCall(callSid);
       if (dbCall?.status === 'completed' || dbCall?.status === 'failed') break;
 
+      // Early exit: if we've reached hold queue or transfer, no need to wait for an agent
+      if (dbCall) {
+        const onHold = (dbCall.events || []).some(
+          (e: { eventType: string }) => e.eventType === 'hold'
+        );
+        const transferred = (dbCall.events || []).some(
+          (e: { eventType: string }) => e.eventType === 'transfer'
+        );
+        if (onHold || transferred) {
+          console.log(
+            `🏁 Early exit: ${transferred ? 'transfer' : 'hold queue'} detected — ending call`
+          );
+          durationSeconds = Math.round((Date.now() - startTime) / 1000);
+          await telnyxService.terminateCall(callSid).catch(() => {});
+          break;
+        }
+      }
+
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed > maxDuration) {
         // Cap at maxDuration to avoid off-by-one from polling interval
