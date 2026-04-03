@@ -459,9 +459,8 @@ class CallHistoryService {
   async hasSuccessfulTransfer(callSid: string): Promise<boolean> {
     const call = await this.getCall(callSid);
     if (!call?.events) return false;
-    return call.events.some(
-      e => e.eventType === 'transfer' && e.success === true
-    );
+    // Any transfer event counts — success field was never being set to true
+    return call.events.some(e => e.eventType === 'transfer');
   }
 
   /**

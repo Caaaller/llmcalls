@@ -52,7 +52,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     description:
       'Best Buy has a virtual assistant followed by DTMF menus and account lookup. AI must navigate all steps to reach a human.',
     phoneNumber: '+18882378289',
-    callPurpose: 'speak with a representative',
+    callPurpose: 'question about a recent order',
     expectedOutcome: {
       shouldReachHuman: true,
       maxDurationSeconds: 300,
