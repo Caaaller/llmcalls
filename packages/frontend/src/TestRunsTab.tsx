@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './TestRunsTab.css';
 import {
@@ -45,6 +45,119 @@ function computeRunDuration(run: {
   const ms =
     new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime();
   return formatDuration(Math.round(ms / 1000));
+}
+
+interface StatusCounts {
+  passed: number;
+  failed: number;
+  closed: number;
+  skipped: number;
+  total: number;
+}
+
+function computeStatusCounts(
+  testCases: Array<TestCaseResult>,
+  maxTests: number
+): StatusCounts {
+  let passed = 0;
+  let failed = 0;
+  let closed = 0;
+  for (const tc of testCases) {
+    if (tc.status === 'passed') passed++;
+    else if (tc.status === 'failed') failed++;
+    else if (tc.status === 'business_closed') closed++;
+  }
+  const total = Math.max(maxTests, testCases.length);
+  const skipped = total - testCases.length;
+  return { passed, failed, closed, skipped, total };
+}
+
+function buildRunMeta(run: TestRunSummary, maxTests: number): string {
+  const closedTests = run.closedTests || 0;
+  const ranTests = run.totalTests;
+  const skipped = Math.max(0, maxTests - ranTests);
+  const parts: Array<string> = [];
+  parts.push(`${run.passedTests}/${ranTests} passed`);
+  if (closedTests > 0) parts.push(`${closedTests} closed`);
+  if (skipped > 0) parts.push(`${skipped} skipped`);
+  return parts.join(' \u00b7 ');
+}
+
+interface ProgressSegment {
+  left: string;
+  width: string;
+  background: string;
+}
+
+function buildProgressSegments(
+  run: TestRunSummary,
+  maxTests: number
+): Array<ProgressSegment> {
+  const total = Math.max(maxTests, run.totalTests);
+  if (total === 0) return [];
+
+  const closedTests = run.closedTests || 0;
+  const passP = (run.passedTests / total) * 100;
+  const failP = (run.failedTests / total) * 100;
+  const closedP = (closedTests / total) * 100;
+  const skipped = Math.max(0, maxTests - run.totalTests);
+  const skipP = (skipped / total) * 100;
+
+  const segments: Array<ProgressSegment> = [];
+  let offset = 0;
+
+  if (passP > 0) {
+    segments.push({
+      left: `${offset}%`,
+      width: `${passP}%`,
+      background: '#28a745',
+    });
+    offset += passP;
+  }
+  if (failP > 0) {
+    segments.push({
+      left: `${offset}%`,
+      width: `${failP}%`,
+      background: '#dc3545',
+    });
+    offset += failP;
+  }
+  if (closedP > 0) {
+    segments.push({
+      left: `${offset}%`,
+      width: `${closedP}%`,
+      background: '#d4a017',
+    });
+    offset += closedP;
+  }
+  if (skipP > 0) {
+    segments.push({
+      left: `${offset}%`,
+      width: `${skipP}%`,
+      background: '#6c757d',
+    });
+  }
+
+  return segments;
+}
+
+function buildDetailProgressSegments(
+  counts: StatusCounts
+): Array<ProgressSegment> {
+  if (counts.total === 0) return [];
+  const segments: Array<ProgressSegment> = [];
+  let offset = 0;
+  const add = (count: number, color: string) => {
+    if (count <= 0) return;
+    const pct = (count / counts.total) * 100;
+    segments.push({ left: `${offset}%`, width: `${pct}%`, background: color });
+    offset += pct;
+  };
+  add(counts.passed, '#28a745');
+  add(counts.failed, '#dc3545');
+  add(counts.closed, '#d4a017');
+  add(counts.skipped, '#6c757d');
+  return segments;
 }
 
 interface RenderEventOptions {
@@ -223,6 +336,17 @@ function CallDetailInline({ callSid }: { callSid: string }) {
   );
 }
 
+interface SkippedTestCase {
+  name: string;
+  status: 'skipped';
+}
+
+type DisplayTestCase = TestCaseResult | SkippedTestCase;
+
+function isSkipped(tc: DisplayTestCase): tc is SkippedTestCase {
+  return tc.status === 'skipped';
+}
+
 interface TestRunsTabProps {
   initialRunId?: string | null;
   onRunSelect?: (runId: string) => void;
@@ -275,8 +399,16 @@ function TestRunsTab({
     },
   });
 
-  const runs: TestRunSummary[] = listData?.runs ?? [];
+  const runs: Array<TestRunSummary> = useMemo(
+    () => listData?.runs ?? [],
+    [listData]
+  );
   const selectedRun: TestRunDetail | null = detailData?.run ?? null;
+
+  const maxTests = useMemo(
+    () => runs.reduce((max, r) => Math.max(max, r.totalTests), 0),
+    [runs]
+  );
 
   function handleSelectRun(runId: string) {
     setSelectedRunId(runId);
@@ -340,10 +472,318 @@ function TestRunsTab({
     }));
   }
 
+  function renderRunsList() {
+    if (isLoadingList) {
+      return <div className="test-runs-loading">Loading runs...</div>;
+    }
+    if (runs.length === 0) {
+      return (
+        <div className="test-runs-empty" style={{ padding: '40px 20px' }}>
+          No test runs yet. Run <code>pnpm --filter backend test:live</code> to
+          generate results.
+        </div>
+      );
+    }
+    return (
+      <div className="runs-list-items">
+        {runs.map(run => {
+          const segments = buildProgressSegments(run, maxTests);
+          return (
+            <div
+              key={run.runId}
+              className={`run-item ${selectedRunId === run.runId ? 'active' : ''}`}
+              onClick={() => handleSelectRun(run.runId)}
+            >
+              <div className="run-item-header">
+                <span className="run-date">{formatRunDate(run.startedAt)}</span>
+                <span className={`run-status-badge ${run.status}`}>
+                  {run.status.toUpperCase()}
+                </span>
+              </div>
+              <div className="run-item-meta">
+                <span>{buildRunMeta(run, maxTests)}</span>
+                <span>{computeRunDuration(run)}</span>
+              </div>
+              <div className="run-progress">
+                {segments.map((seg, i) => (
+                  <div
+                    key={i}
+                    className="run-progress-bar"
+                    style={{
+                      left: seg.left,
+                      width: seg.width,
+                      background: seg.background,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function renderDetailPanel() {
+    if (isLoadingDetail) {
+      return <div className="test-runs-loading">Loading run details...</div>;
+    }
+    if (!selectedRun) {
+      return (
+        <div className="detail-empty">
+          <div className="detail-empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#9ca3af">
+              <path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z" />
+            </svg>
+          </div>
+          <div className="detail-empty-title">Select a run</div>
+          <div className="detail-empty-sub">
+            Click a run on the left to view details
+          </div>
+        </div>
+      );
+    }
+
+    const counts = computeStatusCounts(selectedRun.testCases, maxTests);
+    const progressSegments = buildDetailProgressSegments(counts);
+    const duration = computeRunDuration(selectedRun);
+
+    const sortedTestCases = [...selectedRun.testCases].sort((a, b) => {
+      const order: Record<string, number> = {
+        failed: 0,
+        business_closed: 1,
+        passed: 2,
+      };
+      return (order[a.status] ?? 3) - (order[b.status] ?? 3);
+    });
+
+    const skippedTests: Array<SkippedTestCase> = [];
+    if (counts.skipped > 0) {
+      for (let i = 0; i < counts.skipped; i++) {
+        skippedTests.push({
+          name: `Test case ${selectedRun.testCases.length + i + 1}`,
+          status: 'skipped',
+        });
+      }
+    }
+
+    const displayTestCases: Array<DisplayTestCase> = [
+      ...sortedTestCases,
+      ...skippedTests,
+    ];
+
+    const suiteLabel =
+      counts.skipped > 0
+        ? `Partial run \u00b7 ${selectedRun.testCases.length} of ${counts.total} tests \u00b7 completed in ${duration}`
+        : `Full suite \u00b7 ${counts.total} tests \u00b7 completed in ${duration}`;
+
+    return (
+      <div className="detail-inner">
+        <div className="detail-run-header">
+          <div>
+            <div className="detail-run-title">
+              {formatRunDate(selectedRun.startedAt)}
+            </div>
+            <div className="detail-run-meta">{suiteLabel}</div>
+          </div>
+          <button
+            className="btn-delete-run"
+            onClick={() => deleteMutation.mutate(selectedRun.runId)}
+          >
+            Delete
+          </button>
+        </div>
+
+        <div className="summary-cards">
+          <div className="summary-card">
+            <div className="summary-card-value total">{counts.total}</div>
+            <div className="summary-card-label">Total</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-card-value passed">{counts.passed}</div>
+            <div className="summary-card-label">Passed</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-card-value failed">{counts.failed}</div>
+            <div className="summary-card-label">Failed</div>
+          </div>
+          {counts.closed > 0 && (
+            <div className="summary-card">
+              <div className="summary-card-value closed">{counts.closed}</div>
+              <div className="summary-card-label">Closed</div>
+            </div>
+          )}
+          {counts.skipped > 0 && (
+            <div className="summary-card">
+              <div className="summary-card-value skipped">{counts.skipped}</div>
+              <div className="summary-card-label">Skipped</div>
+            </div>
+          )}
+          <div className="summary-card">
+            <div className="summary-card-value duration">{duration}</div>
+            <div className="summary-card-label">Duration</div>
+          </div>
+        </div>
+
+        <div className="detail-progress">
+          {progressSegments.map((seg, i) => (
+            <div
+              key={i}
+              className="detail-progress-bar"
+              style={{
+                left: seg.left,
+                width: seg.width,
+                background: seg.background,
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="test-cases-section">
+          <div className="section-label">Test Cases ({counts.total})</div>
+          {displayTestCases.map((tc, idx) => {
+            if (isSkipped(tc)) {
+              return (
+                <div key={`skipped-${idx}`} className="test-case skipped">
+                  <div className="test-case-row">
+                    <span
+                      className="test-case-icon"
+                      style={{ color: '#6c757d' }}
+                    >
+                      &mdash;
+                    </span>
+                    <span className="test-case-name">
+                      {tc.name}
+                      <span className="skipped-label">skipped</span>
+                    </span>
+                    <span style={{ flex: 1 }} />
+                    <span className="test-case-duration">&mdash;</span>
+                  </div>
+                </div>
+              );
+            }
+
+            const statusClass =
+              tc.status === 'passed'
+                ? 'pass'
+                : tc.status === 'business_closed'
+                  ? 'closed'
+                  : 'fail';
+            const isExpanded = expandedCallSid === tc.callSid;
+
+            return (
+              <div
+                key={tc.testCaseId}
+                className={`test-case ${statusClass}${isExpanded ? ' expanded' : ''}`}
+              >
+                <div
+                  className="test-case-row"
+                  onClick={() => toggleCallDetail(tc.callSid)}
+                >
+                  <span className="test-case-icon">
+                    {tc.status === 'passed'
+                      ? '\u2705'
+                      : tc.status === 'business_closed'
+                        ? '\ud83d\udd5b'
+                        : '\u274C'}
+                  </span>
+                  <span className="test-case-name">{tc.name}</span>
+                  {tc.error && (
+                    <span className="test-case-error-badge" title={tc.error}>
+                      {tc.error}
+                    </span>
+                  )}
+                  <span className="test-case-duration">
+                    {formatDuration(
+                      Math.round(
+                        tc.durationSeconds > 3600
+                          ? tc.durationSeconds / 1000
+                          : tc.durationSeconds
+                      )
+                    )}
+                  </span>
+                  <button
+                    className="btn-view-call"
+                    onClick={e => {
+                      e.stopPropagation();
+                      toggleCallDetail(tc.callSid);
+                    }}
+                  >
+                    {isExpanded ? 'Hide' : 'View Call'}
+                  </button>
+                  {tc.status === 'failed' && (
+                    <button
+                      className="btn-why-failed"
+                      onClick={e => {
+                        e.stopPropagation();
+                        analyzeFailure(tc);
+                      }}
+                      disabled={analysisState[tc.testCaseId]?.loading}
+                    >
+                      {analysisState[tc.testCaseId]?.loading
+                        ? 'Analyzing...'
+                        : 'Why?'}
+                    </button>
+                  )}
+                </div>
+                {analysisState[tc.testCaseId]?.data && (
+                  <div className="failure-analysis-panel">
+                    <div className="failure-analysis-explanation">
+                      {analysisState[tc.testCaseId].data!.explanation}
+                    </div>
+                    <div className="failure-analysis-fix">
+                      <strong>Proposed fix:</strong>{' '}
+                      {analysisState[tc.testCaseId].data!.fix.description}
+                      <div className="failure-analysis-instructions">
+                        <code>
+                          {
+                            analysisState[tc.testCaseId].data!.fix
+                              .customInstructions
+                          }
+                        </code>
+                      </div>
+                      <button
+                        className={`btn-apply-fix ${analysisState[tc.testCaseId].applied ? 'applied' : ''}`}
+                        onClick={e => {
+                          e.stopPropagation();
+                          applyFix(
+                            tc.testCaseId,
+                            analysisState[tc.testCaseId].data!.fix
+                              .customInstructions
+                          );
+                        }}
+                        disabled={analysisState[tc.testCaseId].applied}
+                      >
+                        {analysisState[tc.testCaseId].applied
+                          ? '\u2713 Fix Applied'
+                          : 'Apply Fix'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {analysisState[tc.testCaseId]?.error && (
+                  <div className="failure-analysis-error">
+                    {analysisState[tc.testCaseId].error}
+                  </div>
+                )}
+                {isExpanded && <CallDetailInline callSid={tc.callSid} />}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="test-runs-container">
       <div className="test-runs-header">
-        <h2>Test Runs</h2>
+        <div>
+          <h2>Test Runs</h2>
+          <div className="header-subtitle">
+            Automated regression suite results
+          </div>
+        </div>
         <button
           onClick={() => refetch()}
           className="btn-refresh"
@@ -354,246 +794,17 @@ function TestRunsTab({
       </div>
 
       <div className="test-runs-layout">
-        {/* Runs List */}
-        <div className="runs-list">
-          <h3>Recent Runs ({runs.length})</h3>
-          {isLoadingList ? (
-            <div className="test-runs-loading">Loading runs...</div>
-          ) : runs.length === 0 ? (
-            <div className="test-runs-empty" style={{ padding: '40px 20px' }}>
-              No test runs yet. Run <code>pnpm --filter backend test:live</code>{' '}
-              to generate results.
-            </div>
-          ) : (
-            <div className="runs-list-items">
-              {runs.map(run => {
-                const closedTests = run.closedTests || 0;
-                const activeTests = run.totalTests - closedTests;
-                const passPercent =
-                  activeTests > 0 ? (run.passedTests / activeTests) * 100 : 0;
-                return (
-                  <div
-                    key={run.runId}
-                    className={`run-item ${selectedRunId === run.runId ? 'active' : ''}`}
-                    onClick={() => handleSelectRun(run.runId)}
-                  >
-                    <div className="run-item-header">
-                      <span className="run-date">
-                        {formatRunDate(run.startedAt)}
-                      </span>
-                      <span className={`run-status-badge ${run.status}`}>
-                        {run.status.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="run-item-meta">
-                      <span>
-                        {run.passedTests}/{activeTests} passed
-                        {closedTests > 0 ? ` (${closedTests} closed)` : ''}
-                      </span>
-                      <span>{computeRunDuration(run)}</span>
-                    </div>
-                    <div className="run-progress">
-                      <div
-                        className="run-progress-fill"
-                        style={{
-                          width: '100%',
-                          background: (() => {
-                            const failPercent =
-                              activeTests > 0
-                                ? (run.failedTests / activeTests) * 100
-                                : 0;
-                            const closedPercent =
-                              run.totalTests > 0
-                                ? (closedTests / run.totalTests) * 100
-                                : 0;
-                            if (closedTests > 0 || run.failedTests > 0) {
-                              const passStop =
-                                passPercent * (1 - closedPercent / 100);
-                              const failStop =
-                                passStop +
-                                failPercent * (1 - closedPercent / 100);
-                              return `linear-gradient(to right, #28a745 ${passStop}%, #dc3545 ${passStop}% ${failStop}%, #f0ad4e ${failStop}%)`;
-                            }
-                            return '#28a745';
-                          })(),
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <div className="runs-panel">
+          <div className="panel-header">
+            <span className="panel-title">Recent Runs</span>
+            <span className="panel-count">
+              {runs.length} run{runs.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="runs-list">{renderRunsList()}</div>
         </div>
 
-        {/* Detail Panel */}
-        <div className="run-detail">
-          {isLoadingDetail ? (
-            <div className="test-runs-loading">Loading run details...</div>
-          ) : selectedRun ? (
-            <>
-              <div className="run-detail-header">
-                <h3>Run: {formatRunDate(selectedRun.startedAt)}</h3>
-                <div className="run-detail-actions">
-                  <button
-                    className="btn-delete-run"
-                    onClick={() => deleteMutation.mutate(selectedRun.runId)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-
-              <div className="summary-cards">
-                <div className="summary-card">
-                  <div className="summary-card-value total">
-                    {selectedRun.totalTests}
-                  </div>
-                  <div className="summary-card-label">Total Tests</div>
-                </div>
-                <div className="summary-card">
-                  <div className="summary-card-value passed">
-                    {selectedRun.passedTests}
-                  </div>
-                  <div className="summary-card-label">Passed</div>
-                </div>
-                <div className="summary-card">
-                  <div className="summary-card-value failed">
-                    {selectedRun.failedTests}
-                  </div>
-                  <div className="summary-card-label">Failed</div>
-                </div>
-                {(selectedRun.closedTests || 0) > 0 && (
-                  <div className="summary-card">
-                    <div className="summary-card-value closed">
-                      {selectedRun.closedTests}
-                    </div>
-                    <div className="summary-card-label">Closed</div>
-                  </div>
-                )}
-                <div className="summary-card">
-                  <div className="summary-card-value duration">
-                    {computeRunDuration(selectedRun)}
-                  </div>
-                  <div className="summary-card-label">Duration</div>
-                </div>
-              </div>
-
-              <div className="test-cases-section">
-                <h4>Test Cases ({selectedRun.testCases.length})</h4>
-                {[...selectedRun.testCases]
-                  .sort((a, b) => {
-                    const order = { failed: 0, business_closed: 1, passed: 2 };
-                    return order[a.status] - order[b.status];
-                  })
-                  .map((tc: TestCaseResult) => (
-                    <React.Fragment key={tc.testCaseId}>
-                      <div
-                        className={`test-case-row ${tc.status === 'failed' ? 'fail' : ''} ${tc.status === 'business_closed' ? 'closed' : ''} ${expandedCallSid === tc.callSid ? 'expanded' : ''}`}
-                        onClick={() => toggleCallDetail(tc.callSid)}
-                      >
-                        <span className="test-case-icon">
-                          {tc.status === 'passed'
-                            ? '\u2705'
-                            : tc.status === 'business_closed'
-                              ? '\ud83d\udd5b'
-                              : '\u274C'}
-                        </span>
-                        <span className="test-case-name">{tc.name}</span>
-                        {tc.error && (
-                          <span
-                            className="test-case-error-badge"
-                            title={tc.error}
-                          >
-                            {tc.error}
-                          </span>
-                        )}
-                        <span className="test-case-duration">
-                          {formatDuration(
-                            Math.round(
-                              tc.durationSeconds > 3600
-                                ? tc.durationSeconds / 1000
-                                : tc.durationSeconds
-                            )
-                          )}
-                        </span>
-                        <button
-                          className="btn-view-call"
-                          onClick={e => {
-                            e.stopPropagation();
-                            toggleCallDetail(tc.callSid);
-                          }}
-                        >
-                          {expandedCallSid === tc.callSid
-                            ? 'Hide'
-                            : 'View Call'}
-                        </button>
-                        {tc.status === 'failed' && (
-                          <button
-                            className="btn-why-failed"
-                            onClick={e => {
-                              e.stopPropagation();
-                              analyzeFailure(tc);
-                            }}
-                            disabled={analysisState[tc.testCaseId]?.loading}
-                          >
-                            {analysisState[tc.testCaseId]?.loading
-                              ? 'Analyzing...'
-                              : 'Why?'}
-                          </button>
-                        )}
-                      </div>
-                      {analysisState[tc.testCaseId]?.data && (
-                        <div className="failure-analysis-panel">
-                          <div className="failure-analysis-explanation">
-                            {analysisState[tc.testCaseId].data!.explanation}
-                          </div>
-                          <div className="failure-analysis-fix">
-                            <strong>Proposed fix:</strong>{' '}
-                            {analysisState[tc.testCaseId].data!.fix.description}
-                            <div className="failure-analysis-instructions">
-                              <code>
-                                {
-                                  analysisState[tc.testCaseId].data!.fix
-                                    .customInstructions
-                                }
-                              </code>
-                            </div>
-                            <button
-                              className={`btn-apply-fix ${analysisState[tc.testCaseId].applied ? 'applied' : ''}`}
-                              onClick={e => {
-                                e.stopPropagation();
-                                applyFix(
-                                  tc.testCaseId,
-                                  analysisState[tc.testCaseId].data!.fix
-                                    .customInstructions
-                                );
-                              }}
-                              disabled={analysisState[tc.testCaseId].applied}
-                            >
-                              {analysisState[tc.testCaseId].applied
-                                ? '✓ Fix Applied'
-                                : 'Apply Fix'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {analysisState[tc.testCaseId]?.error && (
-                        <div className="failure-analysis-error">
-                          {analysisState[tc.testCaseId].error}
-                        </div>
-                      )}
-                      {expandedCallSid === tc.callSid && (
-                        <CallDetailInline callSid={tc.callSid} />
-                      )}
-                    </React.Fragment>
-                  ))}
-              </div>
-            </>
-          ) : (
-            <div className="test-runs-empty">Select a run to view details</div>
-          )}
-        </div>
+        <div className="detail-panel">{renderDetailPanel()}</div>
       </div>
     </div>
   );
