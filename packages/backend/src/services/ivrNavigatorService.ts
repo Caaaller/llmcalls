@@ -4,7 +4,7 @@
  * voiceProcessingService, and aiService with one unified decision.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { TransferConfig } from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { transferPrompt } from '../prompts/transfer-prompt';
@@ -132,11 +132,11 @@ ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 }
 
 class IVRNavigatorService {
-  private client: Anthropic;
+  private client: OpenAI;
 
   constructor() {
-    this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    this.client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
       maxRetries: 5,
     });
   }
@@ -201,25 +201,20 @@ Analyze the current speech and decide what to do. Consider:
 9. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
 
     const apiStart = Date.now();
-    const response = await this.client.messages.create({
-      model: config.aiSettings?.model || 'claude-haiku-4-5-20251001',
-      system: [
-        {
-          type: 'text' as const,
-          text: systemPrompt.system,
-          cache_control: { type: 'ephemeral' as const },
-        },
+    const response = await this.client.chat.completions.create({
+      model: config.aiSettings?.model || 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt.system },
+        { role: 'user', content: userMessage },
       ],
-      messages: [{ role: 'user', content: userMessage }],
       max_tokens: 500,
       temperature: 0.3,
     });
     console.log(
-      `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage.input_tokens} out=${response.usage.output_tokens}`
+      `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.prompt_tokens} out=${response.usage?.completion_tokens}`
     );
 
-    const block = response.content[0];
-    const content = block.type === 'text' ? block.text : null;
+    const content = response.choices[0]?.message?.content;
     if (!content) {
       throw new Error('No response from IVR navigator AI');
     }
