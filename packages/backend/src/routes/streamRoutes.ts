@@ -39,11 +39,15 @@ interface DeepgramUtteranceEnd {
   last_word_end: number;
 }
 
+const SILENT_HOLD_TIMEOUT_MS = 30_000; // Assume hold after 30s of no speech
+
 interface StreamState {
   callControlId: string;
   dgWs: WS | null;
   audioBuffer: Buffer[];
   transcript: string;
+  lastUtteranceAt: number;
+  silentHoldTimer: ReturnType<typeof setTimeout> | null;
 }
 
 function openDeepgram(
@@ -134,9 +138,28 @@ export function attachStreamServer(httpServer: Server): void {
           dgWs: null,
           audioBuffer: [],
           transcript: '',
+          lastUtteranceAt: Date.now(),
+          silentHoldTimer: null,
         };
 
+        const resetSilentHoldTimer = () => {
+          if (state?.silentHoldTimer) clearTimeout(state.silentHoldTimer);
+          if (!state) return;
+          state.lastUtteranceAt = Date.now();
+          state.silentHoldTimer = setTimeout(() => {
+            if (!state) return;
+            console.log(
+              `⏳ Silent hold detected (${SILENT_HOLD_TIMEOUT_MS / 1000}s no speech)`
+            );
+            import('../services/callHistoryService').then(m =>
+              m.default.addHoldDetected(state!.callControlId).catch(() => {})
+            );
+          }, SILENT_HOLD_TIMEOUT_MS);
+        };
+        resetSilentHoldTimer();
+
         openDeepgram(state, async text => {
+          resetSilentHoldTimer();
           const callState = callStateManager.getCallState(callControlId);
           if (callState.isSpeaking) return;
 
@@ -201,6 +224,7 @@ export function attachStreamServer(httpServer: Server): void {
             );
           }
         }
+        if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
         if (state.dgWs?.readyState === WS.OPEN) {
           state.dgWs.close();
         }

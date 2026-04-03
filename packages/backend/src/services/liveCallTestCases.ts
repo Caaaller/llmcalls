@@ -118,6 +118,8 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     customInstructions:
       'This is a Costco warehouse. Navigate the IVR menu to reach a human (administrative staff is the best option). Use DTMF when prompted.',
     expectedOutcome: {
+      shouldReachHuman: true,
+      expectedDigits: ['1'],
       maxDurationSeconds: 300,
     },
   },
