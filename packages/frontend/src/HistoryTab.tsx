@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import './HistoryTab.css';
 import {
@@ -8,10 +8,77 @@ import {
   type CallDetails,
 } from './api/client';
 
+function getSeekSeconds(
+  eventTimestamp: Date | string | undefined,
+  callStartTime: Date | string | undefined
+): number {
+  if (!eventTimestamp || !callStartTime) return 0;
+  return Math.max(
+    0,
+    (new Date(eventTimestamp).getTime() - new Date(callStartTime).getTime()) /
+      1000
+  );
+}
+
 function HistoryTab() {
   const [selectedCallSid, setSelectedCallSid] = useState<string | null>(null);
   const [recordingLoading, setRecordingLoading] = useState(false);
   const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+  const [audioCurrentTime, setAudioCurrentTime] = useState<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const prevCallSidRef = useRef<string | null>(null);
+
+  const handleLoadRecording = useCallback(async (callSid: string) => {
+    setRecordingError(null);
+    setRecordingLoading(true);
+    try {
+      const blobUrl = await api.calls.getRecordingUrl(callSid);
+      setRecordingUrl(blobUrl);
+    } catch {
+      setRecordingError('Failed to load recording');
+    } finally {
+      setRecordingLoading(false);
+    }
+  }, []);
+
+  const handleSeekToEvent = useCallback(
+    (
+      eventTimestamp: Date | string | undefined,
+      callStartTime: Date | string | undefined
+    ) => {
+      const audio = audioRef.current;
+      if (!audio || !audio.src) return;
+      const seconds = getSeekSeconds(eventTimestamp, callStartTime);
+      audio.currentTime = seconds;
+      if (audio.paused) {
+        audio.play();
+      }
+    },
+    []
+  );
+
+  // Clean up blob URL when call changes or component unmounts
+  useEffect(() => {
+    if (prevCallSidRef.current !== selectedCallSid) {
+      if (recordingUrl) {
+        URL.revokeObjectURL(recordingUrl);
+        setRecordingUrl(null);
+      }
+      setAudioCurrentTime(0);
+      setRecordingError(null);
+      prevCallSidRef.current = selectedCallSid;
+    }
+  }, [selectedCallSid, recordingUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (recordingUrl) {
+        URL.revokeObjectURL(recordingUrl);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch call history with auto-refresh
   const {
@@ -212,39 +279,58 @@ function HistoryTab() {
                 {selectedCall.recordingUrl && (
                   <div className="info-row">
                     <strong>Recording:</strong>{' '}
-                    <button
-                      type="button"
-                      className="btn-play-recording"
-                      disabled={recordingLoading}
-                      onClick={async () => {
-                        if (!selectedCallSid) return;
-                        setRecordingError(null);
-                        setRecordingLoading(true);
-                        try {
-                          const blobUrl =
-                            await api.calls.getRecordingUrl(selectedCallSid);
-                          const w = window.open('', '_blank');
-                          if (w) {
-                            w.document.write(
-                              `<!DOCTYPE html><html><head><title>Recording</title></head><body style="margin:1rem;font-family:sans-serif;"><audio src="${blobUrl}" controls autoplay></audio><p style="margin-top:0.5rem;"><a href="${blobUrl}" download="call-recording.mp3" style="color:#667eea;">Download recording</a></p></body></html>`
-                            );
-                            w.document.close();
-                          }
-                        } catch {
-                          setRecordingError('Failed to load recording');
-                        } finally {
-                          setRecordingLoading(false);
-                        }
-                      }}
-                    >
-                      {recordingLoading ? 'Loading…' : '▶ Play recording'}
-                    </button>
-                    {recordingError && (
-                      <span className="recording-error">{recordingError}</span>
+                    {!recordingUrl ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn-play-recording"
+                          disabled={recordingLoading}
+                          onClick={() => {
+                            if (selectedCallSid) {
+                              handleLoadRecording(selectedCallSid);
+                            }
+                          }}
+                        >
+                          {recordingLoading ? 'Loading…' : '▶ Load recording'}
+                        </button>
+                        {recordingError && (
+                          <span className="recording-error">
+                            {recordingError}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="recording-loaded">
+                        Loaded — playing below
+                      </span>
                     )}
                   </div>
                 )}
               </div>
+
+              {recordingUrl && (
+                <div className="audio-player-sticky">
+                  <audio
+                    ref={audioRef}
+                    src={recordingUrl}
+                    controls
+                    onTimeUpdate={() => {
+                      if (audioRef.current) {
+                        setAudioCurrentTime(audioRef.current.currentTime);
+                      }
+                    }}
+                  />
+                  {recordingUrl && (
+                    <a
+                      href={recordingUrl}
+                      download="call-recording.mp3"
+                      className="btn-download-recording"
+                    >
+                      Download
+                    </a>
+                  )}
+                </div>
+              )}
 
               {/* DTMF Presses */}
               {selectedCall.dtmfPresses &&
@@ -252,17 +338,56 @@ function HistoryTab() {
                   <div className="section">
                     <h4>🔢 DTMF Presses ({selectedCall.dtmfPresses.length})</h4>
                     <div className="dtmf-list">
-                      {selectedCall.dtmfPresses.map((dtmf, idx) => (
-                        <div key={idx} className="dtmf-item">
-                          <span className="dtmf-digit">Press {dtmf.digit}</span>
-                          <span className="dtmf-time">
-                            {formatTime(dtmf.timestamp)}
-                          </span>
-                          {dtmf.reason && (
-                            <div className="dtmf-reason">{dtmf.reason}</div>
-                          )}
-                        </div>
-                      ))}
+                      {selectedCall.dtmfPresses.map((dtmf, idx) => {
+                        const seekSec = getSeekSeconds(
+                          dtmf.timestamp,
+                          selectedCall.startTime
+                        );
+                        const nextDtmf = selectedCall.dtmfPresses[idx + 1];
+                        const nextSeekSec = nextDtmf
+                          ? getSeekSeconds(
+                              nextDtmf.timestamp,
+                              selectedCall.startTime
+                            )
+                          : Infinity;
+                        const isActive =
+                          recordingUrl &&
+                          audioRef.current &&
+                          !audioRef.current.paused &&
+                          audioCurrentTime >= seekSec &&
+                          audioCurrentTime < nextSeekSec;
+                        return (
+                          <div
+                            key={idx}
+                            className={`dtmf-item${isActive ? ' dtmf-item-active' : ''}`}
+                          >
+                            <span className="dtmf-digit">
+                              Press {dtmf.digit}
+                            </span>
+                            <span
+                              className={`dtmf-time${recordingUrl ? ' timeline-time-clickable' : ''}`}
+                              onClick={() => {
+                                if (recordingUrl) {
+                                  handleSeekToEvent(
+                                    dtmf.timestamp,
+                                    selectedCall.startTime
+                                  );
+                                }
+                              }}
+                              title={
+                                recordingUrl
+                                  ? `Seek to ${Math.floor(seekSec)}s`
+                                  : undefined
+                              }
+                            >
+                              {formatTime(dtmf.timestamp)}
+                            </span>
+                            {dtmf.reason && (
+                              <div className="dtmf-reason">{dtmf.reason}</div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -276,26 +401,60 @@ function HistoryTab() {
                       messages)
                     </h4>
                     <div className="conversation-list">
-                      {selectedCall.conversation.map((msg, idx) => (
-                        <div
-                          key={idx}
-                          className={`conversation-item ${msg.type === 'user' ? 'user-message' : msg.type === 'ai' ? 'ai-message' : 'system-message'}`}
-                        >
-                          <div className="message-header">
-                            <span className="message-type">
-                              {msg.type === 'user'
-                                ? '👤 User'
-                                : msg.type === 'ai'
-                                  ? '🤖 AI'
-                                  : '⚙️ System'}
-                            </span>
-                            <span className="message-time">
-                              {formatTime(msg.timestamp)}
-                            </span>
+                      {selectedCall.conversation.map((msg, idx) => {
+                        const seekSec = getSeekSeconds(
+                          msg.timestamp,
+                          selectedCall.startTime
+                        );
+                        const nextMsg = selectedCall.conversation[idx + 1];
+                        const nextSeekSec = nextMsg
+                          ? getSeekSeconds(
+                              nextMsg.timestamp,
+                              selectedCall.startTime
+                            )
+                          : Infinity;
+                        const isActive =
+                          recordingUrl &&
+                          audioRef.current &&
+                          !audioRef.current.paused &&
+                          audioCurrentTime >= seekSec &&
+                          audioCurrentTime < nextSeekSec;
+                        return (
+                          <div
+                            key={idx}
+                            className={`conversation-item ${msg.type === 'user' ? 'user-message' : msg.type === 'ai' ? 'ai-message' : 'system-message'}${isActive ? ' conversation-item-active' : ''}`}
+                          >
+                            <div className="message-header">
+                              <span className="message-type">
+                                {msg.type === 'user'
+                                  ? '👤 User'
+                                  : msg.type === 'ai'
+                                    ? '🤖 AI'
+                                    : '⚙️ System'}
+                              </span>
+                              <span
+                                className={`message-time${recordingUrl ? ' timeline-time-clickable' : ''}`}
+                                onClick={() => {
+                                  if (recordingUrl) {
+                                    handleSeekToEvent(
+                                      msg.timestamp,
+                                      selectedCall.startTime
+                                    );
+                                  }
+                                }}
+                                title={
+                                  recordingUrl
+                                    ? `Seek to ${Math.floor(seekSec)}s`
+                                    : undefined
+                                }
+                              >
+                                {formatTime(msg.timestamp)}
+                              </span>
+                            </div>
+                            <div className="message-text">{msg.text}</div>
                           </div>
-                          <div className="message-text">{msg.text}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -307,67 +466,105 @@ function HistoryTab() {
                     📋 Event Timeline ({selectedCall.events.length} events)
                   </h4>
                   <div className="timeline">
-                    {selectedCall.events.map((event, idx) => (
-                      <div key={idx} className="timeline-item">
-                        <div className="timeline-time">
-                          {formatTime(event.timestamp)}
+                    {selectedCall.events.map((event, idx) => {
+                      const seekSec = getSeekSeconds(
+                        event.timestamp,
+                        selectedCall.startTime
+                      );
+                      const nextEvent = selectedCall.events[idx + 1];
+                      const nextSeekSec = nextEvent
+                        ? getSeekSeconds(
+                            nextEvent.timestamp,
+                            selectedCall.startTime
+                          )
+                        : Infinity;
+                      const isActive =
+                        recordingUrl &&
+                        audioRef.current &&
+                        !audioRef.current.paused &&
+                        audioCurrentTime >= seekSec &&
+                        audioCurrentTime < nextSeekSec;
+                      return (
+                        <div
+                          key={idx}
+                          className={`timeline-item${isActive ? ' timeline-item-active' : ''}`}
+                        >
+                          <div
+                            className={`timeline-time${recordingUrl ? ' timeline-time-clickable' : ''}`}
+                            onClick={() => {
+                              if (recordingUrl) {
+                                handleSeekToEvent(
+                                  event.timestamp,
+                                  selectedCall.startTime
+                                );
+                              }
+                            }}
+                            title={
+                              recordingUrl
+                                ? `Seek to ${Math.floor(seekSec)}s`
+                                : undefined
+                            }
+                          >
+                            {formatTime(event.timestamp)}
+                          </div>
+                          <div className="timeline-content">
+                            {event.eventType === 'dtmf' && (
+                              <div className="event-dtmf">
+                                🔢 Pressed DTMF: <strong>{event.digit}</strong>
+                                {event.reason && (
+                                  <span className="event-reason">
+                                    {' '}
+                                    - {event.reason}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {event.eventType === 'ivr_menu' && (
+                              <div className="event-ivr">
+                                📋 IVR Menu Detected
+                                {event.menuOptions && (
+                                  <div className="menu-options">
+                                    {event.menuOptions.map((opt, i) => (
+                                      <span key={i} className="menu-option">
+                                        Press {opt.digit} for {opt.option}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {event.eventType === 'hold' && (
+                              <div
+                                className="event-transfer"
+                                style={{ color: '#ffc107' }}
+                              >
+                                ⏳ Hold queue detected
+                              </div>
+                            )}
+                            {event.eventType === 'transfer' && (
+                              <div className="event-transfer">
+                                🔄 Transfer{' '}
+                                {event.success ? 'Successful' : 'Attempted'} to{' '}
+                                {event.transferNumber}
+                              </div>
+                            )}
+                            {event.eventType === 'termination' && (
+                              <div className="event-termination">
+                                🛑 Call Terminated: {event.reason}
+                              </div>
+                            )}
+                            {event.eventType === 'conversation' && (
+                              <div
+                                className={`event-conversation ${event.type === 'user' ? 'user' : 'ai'}`}
+                              >
+                                {event.type === 'user' ? '👤' : '🤖'}{' '}
+                                {event.text}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="timeline-content">
-                          {event.eventType === 'dtmf' && (
-                            <div className="event-dtmf">
-                              🔢 Pressed DTMF: <strong>{event.digit}</strong>
-                              {event.reason && (
-                                <span className="event-reason">
-                                  {' '}
-                                  - {event.reason}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                          {event.eventType === 'ivr_menu' && (
-                            <div className="event-ivr">
-                              📋 IVR Menu Detected
-                              {event.menuOptions && (
-                                <div className="menu-options">
-                                  {event.menuOptions.map((opt, i) => (
-                                    <span key={i} className="menu-option">
-                                      Press {opt.digit} for {opt.option}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {event.eventType === 'hold' && (
-                            <div
-                              className="event-transfer"
-                              style={{ color: '#ffc107' }}
-                            >
-                              ⏳ Hold queue detected
-                            </div>
-                          )}
-                          {event.eventType === 'transfer' && (
-                            <div className="event-transfer">
-                              🔄 Transfer{' '}
-                              {event.success ? 'Successful' : 'Attempted'} to{' '}
-                              {event.transferNumber}
-                            </div>
-                          )}
-                          {event.eventType === 'termination' && (
-                            <div className="event-termination">
-                              🛑 Call Terminated: {event.reason}
-                            </div>
-                          )}
-                          {event.eventType === 'conversation' && (
-                            <div
-                              className={`event-conversation ${event.type === 'user' ? 'user' : 'ai'}`}
-                            >
-                              {event.type === 'user' ? '👤' : '🤖'} {event.text}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

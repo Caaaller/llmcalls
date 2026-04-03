@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './TestRunsTab.css';
 import {
@@ -11,6 +11,18 @@ import {
   type CallEvent,
   type FailureAnalysis,
 } from './api/client';
+
+function getSeekSeconds(
+  eventTimestamp: Date | string | undefined,
+  callStartTime: Date | string | undefined
+): number {
+  if (!eventTimestamp || !callStartTime) return 0;
+  return Math.max(
+    0,
+    (new Date(eventTimestamp).getTime() - new Date(callStartTime).getTime()) /
+      1000
+  );
+}
 
 function formatRunDate(date: string | Date): string {
   return new Date(date).toLocaleString(undefined, {
@@ -45,10 +57,36 @@ function computeRunDuration(run: {
   return formatDuration(Math.round(ms / 1000));
 }
 
-function renderEvent(event: CallEvent, idx: number) {
+interface RenderEventOptions {
+  isActive: boolean;
+  isSeekable: boolean;
+  seekSeconds: number;
+  onSeek: () => void;
+}
+
+function renderEvent(
+  event: CallEvent,
+  idx: number,
+  options?: RenderEventOptions
+) {
+  const {
+    isActive = false,
+    isSeekable = false,
+    seekSeconds = 0,
+    onSeek,
+  } = options ?? {};
   return (
-    <div key={idx} className="inline-timeline-item">
-      <div className="inline-timeline-time">{formatTime(event.timestamp)}</div>
+    <div
+      key={idx}
+      className={`inline-timeline-item${isActive ? ' inline-timeline-item-active' : ''}`}
+    >
+      <div
+        className={`inline-timeline-time${isSeekable ? ' timeline-time-clickable' : ''}`}
+        onClick={isSeekable ? onSeek : undefined}
+        title={isSeekable ? `Seek to ${Math.floor(seekSeconds)}s` : undefined}
+      >
+        {formatTime(event.timestamp)}
+      </div>
       <div className="inline-timeline-content">
         {event.eventType === 'dtmf' && (
           <span style={{ color: '#667eea', fontWeight: 600 }}>
@@ -118,6 +156,8 @@ function CallDetailInline({ callSid }: { callSid: string }) {
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [recordingLoading, setRecordingLoading] = useState(false);
+  const [audioCurrentTime, setAudioCurrentTime] = useState<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { data, isLoading } = useQuery<CallDetailsResponse>({
     queryKey: ['calls', callSid],
@@ -125,6 +165,22 @@ function CallDetailInline({ callSid }: { callSid: string }) {
   });
 
   const call: CallDetails | null = data?.call ?? null;
+
+  const handleSeekToEvent = useCallback(
+    (
+      eventTimestamp: Date | string | undefined,
+      callStartTime: Date | string | undefined
+    ) => {
+      const audio = audioRef.current;
+      if (!audio || !audio.src) return;
+      const seconds = getSeekSeconds(eventTimestamp, callStartTime);
+      audio.currentTime = seconds;
+      if (audio.paused) {
+        audio.play();
+      }
+    },
+    []
+  );
 
   if (isLoading)
     return (
@@ -173,7 +229,26 @@ function CallDetailInline({ callSid }: { callSid: string }) {
         <div className="inline-audio-player">
           <div className="inline-audio-label">Call Recording</div>
           {recordingUrl ? (
-            <audio controls autoPlay src={recordingUrl} />
+            <div className="inline-audio-player-sticky">
+              <audio
+                ref={audioRef}
+                controls
+                autoPlay
+                src={recordingUrl}
+                onTimeUpdate={() => {
+                  if (audioRef.current) {
+                    setAudioCurrentTime(audioRef.current.currentTime);
+                  }
+                }}
+              />
+              <a
+                href={recordingUrl}
+                download="call-recording.mp3"
+                className="btn-download-recording"
+              >
+                Download
+              </a>
+            </div>
           ) : (
             <>
               <button
@@ -201,7 +276,25 @@ function CallDetailInline({ callSid }: { callSid: string }) {
 
       {call.events && call.events.length > 0 && (
         <div className="inline-timeline">
-          {call.events.map((event, idx) => renderEvent(event, idx))}
+          {call.events.map((event, idx) => {
+            const seekSec = getSeekSeconds(event.timestamp, call.startTime);
+            const nextEvent = call.events[idx + 1];
+            const nextSeekSec = nextEvent
+              ? getSeekSeconds(nextEvent.timestamp, call.startTime)
+              : Infinity;
+            const isActive =
+              !!recordingUrl &&
+              !!audioRef.current &&
+              !audioRef.current.paused &&
+              audioCurrentTime >= seekSec &&
+              audioCurrentTime < nextSeekSec;
+            return renderEvent(event, idx, {
+              isActive,
+              isSeekable: !!recordingUrl,
+              seekSeconds: seekSec,
+              onSeek: () => handleSeekToEvent(event.timestamp, call.startTime),
+            });
+          })}
         </div>
       )}
     </div>
