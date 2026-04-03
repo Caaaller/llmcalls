@@ -57,18 +57,19 @@ interface StatusCounts {
 
 function computeStatusCounts(
   testCases: Array<TestCaseResult>,
-  maxTests: number
+  _maxTests: number
 ): StatusCounts {
   let passed = 0;
   let failed = 0;
   let closed = 0;
+  let skipped = 0;
   for (const tc of testCases) {
     if (tc.status === 'passed') passed++;
     else if (tc.status === 'failed') failed++;
     else if (tc.status === 'business_closed') closed++;
+    else if (tc.status === 'skipped') skipped++;
   }
-  const total = Math.max(maxTests, testCases.length);
-  const skipped = total - testCases.length;
+  const total = testCases.length;
   return { passed, failed, closed, skipped, total };
 }
 

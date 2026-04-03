@@ -278,6 +278,22 @@ describe('Live call evaluations', () => {
         }
       }
 
+      // Add skipped entries for tests that weren't in this run
+      const ranIds = new Set(testCaseResults.map(tc => tc.testCaseId));
+      const fullSuite = DEFAULT_TEST_CASES;
+      const skippedResults = fullSuite
+        .filter(tc => !ranIds.has(tc.id))
+        .map(tc => ({
+          testCaseId: tc.id,
+          name: tc.name,
+          callSid: '',
+          status: 'skipped' as const,
+          durationSeconds: 0,
+          timedOut: false,
+        }));
+      const allResults = [...testCaseResults, ...skippedResults];
+      const skippedCount = skippedResults.length;
+
       // Post test run results to the API for the Test Runs UI
       const baseUrl = process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL;
       if (baseUrl) {
@@ -290,11 +306,12 @@ describe('Live call evaluations', () => {
               startedAt,
               completedAt: new Date(),
               status: failures.length ? 'failed' : 'passed',
-              totalTests: testCases.length,
+              totalTests: fullSuite.length,
               passedTests: testCases.length - failures.length - closedCount,
               failedTests: failures.length,
               closedTests: closedCount,
-              testCases: testCaseResults,
+              skippedTests: skippedCount,
+              testCases: allResults,
             }),
           });
           if (!postRes.ok) {
