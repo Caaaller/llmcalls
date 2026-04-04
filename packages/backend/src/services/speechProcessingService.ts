@@ -178,6 +178,11 @@ export async function processSpeech({
       console.log(
         `⚡ Fast retry: replaying "${lastAction.speech}" (skipping AI call)`
       );
+      callHistoryService
+        .addConversation(callSid, 'ai', lastAction.speech)
+        .catch(err =>
+          console.error('Error adding fast retry conversation:', err)
+        );
       callStateManager.updateCallState(callSid, { isSpeaking: true });
       await telnyxService.speakText(
         callSid,
