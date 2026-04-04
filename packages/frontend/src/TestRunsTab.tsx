@@ -73,14 +73,14 @@ function computeStatusCounts(
   return { passed, failed, closed, skipped, total };
 }
 
-function buildRunMeta(run: TestRunSummary, maxTests: number): string {
+function buildRunMeta(run: TestRunSummary): string {
   const closedTests = run.closedTests || 0;
-  const ranTests = run.totalTests;
-  const skipped = Math.max(0, maxTests - ranTests);
+  const skippedTests = (run as { skippedTests?: number }).skippedTests || 0;
+  const executed = run.passedTests + run.failedTests + closedTests;
   const parts: Array<string> = [];
-  parts.push(`${run.passedTests}/${ranTests} passed`);
+  parts.push(`${run.passedTests}/${executed} passed`);
   if (closedTests > 0) parts.push(`${closedTests} closed`);
-  if (skipped > 0) parts.push(`${skipped} skipped`);
+  if (skippedTests > 0) parts.push(`${skippedTests} skipped`);
   return parts.join(' \u00b7 ');
 }
 
@@ -90,19 +90,16 @@ interface ProgressSegment {
   background: string;
 }
 
-function buildProgressSegments(
-  run: TestRunSummary,
-  maxTests: number
-): Array<ProgressSegment> {
-  const total = Math.max(maxTests, run.totalTests);
+function buildProgressSegments(run: TestRunSummary): Array<ProgressSegment> {
+  const total = run.totalTests;
   if (total === 0) return [];
 
   const closedTests = run.closedTests || 0;
+  // Progress bar uses total as denominator so skipped = unfilled right side
   const passP = (run.passedTests / total) * 100;
   const failP = (run.failedTests / total) * 100;
   const closedP = (closedTests / total) * 100;
-  const skipped = Math.max(0, maxTests - run.totalTests);
-  const skipP = (skipped / total) * 100;
+  // Skipped tests are NOT rendered — they leave the bar unfilled
 
   const segments: Array<ProgressSegment> = [];
   let offset = 0;
@@ -128,14 +125,6 @@ function buildProgressSegments(
       left: `${offset}%`,
       width: `${closedP}%`,
       background: '#d4a017',
-    });
-    offset += closedP;
-  }
-  if (skipP > 0) {
-    segments.push({
-      left: `${offset}%`,
-      width: `${skipP}%`,
-      background: '#6c757d',
     });
   }
 
@@ -486,7 +475,7 @@ function TestRunsTab({
     return (
       <div className="runs-list-items">
         {runs.map(run => {
-          const segments = buildProgressSegments(run, maxTests);
+          const segments = buildProgressSegments(run);
           return (
             <div
               key={run.runId}
@@ -500,7 +489,7 @@ function TestRunsTab({
                 </span>
               </div>
               <div className="run-item-meta">
-                <span>{buildRunMeta(run, maxTests)}</span>
+                <span>{buildRunMeta(run)}</span>
                 <span>{computeRunDuration(run)}</span>
               </div>
               <div className="run-progress">
