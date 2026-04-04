@@ -90,6 +90,19 @@ function getTelnyxVoice(aiVoice?: string): string {
   return aiVoice || 'AWS.Polly.Matthew-Neural';
 }
 
+async function speakAndLog(
+  callSid: string,
+  text: string,
+  voice: string
+): Promise<void> {
+  callHistoryService
+    .addConversation(callSid, 'ai', text)
+    .catch(err => console.error('Error adding conversation:', err));
+  callStateManager.updateCallState(callSid, { isSpeaking: true });
+  await telnyxService.speakText(callSid, text, voice);
+  callStateManager.updateCallState(callSid, { isSpeaking: false });
+}
+
 /**
  * Process a speech turn end-to-end.
  * Used by both the transcription webhook handler and eval service (testMode).
@@ -178,18 +191,11 @@ export async function processSpeech({
       console.log(
         `⚡ Fast retry: replaying "${lastAction.speech}" (skipping AI call)`
       );
-      callHistoryService
-        .addConversation(callSid, 'ai', lastAction.speech)
-        .catch(err =>
-          console.error('Error adding fast retry conversation:', err)
-        );
-      callStateManager.updateCallState(callSid, { isSpeaking: true });
-      await telnyxService.speakText(
+      await speakAndLog(
         callSid,
         lastAction.speech,
         getTelnyxVoice(config.aiSettings.voice)
       );
-      callStateManager.updateCallState(callSid, { isSpeaking: false });
       callStateManager.addActionToHistory(callSid, {
         turnNumber: actionHistory.length + 1,
         ivrSpeech: speechResult,
@@ -539,14 +545,9 @@ export async function processSpeech({
 
       callStateManager.addToHistory(callSid, { type: 'ai', text: aiResponse });
       if (!testMode) {
-        callHistoryService
-          .addConversation(callSid, 'ai', aiResponse)
-          .catch(err => console.error('Error adding conversation:', err));
-
-        callStateManager.updateCallState(callSid, { isSpeaking: true });
         const ttsStartAt = Date.now();
         console.log(`⏱️ TTS SEND at ${new Date().toISOString()}`);
-        await telnyxService.speakText(
+        await speakAndLog(
           callSid,
           aiResponse,
           getTelnyxVoice(config.aiSettings.voice)
@@ -557,7 +558,6 @@ export async function processSpeech({
         if (_sttDoneAt) {
           console.log(`⏱️ TOTAL STT→TTS: ${Date.now() - _sttDoneAt}ms`);
         }
-        callStateManager.updateCallState(callSid, { isSpeaking: false });
       }
     }
 

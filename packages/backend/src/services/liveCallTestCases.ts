@@ -130,6 +130,7 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
       'UMR uses a conversational AI that asks yes/no questions then "How can I help you?". AI must give ultra-short keyword answers — the system has a very short listen window and rejects long responses.',
     phoneNumber: '+18002073172',
     callPurpose: 'Coverage question',
+    customInstructions: 'Member ID is 35142679. Provide it when asked.',
     skipInfoRequests: true,
     expectedOutcome: {
       maxDurationSeconds: 300,
