@@ -74,12 +74,10 @@ function computeStatusCounts(
 }
 
 function buildRunMeta(run: TestRunSummary): string {
-  const closedTests = run.closedTests || 0;
   const skippedTests = (run as { skippedTests?: number }).skippedTests || 0;
-  const executed = run.passedTests + run.failedTests + closedTests;
+  const executed = run.passedTests + run.failedTests;
   const parts: Array<string> = [];
   parts.push(`${run.passedTests}/${executed} passed`);
-  if (closedTests > 0) parts.push(`${closedTests} closed`);
   if (skippedTests > 0) parts.push(`${skippedTests} skipped`);
   return parts.join(' \u00b7 ');
 }
