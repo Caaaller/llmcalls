@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import './TestRunsTab.css';
 import {
@@ -254,6 +254,12 @@ function CallDetailInline({ callSid }: { callSid: string }) {
   });
 
   const call: CallDetails | null = data?.call ?? null;
+
+  useEffect(() => {
+    if (call?.recordingUrl && !recordingUrl && !recording.recordingLoading) {
+      recording.handleLoadRecording(callSid);
+    }
+  }, [call?.recordingUrl, callSid, recordingUrl, recording]);
 
   if (isLoading)
     return (
