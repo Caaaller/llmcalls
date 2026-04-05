@@ -1,3 +1,21 @@
+## MANDATORY: Verify Fixes by Rerunning Tests
+
+After making any fix to test infrastructure, prompts, or call handling, rerun the affected test(s) and verify the fix worked before reporting success. Don't just commit — prove it.
+
+## MANDATORY: Use oliverullman@gmail.com for All API Calls
+
+When making API calls to the backend (local or prod), always authenticate as `oliverullman@gmail.com`. Never use `test@test.com` or other test accounts — calls won't appear in the user's history.
+
+## MANDATORY: Status Table on Every Response
+
+Every response must end with a compact status table of active work items. Done items drop off. Format:
+
+| Item      | Next step                                            |
+| --------- | ---------------------------------------------------- |
+| Feature X | ⏳ Running / 🔲 Not started / ✅ Done — [file](path) |
+
+Include clickable links to any relevant files, URLs, or outputs in the **Next step** column. Never put links in the **Item** column.
+
 ## MANDATORY: Autonomous Execution
 
 Work autonomously — build, test, and fix without asking. Only ask me when genuinely stuck or facing an ambiguous design decision. Run tests yourself and iterate on failures before reporting back.
@@ -22,13 +40,19 @@ Use Plan Mode (EnterPlanMode) for any non-trivial changes. Plans are conversatio
 
 Always use `test:replay-or-live` instead of `test:live`. It replays from recorded fixtures (free) and only falls back to live Twilio calls when the tree diverges. Only use `test:live:record` when explicitly recording new fixtures.
 
-## MANDATORY: Start server/ngrok automatically for live tests
+## MANDATORY: Always manage ngrok and dev server automatically
 
-Before running `test:live`, `test:live:record`, or when `test:replay-or-live` falls back to a live call:
+Never ask the user to start ngrok or the dev server. Always handle it:
 
 1. Start the dev server (`pnpm --filter backend dev`) in background if not running on port 3000
-2. Check ngrok status (`curl -s http://localhost:4040/api/tunnels`). If down, start it with `ngrok http 3000`
-3. Update `TWIML_URL` in `.env` if the ngrok URL changed
+2. Check ngrok (`curl -s http://localhost:4040/api/tunnels`). If down, start with `ngrok http 3000`
+3. If ngrok URL changed, update `TELNYX_WEBHOOK_URL` in `.env` AND patch the Telnyx connection:
+   ```bash
+   curl -X PATCH "https://api.telnyx.com/v2/call_control_applications/2925946576717219034" \
+     -H "Authorization: Bearer $TELNYX_API_KEY" \
+     -H "Content-Type: application/json" \
+     -d '{"webhook_event_url": "https://NEW-URL.ngrok-free.app/voice"}'
+   ```
 4. Use `TRANSFER_PHONE_NUMBER=+13033962866` to avoid ringing the user's phone
 
 Do NOT report a blocker about the server/ngrok being down — just start them.
