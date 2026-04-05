@@ -137,21 +137,30 @@ export async function executeCall(
       const dbCall = await callHistoryService.getCall(callSid);
       if (dbCall?.status === 'completed' || dbCall?.status === 'failed') break;
 
-      // Early exit: if we've reached hold queue or transfer, no need to wait for an agent
+      // Early exit: if we've reached hold queue or transfer, wait 15s to confirm
+      // (avoids false exits when IVR is just slow to process, e.g., DOB verification)
       if (dbCall) {
-        const onHold = (dbCall.events || []).some(
-          (e: { eventType: string }) => e.eventType === 'hold'
+        const holdOrTransfer = (dbCall.events || []).filter(
+          (e: { eventType: string; timestamp?: string | Date }) =>
+            e.eventType === 'hold' || e.eventType === 'transfer'
         );
-        const transferred = (dbCall.events || []).some(
-          (e: { eventType: string }) => e.eventType === 'transfer'
-        );
-        if (onHold || transferred) {
-          console.log(
-            `🏁 Early exit: ${transferred ? 'transfer' : 'hold queue'} detected — ending call`
-          );
-          durationSeconds = Math.round((Date.now() - startTime) / 1000);
-          await telnyxService.terminateCall(callSid).catch(() => {});
-          break;
+        if (holdOrTransfer.length > 0) {
+          const latestEvent = holdOrTransfer[holdOrTransfer.length - 1] as {
+            eventType: string;
+            timestamp?: string | Date;
+          };
+          const eventAge = latestEvent.timestamp
+            ? Date.now() - new Date(latestEvent.timestamp).getTime()
+            : 0;
+          if (eventAge > 15_000) {
+            const isTransfer = latestEvent.eventType === 'transfer';
+            console.log(
+              `🏁 Early exit: ${isTransfer ? 'transfer' : 'hold queue'} confirmed (${Math.round(eventAge / 1000)}s ago) — ending call`
+            );
+            durationSeconds = Math.round((Date.now() - startTime) / 1000);
+            await telnyxService.terminateCall(callSid).catch(() => {});
+            break;
+          }
         }
       }
 
