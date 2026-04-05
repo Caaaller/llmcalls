@@ -173,17 +173,23 @@ class IVRNavigatorService {
         ? `\n⚠️ FAILED DIGITS (got "invalid entry" after pressing these): ${failedDigits.join(', ')} — do NOT press these again.${allDigitsFailed ? ' ALL DTMF digits have been rejected. This IVR may not accept DTMF tones. Try SPEAKING your choice instead (e.g., say "administrative staff" or "representative" or "one") using action "speak".' : ' Try a different digit.'}\n`
         : '';
 
-    // Detect "representative" rut — if AI said "representative" 2+ times recently
+    // Detect rut — if AI said the same thing 2+ times recently and IVR keeps asking
     const recentSpeeches = actionHistory
       .slice(-4)
-      .filter(a => a.action === 'speak');
-    const repCount = recentSpeeches.filter(a =>
-      /^representative$/i.test(a.speech?.trim() || '')
-    ).length;
-    const rutWarning =
-      repCount >= 2
-        ? `\n⚠️ STUCK IN A RUT: You've said "representative" ${repCount} times and the system keeps asking for more detail. STOP saying "representative". Instead, creatively pick the closest option from what the IVR has offered and fit it to your call purpose. If the IVR listed categories or menu options, choose one. If it asked "why are you calling?", give a specific reason.\n`
-        : '';
+      .filter(a => a.action === 'speak' && a.speech);
+    let rutWarning = '';
+    if (recentSpeeches.length >= 2) {
+      const lastSpeech =
+        recentSpeeches[recentSpeeches.length - 1]?.speech
+          ?.trim()
+          .toLowerCase() || '';
+      const repeats = recentSpeeches.filter(
+        a => a.speech?.trim().toLowerCase() === lastSpeech
+      ).length;
+      if (repeats >= 2) {
+        rutWarning = `\n⚠️ STUCK IN A RUT: You've said "${lastSpeech}" ${repeats} times and the system keeps asking for more. STOP repeating yourself. Try a DIFFERENT response — pick from the IVR's offered options, rephrase your request, or try a different category.\n`;
+      }
+    }
 
     const userMessage = `${formatConversationForAI(actionHistory)}
 

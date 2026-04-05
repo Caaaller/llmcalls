@@ -287,6 +287,7 @@ Terminate for:
 - DEAD END: previous speech said closed AND current speech is empty/silent for 5+ seconds
 
 Do NOT terminate for: business hours info without "closed", normal IVR menus, hold music, short/garbled speech fragments.
+IMPORTANT: If the system says "unable to hear you" or "I'll end the call" because it couldn't understand your responses, that is NOT "closed" — use terminationReason "dead_end", not "closed_no_menu". "Closed" means the BUSINESS is closed, not that the IVR gave up on the conversation.
 
 [Transfer / Human Detection — Two Phases]
 PHASE 1 — Transfer announcements: "transferring you now", "connecting you to a representative", "please hold while we connect you", "let me transfer you", "please wait while I connect you"
