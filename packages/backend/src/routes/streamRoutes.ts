@@ -22,7 +22,7 @@ const DEEPGRAM_URL =
   '&channels=1' +
   '&language=en-US' +
   '&smart_format=true' +
-  '&endpointing=300' +
+  '&endpointing=500' +
   '&utterance_end_ms=1000' +
   '&interim_results=true';
 
@@ -98,6 +98,11 @@ function openDeepgram(
             `[DG] speech_final → firing: "${fullText.substring(0, 80)}"`
           );
           if (fullText) void onUtterance(fullText);
+          // Reset speechFired after a short delay so we don't permanently deafen
+          // if UtteranceEnd never arrives
+          setTimeout(() => {
+            if (state) state.speechFired = false;
+          }, 2000);
         }
       }
     } else if (msg.type === 'UtteranceEnd') {

@@ -225,7 +225,7 @@ Analyze the current speech and decide what to do. Consider:
         { role: 'system', content: systemPrompt.system },
         { role: 'user', content: userMessage },
       ],
-      max_tokens: 150,
+      max_tokens: 400,
       temperature: 0.3,
     });
     console.log(
