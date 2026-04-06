@@ -22,6 +22,7 @@ const DEEPGRAM_URL =
   '&channels=1' +
   '&language=en-US' +
   '&smart_format=true' +
+  '&endpointing=300' +
   '&utterance_end_ms=1000' +
   '&interim_results=true';
 
@@ -46,6 +47,7 @@ interface StreamState {
   dgWs: WS | null;
   audioBuffer: Buffer[];
   transcript: string;
+  speechFired: boolean;
   lastUtteranceAt: number;
   silentHoldTimer: ReturnType<typeof setTimeout> | null;
 }
@@ -86,14 +88,31 @@ function openDeepgram(
           `[DG] is_final: "${text.substring(0, 80)}" start=${r.start.toFixed(2)}s dur=${r.duration.toFixed(2)}s speech_final=${r.speech_final}`
         );
         state.transcript += (state.transcript ? ' ' : '') + text;
+
+        // Fire on speech_final (faster than waiting for UtteranceEnd)
+        if (r.speech_final) {
+          const fullText = state.transcript.trim();
+          state.transcript = '';
+          state.speechFired = true;
+          console.log(
+            `[DG] speech_final → firing: "${fullText.substring(0, 80)}"`
+          );
+          if (fullText) void onUtterance(fullText);
+        }
       }
     } else if (msg.type === 'UtteranceEnd') {
       const text = state.transcript.trim();
       console.log(
-        `[DG] UtteranceEnd last_word=${msg.last_word_end?.toFixed(2)}s transcript="${text.substring(0, 80)}"`
+        `[DG] UtteranceEnd last_word=${msg.last_word_end?.toFixed(2)}s transcript="${text.substring(0, 80)}" speechFired=${state.speechFired}`
       );
-      state.transcript = '';
-      if (text) void onUtterance(text);
+      // Only fire if speech_final didn't already handle this utterance
+      if (text && !state.speechFired) {
+        state.transcript = '';
+        void onUtterance(text);
+      } else {
+        state.transcript = '';
+      }
+      state.speechFired = false;
     }
   });
 
@@ -138,6 +157,7 @@ export function attachStreamServer(httpServer: Server): void {
           dgWs: null,
           audioBuffer: [],
           transcript: '',
+          speechFired: false,
           lastUtteranceAt: Date.now(),
           silentHoldTimer: null,
         };

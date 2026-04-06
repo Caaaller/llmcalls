@@ -57,6 +57,10 @@ class TelnyxService {
     };
   }
 
+  // TODO: Test Telnyx native TTS for lower latency. The SDK supports:
+  //   voice: 'Telnyx.KokoroTTS.af' with voice_settings: { type: 'telnyx', voice_speed: 1.0 }
+  //   Also available: ElevenLabs, Azure, Rime, Minimax, Inworld providers.
+  //   Telnyx KokoroTTS may have lower TTFB than AWS Polly since it's Telnyx-native.
   async speakText(
     callControlId: string,
     text: string,
