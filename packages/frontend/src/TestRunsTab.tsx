@@ -298,7 +298,6 @@ function CallDetailInline({ callSid }: { callSid: string }) {
             recording={recording}
             callSid={callSid}
             hasRecordingUrl={!!call.recordingUrl}
-            autoPlay
           />
         </div>
       )}

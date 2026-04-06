@@ -152,7 +152,9 @@ export async function executeCall(
           const eventAge = latestEvent.timestamp
             ? Date.now() - new Date(latestEvent.timestamp).getTime()
             : 0;
-          if (eventAge > 15_000) {
+          const nearTimeout =
+            (Date.now() - startTime) / 1000 > maxDuration - 30;
+          if (eventAge > 15_000 || nearTimeout) {
             const isTransfer = latestEvent.eventType === 'transfer';
             console.log(
               `🏁 Early exit: ${isTransfer ? 'transfer' : 'hold queue'} confirmed (${Math.round(eventAge / 1000)}s ago) — ending call`
