@@ -137,27 +137,32 @@ export async function executeCall(
       const dbCall = await callHistoryService.getCall(callSid);
       if (dbCall?.status === 'completed' || dbCall?.status === 'failed') break;
 
-      // Early exit: if we've reached hold queue or transfer, wait 15s to confirm
-      // (avoids false exits when IVR is just slow to process, e.g., DOB verification)
+      // Early exit on hold or transfer detection
       if (dbCall) {
-        const holdOrTransfer = (dbCall.events || []).filter(
-          (e: { eventType: string; timestamp?: string | Date }) =>
-            e.eventType === 'hold' || e.eventType === 'transfer'
-        );
-        if (holdOrTransfer.length > 0) {
-          const latestEvent = holdOrTransfer[holdOrTransfer.length - 1] as {
-            eventType: string;
-            timestamp?: string | Date;
-          };
-          const eventAge = latestEvent.timestamp
-            ? Date.now() - new Date(latestEvent.timestamp).getTime()
+        const events = (dbCall.events || []) as Array<{
+          eventType: string;
+          timestamp?: string | Date;
+        }>;
+        const hasTransfer = events.some(e => e.eventType === 'transfer');
+        const holdEvents = events.filter(e => e.eventType === 'hold');
+
+        // Transfers: exit immediately (AI confirmed a human)
+        if (hasTransfer) {
+          console.log('🏁 Early exit: transfer detected — ending call');
+          durationSeconds = Math.round((Date.now() - startTime) / 1000);
+          await telnyxService.terminateCall(callSid).catch(() => {});
+          break;
+        }
+
+        // Hold: wait 15s to confirm (silent timer can false-positive during slow IVR processing)
+        if (holdEvents.length > 0) {
+          const latestHold = holdEvents[holdEvents.length - 1];
+          const holdAge = latestHold.timestamp
+            ? Date.now() - new Date(latestHold.timestamp).getTime()
             : 0;
-          const nearTimeout =
-            (Date.now() - startTime) / 1000 > maxDuration - 30;
-          if (eventAge > 15_000 || nearTimeout) {
-            const isTransfer = latestEvent.eventType === 'transfer';
+          if (holdAge > 15_000) {
             console.log(
-              `🏁 Early exit: ${isTransfer ? 'transfer' : 'hold queue'} confirmed (${Math.round(eventAge / 1000)}s ago) — ending call`
+              `🏁 Early exit: hold queue confirmed (${Math.round(holdAge / 1000)}s ago) — ending call`
             );
             durationSeconds = Math.round((Date.now() - startTime) / 1000);
             await telnyxService.terminateCall(callSid).catch(() => {});
