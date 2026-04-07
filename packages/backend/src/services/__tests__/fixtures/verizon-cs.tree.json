@@ -2,7 +2,7 @@
   "version": 2,
   "id": "verizon-cs",
   "testCaseId": "verizon-cs",
-  "lastRecordedAt": "2026-04-06T14:08:07.812Z",
+  "lastRecordedAt": "2026-04-07T23:19:34.096Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,8 +23,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-03T16:48:21.714Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-07T23:19:34.096Z",
+        "isLatestPath": true,
         "child": {
           "id": "n1",
           "ivrSpeech": "Verizon is here to help. We in our partners May Monitor and record calls for quality.",
@@ -717,8 +717,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-29T17:52:42.538Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-07T23:19:34.096Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n12",
                 "ivrSpeech": "Okay. 7 2 0 5 8 4 6, 3 5 8. Did I get that right?",
@@ -1370,6 +1370,144 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-07T23:19:34.096Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n69",
+                      "ivrSpeech": "I",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "I don't have one",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-07T23:19:34.096Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n70",
+                            "ivrSpeech": "understand you'd like to speak to a live agent. To make sure connect you to the right team, could you tell me a bit more? For example, are you calling about a payment arrangement? An unexpected charge, a new device, or perhaps a technical issue?",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "unexpected charge",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-07T23:19:34.096Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n71",
+                                  "ivrSpeech": "I can understand your frustration, but I'm here to help. To make sure I connect you to the right team, could you tell me a bit more? For example, are you calling about a payment arrangement? An unexpected charge, a new device, or perhaps a technical issue?",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "technical issue",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-07T23:19:34.096Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n72",
+                                        "ivrSpeech": "I am sorry. I couldn't hear you. To make sure I get you to the right right team, could you tell me a bit more? For example, are you calling about a payment arrangement, an unexpected charge, a new device, or perhaps technical issue?",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "technical issue",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-07T23:19:34.096Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n73",
+                                              "ivrSpeech": "Thank you for choosing Verizon. Have a great day.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "press_digit",
+                                                    "digit": "4",
+                                                    "reason": "AI selected: The system is offering options, and I need to select a valid option to reach a representative.",
+                                                    "detected": {
+                                                      "isIVRMenu": true,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": true,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-07T23:19:34.096Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 141,
+                                                    "reachedHuman": false,
+                                                    "dtmfDigits": ["4"]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               }
@@ -1392,7 +1530,7 @@
           }
         },
         "recordedAt": "2026-04-06T14:08:07.812Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n66",
           "ivrSpeech": "Okay. What can I help you with today?",
@@ -1412,7 +1550,7 @@
                 }
               },
               "recordedAt": "2026-04-06T14:08:07.812Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n67",
                 "ivrSpeech": "I understand you'd like to speak to a live agent. To make sure I connect you to the right team, Could you tell me a bit more? For example, are you calling about a payment arrangement, an unexpected charge, a new device, or perhaps a technical issue?",
@@ -1432,7 +1570,7 @@
                       }
                     },
                     "recordedAt": "2026-04-06T14:08:07.812Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n68",
                       "ivrSpeech": "So I can help you with that. Are you calling about your personal or business account?",
@@ -1452,7 +1590,7 @@
                             }
                           },
                           "recordedAt": "2026-04-06T14:08:07.812Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "terminal": true,
                             "finalStatus": "initiated",

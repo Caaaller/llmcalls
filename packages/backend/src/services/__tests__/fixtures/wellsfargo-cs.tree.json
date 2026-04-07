@@ -2,7 +2,7 @@
   "version": 2,
   "id": "wellsfargo-cs",
   "testCaseId": "wellsfargo-cs",
-  "lastRecordedAt": "2026-04-06T14:08:07.301Z",
+  "lastRecordedAt": "2026-04-07T23:19:33.317Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
           }
         },
         "recordedAt": "2026-04-06T14:08:07.301Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n1",
           "ivrSpeech": "This call may be recorded monitored, or analyzed by Wells, Fargo and its service providers.",
@@ -43,7 +43,7 @@
                 }
               },
               "recordedAt": "2026-04-06T14:08:07.301Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "Monitor.",
@@ -358,7 +358,7 @@
                       }
                     },
                     "recordedAt": "2026-04-06T14:08:07.301Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n46",
                       "ivrSpeech": "Alright. Other options. You can say open a new account, find a branch or ATM, verify an account, or damaged card. Otherwise, to access your account, say or enter the account or card number you're calling about.",
@@ -378,7 +378,7 @@
                             }
                           },
                           "recordedAt": "2026-04-06T14:08:07.301Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n47",
                             "ivrSpeech": "I'll connect you to a banker. But first, please use a short phrase to describe what you're calling about. You can say things order new checks or change my PIN. These are just examples. So tell me what you're calling about.",
@@ -444,7 +444,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-06T14:08:07.301Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n49",
                                   "ivrSpeech": "I'll connect you to a banker. But first, please use a short phrase to describe what you're calling about. You can say things like,",
@@ -463,7 +463,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-06T14:08:07.301Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n50",
                                         "ivrSpeech": "order new checks or change my PIN. These are just examples. So tell me what you're calling about,",
@@ -483,7 +483,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-06T14:08:07.301Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n51",
                                               "ivrSpeech": "If you would like to receive written from Wells Fargo in an alternative format, in compliance with the Americans with Disabilities Act. Please let a representative know or contact us at 1806424720. By the way, you can also find tax related interest information on your year end statements or online at wellsfargo.com. Please hold while I connect you with a banker who can assist you.",
@@ -502,7 +502,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-06T14:08:07.301Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "terminal": true,
                                                     "finalStatus": "initiated",
@@ -928,6 +928,165 @@
                                                   }
                                                 }
                                               ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "aiAction": {
+          "action": "speak",
+          "speech": "representative",
+          "reason": "",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-07T23:19:33.317Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n52",
+          "ivrSpeech": "This call may be recorded, monitored, or analyzed by Wells Fargo and its service providers.",
+          "children": [
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-07T23:19:33.317Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n53",
+                "ivrSpeech": "For Wells Fargo For account access or questions, say your account or card number or enter it followed by pound. For anything else, say other options.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-07T23:19:33.317Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n54",
+                      "ivrSpeech": "For account access, say your account or card number one digit at a time or enter it followed by pound. You can also say other options or press 1.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "other options",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-07T23:19:33.317Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n55",
+                            "ivrSpeech": "Alright. Other options. You can say, open a new account, find a branch or ATM, verify an account, or damaged card. Otherwise, to access your account, say or enter the account or card number you're calling about.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "open a new account",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-07T23:19:33.317Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n56",
+                                  "ivrSpeech": "To open a new account, press 1 or say open a new account. To locate a branch or ATM, press 2 or say find a branch. To verify an account, press 3 or say verify account. Or to report a damaged card, press 4 or say damaged card.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-07T23:19:33.317Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n57",
+                                        "ivrSpeech": "To open a new account, press 1 or say open a new account. To locate a branch or ATM, press 2 or say find a branch. To verify an account, press 3 or say verify account. Or to report a damaged card, press 4 or say damaged card. Otherwise, to access your account, enter or say the account or card number you're calling about.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "representative",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-07T23:19:33.317Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 105,
+                                              "reachedHuman": true,
+                                              "dtmfDigits": []
                                             }
                                           }
                                         ]

@@ -2,7 +2,7 @@
   "version": 2,
   "id": "target-cs",
   "testCaseId": "target-cs",
-  "lastRecordedAt": "2026-04-06T14:08:06.888Z",
+  "lastRecordedAt": "2026-04-07T23:26:30.522Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
           }
         },
         "recordedAt": "2026-04-06T14:08:06.888Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n1",
           "ivrSpeech": "In store purchase,",
@@ -466,7 +466,7 @@
                 }
               },
               "recordedAt": "2026-04-06T14:08:06.888Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n16",
                 "ivrSpeech": "Sorry. We didn't get that. Please try again. In store purchase, experience, or merchandise, Target store experience, press 1.",
@@ -486,7 +486,7 @@
                       }
                     },
                     "recordedAt": "2026-04-06T14:08:06.888Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "terminal": true,
                       "finalStatus": "initiated",
@@ -496,6 +496,53 @@
                     }
                   }
                 ]
+              }
+            }
+          ]
+        }
+      },
+      {
+        "aiAction": {
+          "action": "speak",
+          "speech": "question about a recent in-store purchase",
+          "reason": "",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-07T23:26:30.521Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n17",
+          "ivrSpeech": "In store purchase, experience, or merchandise, press 1. Gift registry, press 2.",
+          "children": [
+            {
+              "aiAction": {
+                "action": "press_digit",
+                "digit": "1",
+                "reason": "AI selected: This is a menu with options, and I need to select the one that matches my call purpose.",
+                "detected": {
+                  "isIVRMenu": true,
+                  "menuOptions": [],
+                  "isMenuComplete": true,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-07T23:26:30.522Z",
+              "isLatestPath": true,
+              "child": {
+                "terminal": true,
+                "finalStatus": "initiated",
+                "durationSeconds": 54,
+                "reachedHuman": true,
+                "dtmfDigits": ["1"]
               }
             }
           ]

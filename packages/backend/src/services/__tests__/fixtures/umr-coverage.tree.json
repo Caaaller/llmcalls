@@ -2,7 +2,7 @@
   "version": 2,
   "id": "umr-coverage",
   "testCaseId": "umr-coverage",
-  "lastRecordedAt": "2026-04-06T14:08:08.168Z",
+  "lastRecordedAt": "2026-04-07T23:19:34.353Z",
   "config": {
     "callPurpose": "Coverage question"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-06T14:08:08.168Z",
+        "recordedAt": "2026-04-07T23:19:34.352Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -43,7 +43,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-06T14:08:08.168Z",
+              "recordedAt": "2026-04-07T23:19:34.353Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -816,7 +816,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-06T14:08:08.168Z",
+                    "recordedAt": "2026-04-07T23:19:34.353Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n33",
@@ -836,7 +836,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-06T14:08:08.168Z",
+                          "recordedAt": "2026-04-07T23:19:34.353Z",
                           "isLatestPath": true,
                           "child": {
                             "id": "n34",
@@ -856,7 +856,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-06T14:08:08.168Z",
+                                "recordedAt": "2026-04-07T23:19:34.353Z",
                                 "isLatestPath": true,
                                 "child": {
                                   "id": "n35",
@@ -875,7 +875,7 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-06T14:08:08.168Z",
+                                      "recordedAt": "2026-04-07T23:19:34.353Z",
                                       "isLatestPath": true,
                                       "child": {
                                         "id": "n36",
@@ -896,7 +896,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-06T14:08:08.168Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n37",
                                               "ivrSpeech": "other insurance, accident details, flexible spending, nurse line, and prior authorization. Tell me what are you calling about today?",
@@ -916,7 +916,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-06T14:08:08.168Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n38",
                                                     "ivrSpeech": "Sure. I can help you with that. Let's verify a few things first. What's your member ID?",
@@ -936,7 +936,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-04-06T14:08:08.168Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n39",
                                                           "ivrSpeech": "I didn't hear anything. Can you please tell me the member ID?",
@@ -956,7 +956,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-04-06T14:08:08.168Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "id": "n40",
                                                                 "ivrSpeech": "Okay. Got it. Can you please tell me the date of birth including the four digit year?",
@@ -976,7 +976,7 @@
                                                                       }
                                                                     },
                                                                     "recordedAt": "2026-04-06T14:08:08.168Z",
-                                                                    "isLatestPath": true,
+                                                                    "isLatestPath": false,
                                                                     "child": {
                                                                       "id": "n41",
                                                                       "ivrSpeech": "I didn't hear anything. Can you please tell me the date of birth?",
@@ -996,7 +996,7 @@
                                                                             }
                                                                           },
                                                                           "recordedAt": "2026-04-06T14:08:08.168Z",
-                                                                          "isLatestPath": true,
+                                                                          "isLatestPath": false,
                                                                           "child": {
                                                                             "id": "n42",
                                                                             "ivrSpeech": "Thanks. Let me pull up your account details.",
@@ -1015,7 +1015,7 @@
                                                                                   }
                                                                                 },
                                                                                 "recordedAt": "2026-04-06T14:08:08.168Z",
-                                                                                "isLatestPath": true,
+                                                                                "isLatestPath": false,
                                                                                 "child": {
                                                                                   "terminal": true,
                                                                                   "finalStatus": "initiated",
@@ -1040,6 +1040,29 @@
                                                   }
                                                 }
                                               ]
+                                            }
+                                          },
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-07T23:19:34.353Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 88,
+                                              "reachedHuman": false,
+                                              "dtmfDigits": []
                                             }
                                           }
                                         ]

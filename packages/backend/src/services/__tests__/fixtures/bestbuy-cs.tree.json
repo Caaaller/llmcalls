@@ -2,7 +2,7 @@
   "version": 2,
   "id": "bestbuy-cs",
   "testCaseId": "bestbuy-cs",
-  "lastRecordedAt": "2026-04-06T14:08:07.149Z",
+  "lastRecordedAt": "2026-04-07T23:19:33.183Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-06T14:08:07.148Z",
+        "recordedAt": "2026-04-07T23:19:33.183Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -683,7 +683,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-06T14:08:07.148Z",
+              "recordedAt": "2026-04-07T23:19:33.183Z",
               "isLatestPath": true,
               "child": {
                 "id": "n29",
@@ -703,7 +703,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-06T14:08:07.148Z",
+                    "recordedAt": "2026-04-07T23:19:33.183Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n30",
@@ -769,7 +769,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-06T14:08:07.148Z",
+                          "recordedAt": "2026-04-07T23:19:33.183Z",
                           "isLatestPath": true,
                           "child": {
                             "id": "n32",
@@ -789,8 +789,8 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-05T21:04:14.190Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-07T23:19:33.183Z",
+                                "isLatestPath": true,
                                 "child": {
                                   "id": "n41",
                                   "ivrSpeech": "I didn't hear that.",
@@ -945,8 +945,8 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-05T21:04:14.190Z",
-                                      "isLatestPath": false,
+                                      "recordedAt": "2026-04-07T23:19:33.183Z",
+                                      "isLatestPath": true,
                                       "child": {
                                         "id": "n67",
                                         "ivrSpeech": "what was the phone number on this order?",
@@ -1066,6 +1066,29 @@
                                                 }
                                               ]
                                             }
+                                          },
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-07T23:19:33.183Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 130,
+                                              "reachedHuman": true,
+                                              "dtmfDigits": []
+                                            }
                                           }
                                         ]
                                       }
@@ -1087,7 +1110,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-06T14:08:07.148Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n33",
                                   "ivrSpeech": "What was the phone number on this order?",
@@ -1107,7 +1130,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-06T14:08:07.148Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n72",
                                         "ivrSpeech": "I couldn't find any orders associated with that phone number. Let's try again. You can also use your keypad to enter the complete 10 digit phone number. What was the phone number on this order?",
@@ -1126,7 +1149,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-06T14:08:07.149Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n73",
                                               "ivrSpeech": "I didn't hear that. What was the phone number on this order?",
@@ -1146,7 +1169,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-06T14:08:07.149Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n74",
                                                     "ivrSpeech": "Sorry. That still didn't work. To look up your full order info, go to bestbuy.com/orders. All updates are immediately displayed on that page. So connecting with an agent will not provide more information. Could we send you a one time text with a link to that page?",
@@ -1166,7 +1189,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-04-06T14:08:07.149Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n75",
                                                           "ivrSpeech": "okay. Let's get you the support you need.",
@@ -1185,7 +1208,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-04-06T14:08:07.149Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "id": "n76",
                                                                 "ivrSpeech": "All agents are busy at this time. Please hold.",
@@ -1205,7 +1228,7 @@
                                                                       }
                                                                     },
                                                                     "recordedAt": "2026-04-06T14:08:07.149Z",
-                                                                    "isLatestPath": true,
+                                                                    "isLatestPath": false,
                                                                     "child": {
                                                                       "terminal": true,
                                                                       "finalStatus": "initiated",

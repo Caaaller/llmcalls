@@ -2,7 +2,7 @@
   "version": 2,
   "id": "att-cs",
   "testCaseId": "att-cs",
-  "lastRecordedAt": "2026-04-06T14:08:07.618Z",
+  "lastRecordedAt": "2026-04-07T23:19:33.576Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
           }
         },
         "recordedAt": "2026-04-06T14:08:07.618Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n1",
           "ivrSpeech": "What's the issue you're calling about?",
@@ -1656,7 +1656,7 @@
                 }
               },
               "recordedAt": "2026-04-06T14:08:07.618Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n13",
                 "ivrSpeech": "About.",
@@ -1859,7 +1859,7 @@
                       }
                     },
                     "recordedAt": "2026-04-06T14:08:07.618Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n20",
                       "ivrSpeech": "How can I assist you today?",
@@ -1879,7 +1879,7 @@
                             }
                           },
                           "recordedAt": "2026-04-06T14:08:07.618Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n21",
                             "ivrSpeech": "so I can help you.",
@@ -1898,7 +1898,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-06T14:08:07.618Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n22",
                                   "ivrSpeech": "Can you repeat the number please?",
@@ -1918,7 +1918,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-06T14:08:07.618Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n23",
                                         "ivrSpeech": "Are you still there? Can you tell me the account number or phone number on the account?",
@@ -2053,7 +2053,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-06T14:08:07.618Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n132",
                                               "ivrSpeech": "Please wait.",
@@ -2073,7 +2073,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n133",
                                                     "ivrSpeech": "Let me find someone to help you.",
@@ -2093,7 +2093,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n134",
                                                           "ivrSpeech": "All of our representatives are assisting other callers. Rather than have you wait on hold, we can call you back when it's your turn. Between one hour. And fifteen minutes. And one hour.",
@@ -2113,7 +2113,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "id": "n135",
                                                                 "ivrSpeech": "And fifty three minutes. From now. You will not lose your place in line if you choose to use this service. With a callback, you also receive the benefit of text message updates. To receive a callback as soon as possible, press 1. To decline and hold for a representative, press 3. To schedule a callback for a later time, press 4.",
@@ -2133,7 +2133,7 @@
                                                                       }
                                                                     },
                                                                     "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                    "isLatestPath": true,
+                                                                    "isLatestPath": false,
                                                                     "child": {
                                                                       "id": "n136",
                                                                       "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. With a callback. You also receive the benefit of text message updates. To receive a I have your phone number as three 035518171. If that's right. Press 1. To reenter your number, press 2.",
@@ -2153,7 +2153,7 @@
                                                                             }
                                                                           },
                                                                           "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                          "isLatestPath": true,
+                                                                          "isLatestPath": false,
                                                                           "child": {
                                                                             "id": "n137",
                                                                             "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. I have your phone number as (303) 551-8171. If that's right.",
@@ -2172,7 +2172,7 @@
                                                                                   }
                                                                                 },
                                                                                 "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                "isLatestPath": true,
+                                                                                "isLatestPath": false,
                                                                                 "child": {
                                                                                   "id": "n138",
                                                                                   "ivrSpeech": "Starting with the area code, please enter your 10 digit phone number. Followed by the pound key.",
@@ -2192,7 +2192,7 @@
                                                                                         }
                                                                                       },
                                                                                       "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                      "isLatestPath": true,
+                                                                                      "isLatestPath": false,
                                                                                       "child": {
                                                                                         "id": "n139",
                                                                                         "ivrSpeech": "I'm sorry. The phone number you entered is not a valid number. Starting with the area",
@@ -2212,7 +2212,7 @@
                                                                                               }
                                                                                             },
                                                                                             "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                            "isLatestPath": true,
+                                                                                            "isLatestPath": false,
                                                                                             "child": {
                                                                                               "id": "n140",
                                                                                               "ivrSpeech": "I'm sorry. The phone number you entered",
@@ -2232,7 +2232,7 @@
                                                                                                     }
                                                                                                   },
                                                                                                   "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                                  "isLatestPath": true,
+                                                                                                  "isLatestPath": false,
                                                                                                   "child": {
                                                                                                     "id": "n141",
                                                                                                     "ivrSpeech": "I'm sorry. The phone number you entered is not a valid number. Starting with the area code, please enter your 10 digit phone number. Followed by the pound key.",
@@ -2252,7 +2252,7 @@
                                                                                                           }
                                                                                                         },
                                                                                                         "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                                        "isLatestPath": true,
+                                                                                                        "isLatestPath": false,
                                                                                                         "child": {
                                                                                                           "id": "n142",
                                                                                                           "ivrSpeech": "I'm sorry. You've reached the maximum number of attempts allowed. Calls are recorded for quality and the purposes stated in our privacy notice. Please stay on the line for the next available representative. Current hold time is between one hour and fifteen minutes. And one hour. And fifty three minutes. From now.",
@@ -2271,7 +2271,7 @@
                                                                                                                 }
                                                                                                               },
                                                                                                               "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                                              "isLatestPath": true,
+                                                                                                              "isLatestPath": false,
                                                                                                               "child": {
                                                                                                                 "id": "n143",
                                                                                                                 "ivrSpeech": "One moment while I get an agent to help you.",
@@ -2291,7 +2291,7 @@
                                                                                                                       }
                                                                                                                     },
                                                                                                                     "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                                                    "isLatestPath": true,
+                                                                                                                    "isLatestPath": false,
                                                                                                                     "child": {
                                                                                                                       "id": "n144",
                                                                                                                       "ivrSpeech": "All of our service representatives are currently helping other customers. We are experiencing heavy call volumes, which may result in a delay of more than ten minutes before being connected to a representative,",
@@ -2311,7 +2311,7 @@
                                                                                                                             }
                                                                                                                           },
                                                                                                                           "recordedAt": "2026-04-06T14:08:07.618Z",
-                                                                                                                          "isLatestPath": true,
+                                                                                                                          "isLatestPath": false,
                                                                                                                           "child": {
                                                                                                                             "terminal": true,
                                                                                                                             "finalStatus": "initiated",
@@ -2837,8 +2837,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-03-22T21:08:47.772Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-07T23:19:33.576Z",
+        "isLatestPath": true,
         "child": {
           "id": "n18",
           "ivrSpeech": "So, I can help you what's the account number or phone number on the account.",
@@ -2885,6 +2885,142 @@
                       "durationSeconds": 88,
                       "reachedHuman": false,
                       "dtmfDigits": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-07T23:19:33.576Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n145",
+                "ivrSpeech": "If I don't get a valid soon, I will need to",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "representative",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-07T23:19:33.576Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n146",
+                      "ivrSpeech": "I understand you want to speak to an agent, but without more information, you may choose the wrong agent.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "billing question",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-07T23:19:33.576Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n147",
+                            "ivrSpeech": "Please wait.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-07T23:19:33.576Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n148",
+                                  "ivrSpeech": "Let me find someone to help you.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-07T23:19:33.576Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n149",
+                                        "ivrSpeech": "We are experiencing longer than normal wait times. For your convenience, we'd like to offer you the chance to schedule a callback for a later time. With a callback, you also receive the benefit of text message updates.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "callback",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-07T23:19:33.576Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 94,
+                                              "reachedHuman": true,
+                                              "dtmfDigits": []
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
                     }
                   }
                 ]
