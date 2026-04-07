@@ -2,7 +2,7 @@
   "version": 2,
   "id": "verizon-cs",
   "testCaseId": "verizon-cs",
-  "lastRecordedAt": "2026-03-29T18:25:18.890Z",
+  "lastRecordedAt": "2026-04-06T14:08:07.812Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-03-29T18:01:07.745Z",
+        "recordedAt": "2026-04-03T16:48:21.714Z",
         "isLatestPath": false,
         "child": {
           "id": "n1",
@@ -42,7 +42,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-29T18:01:07.745Z",
+              "recordedAt": "2026-04-03T16:48:21.714Z",
               "isLatestPath": false,
               "child": {
                 "id": "n2",
@@ -62,7 +62,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-03-29T18:01:07.745Z",
+                    "recordedAt": "2026-04-03T16:48:21.714Z",
                     "isLatestPath": false,
                     "child": {
                       "id": "n3",
@@ -291,7 +291,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-03-29T18:01:07.745Z",
+                          "recordedAt": "2026-04-03T16:48:21.714Z",
                           "isLatestPath": false,
                           "child": {
                             "id": "n38",
@@ -311,7 +311,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-03-29T18:01:07.745Z",
+                                "recordedAt": "2026-04-03T16:48:21.714Z",
                                 "isLatestPath": false,
                                 "child": {
                                   "id": "n39",
@@ -440,6 +440,239 @@
                                                                       "dtmfDigits": [
                                                                         "7",
                                                                         "1"
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "representative",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-03T16:48:21.714Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 142,
+                                        "reachedHuman": false,
+                                        "dtmfDigits": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-03T01:21:30.459Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n58",
+                                  "ivrSpeech": "your request could not be processed. If you'd like to continue, say continue or press one. Say start over or press 2. Otherwise, please hang up and call back.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "press_digit",
+                                        "digit": "1",
+                                        "reason": "AI selected: System is offering to continue or start over. Pressing 1 to continue so we can reach a representative.",
+                                        "detected": {
+                                          "isIVRMenu": true,
+                                          "menuOptions": [],
+                                          "isMenuComplete": true,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-03T01:21:30.459Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n59",
+                                        "ivrSpeech": "Your request could not be processed. If you'd like to continue, say continue or press 1. Say start over or press 2. Otherwise, please hang up and call back.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "Representative",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-03T01:21:30.459Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n60",
+                                              "ivrSpeech": "Hello?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-03T01:21:30.459Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n61",
+                                                    "ivrSpeech": "Before I transfer you to a customer service representative, do you need to discuss mobile services like cell phones? Five g home Internet, or LTE home Internet?",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "Yes",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-03T01:21:30.459Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n62",
+                                                          "ivrSpeech": "I'm sorry. I didn't hear you. Before I transfer you to a customer service representative, do you need to discuss mobile services like cell phones? Five g home Internet, or LTE home Internet?",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "Yes",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-03T01:21:30.459Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n63",
+                                                                "ivrSpeech": "I'm sorry. We're having trouble. To speak with someone about Verizon Wireless mobile services, such as cell phones, five g home Internet, or LTE home Internet, please say yes or press 1. To speak with someone about Fios Internet, TV, or home phone services, say no or press 2.",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "press_digit",
+                                                                      "digit": "1",
+                                                                      "reason": "AI selected: This is a clear IVR menu asking about mobile services. Pressing 1 for Verizon Wireless mobile services to get to a representative. The awaitingHumanConfirmation state was from a previous exchange that turned out to be the IVR, not a human.",
+                                                                      "detected": {
+                                                                        "isIVRMenu": true,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": true,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-03T01:21:30.460Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "id": "n64",
+                                                                      "ivrSpeech": "I'm sorry. I didn't get the correct number of digits. In order for me to transfer you to the right representative, I need to know the five digit ZIP code for the Verizon service you are calling about. If you don't know the ZIP code, tell me the state.",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "speak",
+                                                                            "speech": "Colorado",
+                                                                            "reason": "",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-03T01:21:30.460Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n65",
+                                                                            "ivrSpeech": "To better direct your call, tell me or enter your ZIP code. If you don't know it, tell me the state.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "speak",
+                                                                                  "speech": "8 0 2 0 3",
+                                                                                  "reason": "",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-03T01:21:30.460Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "terminal": true,
+                                                                                  "finalStatus": "initiated",
+                                                                                  "durationSeconds": 236,
+                                                                                  "reachedHuman": false,
+                                                                                  "dtmfDigits": [
+                                                                                    "1",
+                                                                                    "1"
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
                                                                       ]
                                                                     }
                                                                   }
@@ -1158,16 +1391,16 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-03-29T18:25:18.890Z",
+        "recordedAt": "2026-04-06T14:08:07.812Z",
         "isLatestPath": true,
         "child": {
-          "id": "n45",
-          "ivrSpeech": "Are you calling for a business or for personal account?",
+          "id": "n66",
+          "ivrSpeech": "Okay. What can I help you with today?",
           "children": [
             {
               "aiAction": {
                 "action": "speak",
-                "speech": "Personal.",
+                "speech": "representative",
                 "reason": "",
                 "detected": {
                   "isIVRMenu": false,
@@ -1178,16 +1411,16 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-29T18:25:18.890Z",
+              "recordedAt": "2026-04-06T14:08:07.812Z",
               "isLatestPath": true,
               "child": {
-                "id": "n46",
-                "ivrSpeech": "I'm sorry, I didn't hear you.",
+                "id": "n67",
+                "ivrSpeech": "I understand you'd like to speak to a live agent. To make sure I connect you to the right team, Could you tell me a bit more? For example, are you calling about a payment arrangement, an unexpected charge, a new device, or perhaps a technical issue?",
                 "children": [
                   {
                     "aiAction": {
                       "action": "speak",
-                      "speech": "Personal.",
+                      "speech": "payment arrangement",
                       "reason": "",
                       "detected": {
                         "isIVRMenu": false,
@@ -1198,16 +1431,16 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-03-29T18:25:18.890Z",
+                    "recordedAt": "2026-04-06T14:08:07.812Z",
                     "isLatestPath": true,
                     "child": {
-                      "id": "n47",
-                      "ivrSpeech": "I need to know the type of service you want help with today. Say either Mobile, 5G Home Internet, LTE Home Internet, Fios Home Internet, Fios TV, Home Phone, Connected Car, New Customer, or something else.",
+                      "id": "n68",
+                      "ivrSpeech": "So I can help you with that. Are you calling about your personal or business account?",
                       "children": [
                         {
                           "aiAction": {
                             "action": "speak",
-                            "speech": "Something else.",
+                            "speech": "personal account",
                             "reason": "",
                             "detected": {
                               "isIVRMenu": false,
@@ -1218,269 +1451,14 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-03-29T18:25:18.890Z",
+                          "recordedAt": "2026-04-06T14:08:07.812Z",
                           "isLatestPath": true,
                           "child": {
-                            "id": "n48",
-                            "ivrSpeech": "I'm sorry, I didn't hear.",
-                            "children": [
-                              {
-                                "aiAction": {
-                                  "action": "speak",
-                                  "speech": "Something else.",
-                                  "reason": "",
-                                  "detected": {
-                                    "isIVRMenu": false,
-                                    "menuOptions": [],
-                                    "isMenuComplete": false,
-                                    "loopDetected": false,
-                                    "shouldTerminate": false,
-                                    "transferRequested": false
-                                  }
-                                },
-                                "recordedAt": "2026-03-29T18:13:43.039Z",
-                                "isLatestPath": false,
-                                "child": {
-                                  "id": "n49",
-                                  "ivrSpeech": "Okay, what's the five-digit zip code for the Verizon service you are calling about? If you don't know...",
-                                  "children": [
-                                    {
-                                      "aiAction": {
-                                        "action": "speak",
-                                        "speech": "I don't know.",
-                                        "reason": "",
-                                        "detected": {
-                                          "isIVRMenu": false,
-                                          "menuOptions": [],
-                                          "isMenuComplete": false,
-                                          "loopDetected": false,
-                                          "shouldTerminate": false,
-                                          "transferRequested": false
-                                        }
-                                      },
-                                      "recordedAt": "2026-03-29T18:13:43.039Z",
-                                      "isLatestPath": false,
-                                      "child": {
-                                        "id": "n50",
-                                        "ivrSpeech": "I'm sorry. I didn't get that. What's the five-digit zip code for the Verizon sus you are calling about?",
-                                        "children": [
-                                          {
-                                            "aiAction": {
-                                              "action": "speak",
-                                              "speech": "Representative",
-                                              "reason": "",
-                                              "detected": {
-                                                "isIVRMenu": false,
-                                                "menuOptions": [],
-                                                "isMenuComplete": false,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-03-29T18:13:43.039Z",
-                                            "isLatestPath": false,
-                                            "child": {
-                                              "id": "n51",
-                                              "ivrSpeech": "To become a Verizon mobile customer or for prepaid service support, press 1. Make a payment on a disconnected mobile account or collection notice, 2. Support for your new or existing Fios and in-home phone service, internet, and TV, 3. Help getting the mobile number for a device, 4. Check status of an order or device recycling request, 5. For your connected car Wi-Fi, 6. Anything else, press 7.",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "press_digit",
-                                                    "digit": "7",
-                                                    "reason": "AI selected: This is a complete IVR menu. For reaching a live person, the best truthful catch-all option is 'Anything else' which often routes to general support or a representative.",
-                                                    "detected": {
-                                                      "isIVRMenu": true,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": true,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-03-29T18:13:43.039Z",
-                                                  "isLatestPath": false,
-                                                  "child": {
-                                                    "id": "n52",
-                                                    "ivrSpeech": "To become a Verizon mobile customer or for prepaid service support, press 1. Make a payment on a disconnected mobile account or collection notice, 2. Support for your new or existing Fios and in-home phone service, internet, and TV, 3. Help getting the mobile number for a device, 4. Check status of an order or device recycling request, 5. For your connected car Wi-Fi, 6. Anything else, press 7.",
-                                                    "children": [
-                                                      {
-                                                        "aiAction": {
-                                                          "action": "press_digit",
-                                                          "digit": "7",
-                                                          "reason": "AI selected: This is a complete IVR menu and it is repeating, so loop detection applies. 'Anything else' is the best catch-all option to reach a representative.",
-                                                          "detected": {
-                                                            "isIVRMenu": true,
-                                                            "menuOptions": [],
-                                                            "isMenuComplete": true,
-                                                            "loopDetected": false,
-                                                            "shouldTerminate": false,
-                                                            "transferRequested": false
-                                                          }
-                                                        },
-                                                        "recordedAt": "2026-03-29T18:13:43.039Z",
-                                                        "isLatestPath": false,
-                                                        "child": {
-                                                          "terminal": true,
-                                                          "finalStatus": "initiated",
-                                                          "durationSeconds": 190,
-                                                          "reachedHuman": false,
-                                                          "dtmfDigits": [
-                                                            "7",
-                                                            "7"
-                                                          ]
-                                                        }
-                                                      }
-                                                    ]
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
-                                }
-                              },
-                              {
-                                "aiAction": {
-                                  "action": "wait",
-                                  "reason": "No action before next speech",
-                                  "detected": {
-                                    "isIVRMenu": false,
-                                    "menuOptions": [],
-                                    "isMenuComplete": false,
-                                    "loopDetected": false,
-                                    "shouldTerminate": false,
-                                    "transferRequested": false
-                                  }
-                                },
-                                "recordedAt": "2026-03-29T18:25:18.890Z",
-                                "isLatestPath": true,
-                                "child": {
-                                  "id": "n53",
-                                  "ivrSpeech": "Are you calling for a business or for personal account?",
-                                  "children": [
-                                    {
-                                      "aiAction": {
-                                        "action": "speak",
-                                        "speech": "Personal account",
-                                        "reason": "",
-                                        "detected": {
-                                          "isIVRMenu": false,
-                                          "menuOptions": [],
-                                          "isMenuComplete": false,
-                                          "loopDetected": false,
-                                          "shouldTerminate": false,
-                                          "transferRequested": false
-                                        }
-                                      },
-                                      "recordedAt": "2026-03-29T18:25:18.890Z",
-                                      "isLatestPath": true,
-                                      "child": {
-                                        "id": "n54",
-                                        "ivrSpeech": "I'm",
-                                        "children": [
-                                          {
-                                            "aiAction": {
-                                              "action": "wait",
-                                              "reason": "No action before next speech",
-                                              "detected": {
-                                                "isIVRMenu": false,
-                                                "menuOptions": [],
-                                                "isMenuComplete": false,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-03-29T18:25:18.890Z",
-                                            "isLatestPath": true,
-                                            "child": {
-                                              "id": "n55",
-                                              "ivrSpeech": "I'm sorry, we're having trouble. If you are calling for a business account, say business or press one. For personal accounts, say personal or press two.",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "press_digit",
-                                                    "digit": "2",
-                                                    "reason": "AI selected: This is a complete IVR menu asking to choose between business and personal. For a representative on a personal account path, select personal.",
-                                                    "detected": {
-                                                      "isIVRMenu": true,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": true,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-03-29T18:25:18.890Z",
-                                                  "isLatestPath": true,
-                                                  "child": {
-                                                    "id": "n56",
-                                                    "ivrSpeech": "You",
-                                                    "children": [
-                                                      {
-                                                        "aiAction": {
-                                                          "action": "wait",
-                                                          "reason": "No action before next speech",
-                                                          "detected": {
-                                                            "isIVRMenu": false,
-                                                            "menuOptions": [],
-                                                            "isMenuComplete": false,
-                                                            "loopDetected": false,
-                                                            "shouldTerminate": false,
-                                                            "transferRequested": false
-                                                          }
-                                                        },
-                                                        "recordedAt": "2026-03-29T18:25:18.890Z",
-                                                        "isLatestPath": true,
-                                                        "child": {
-                                                          "id": "n57",
-                                                          "ivrSpeech": "How you reach Janice at Verizon, it's my pleasure to assist you, how can I help?",
-                                                          "children": [
-                                                            {
-                                                              "aiAction": {
-                                                                "action": "wait",
-                                                                "reason": "No action before next speech",
-                                                                "detected": {
-                                                                  "isIVRMenu": false,
-                                                                  "menuOptions": [],
-                                                                  "isMenuComplete": false,
-                                                                  "loopDetected": false,
-                                                                  "shouldTerminate": false,
-                                                                  "transferRequested": false
-                                                                }
-                                                              },
-                                                              "recordedAt": "2026-03-29T18:25:18.890Z",
-                                                              "isLatestPath": true,
-                                                              "child": {
-                                                                "terminal": true,
-                                                                "finalStatus": "initiated",
-                                                                "durationSeconds": 177,
-                                                                "reachedHuman": true,
-                                                                "dtmfDigits": [
-                                                                  "2"
-                                                                ]
-                                                              }
-                                                            }
-                                                          ]
-                                                        }
-                                                      }
-                                                    ]
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 89,
+                            "reachedHuman": false,
+                            "dtmfDigits": []
                           }
                         }
                       ]

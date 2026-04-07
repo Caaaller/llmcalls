@@ -2,7 +2,7 @@
   "version": 2,
   "id": "att-cs",
   "testCaseId": "att-cs",
-  "lastRecordedAt": "2026-04-05T22:14:36.303Z",
+  "lastRecordedAt": "2026-04-06T14:08:07.618Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-05T22:14:36.302Z",
+        "recordedAt": "2026-04-06T14:08:07.618Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -43,8 +43,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-05T22:14:36.303Z",
-              "isLatestPath": true,
+              "recordedAt": "2026-04-06T02:18:45.184Z",
+              "isLatestPath": false,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "So, I can help you what's the account number or phone number on the account.",
@@ -63,8 +63,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-05T22:14:36.303Z",
-                    "isLatestPath": true,
+                    "recordedAt": "2026-04-06T02:18:45.184Z",
+                    "isLatestPath": false,
                     "child": {
                       "id": "n3",
                       "ivrSpeech": "1 moment please, I found multiple Mobility accounts. What is the wireless number you are calling about",
@@ -83,8 +83,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-05T22:14:36.303Z",
-                          "isLatestPath": true,
+                          "recordedAt": "2026-04-06T02:18:45.184Z",
+                          "isLatestPath": false,
                           "child": {
                             "id": "n4",
                             "ivrSpeech": "Thank you.",
@@ -102,7 +102,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-03T18:14:02.278Z",
+                                "recordedAt": "2026-04-06T02:15:49.453Z",
                                 "isLatestPath": false,
                                 "child": {
                                   "id": "n5",
@@ -122,7 +122,7 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-03T18:14:02.278Z",
+                                      "recordedAt": "2026-04-06T02:15:49.453Z",
                                       "isLatestPath": false,
                                       "child": {
                                         "id": "n6",
@@ -150,6 +150,304 @@
                                               "reachedHuman": true,
                                               "dtmfDigits": []
                                             }
+                                          },
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "pay my bill",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-06T02:15:49.453Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n84",
+                                              "ivrSpeech": "Please wait.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-06T00:38:42.058Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 104,
+                                                    "reachedHuman": true,
+                                                    "dtmfDigits": []
+                                                  }
+                                                },
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "billing",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-06T02:15:49.453Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n96",
+                                                    "ivrSpeech": "If I don't hear some",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "representative",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n97",
+                                                          "ivrSpeech": "Let me check.",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "billing question",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n98",
+                                                                "ivrSpeech": "You can find your AT and T account number online. Or you can find it in the top right corner of your paper bill. Can I text you a link with more information?",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "speak",
+                                                                      "speech": "No, can I speak with a representative?",
+                                                                      "reason": "",
+                                                                      "detected": {
+                                                                        "isIVRMenu": false,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": false,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "id": "n99",
+                                                                      "ivrSpeech": "Sorry. I text you a link with more information?",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "speak",
+                                                                            "speech": "representative",
+                                                                            "reason": "",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n100",
+                                                                            "ivrSpeech": "Sorry. I missed that. Can I text you a link with more information?",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "wait",
+                                                                                  "reason": "No action before next speech",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "id": "n101",
+                                                                                  "ivrSpeech": "Please say what you would like to do next.",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "speak",
+                                                                                        "speech": "speak with a representative",
+                                                                                        "reason": "",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": false,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": false,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                                                      "isLatestPath": false,
+                                                                                      "child": {
+                                                                                        "id": "n102",
+                                                                                        "ivrSpeech": "Do you need assistance?",
+                                                                                        "children": [
+                                                                                          {
+                                                                                            "aiAction": {
+                                                                                              "action": "speak",
+                                                                                              "speech": "representative",
+                                                                                              "reason": "",
+                                                                                              "detected": {
+                                                                                                "isIVRMenu": false,
+                                                                                                "menuOptions": [],
+                                                                                                "isMenuComplete": false,
+                                                                                                "loopDetected": false,
+                                                                                                "shouldTerminate": false,
+                                                                                                "transferRequested": false
+                                                                                              }
+                                                                                            },
+                                                                                            "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                                                            "isLatestPath": false,
+                                                                                            "child": {
+                                                                                              "id": "n103",
+                                                                                              "ivrSpeech": "Please wait.",
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "aiAction": {
+                                                                                                    "action": "wait",
+                                                                                                    "reason": "No action before next speech",
+                                                                                                    "detected": {
+                                                                                                      "isIVRMenu": false,
+                                                                                                      "menuOptions": [],
+                                                                                                      "isMenuComplete": false,
+                                                                                                      "loopDetected": false,
+                                                                                                      "shouldTerminate": false,
+                                                                                                      "transferRequested": false
+                                                                                                    }
+                                                                                                  },
+                                                                                                  "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                                                                  "isLatestPath": false,
+                                                                                                  "child": {
+                                                                                                    "id": "n104",
+                                                                                                    "ivrSpeech": "One moment please while I handle your request.",
+                                                                                                    "children": [
+                                                                                                      {
+                                                                                                        "aiAction": {
+                                                                                                          "action": "speak",
+                                                                                                          "speech": "billing question",
+                                                                                                          "reason": "",
+                                                                                                          "detected": {
+                                                                                                            "isIVRMenu": false,
+                                                                                                            "menuOptions": [],
+                                                                                                            "isMenuComplete": false,
+                                                                                                            "loopDetected": false,
+                                                                                                            "shouldTerminate": false,
+                                                                                                            "transferRequested": false
+                                                                                                          }
+                                                                                                        },
+                                                                                                        "recordedAt": "2026-04-06T01:53:17.819Z",
+                                                                                                        "isLatestPath": false,
+                                                                                                        "child": {
+                                                                                                          "terminal": true,
+                                                                                                          "finalStatus": "initiated",
+                                                                                                          "durationSeconds": 186,
+                                                                                                          "reachedHuman": true,
+                                                                                                          "dtmfDigits": []
+                                                                                                        }
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                }
+                                                                                              ]
+                                                                                            }
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      },
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "wait",
+                                                          "reason": "No action before next speech",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-06T02:15:49.453Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "terminal": true,
+                                                          "finalStatus": "initiated",
+                                                          "durationSeconds": 94,
+                                                          "reachedHuman": true,
+                                                          "dtmfDigits": []
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
                                           }
                                         ]
                                       }
@@ -171,8 +469,8 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-05T22:14:36.303Z",
-                                "isLatestPath": true,
+                                "recordedAt": "2026-04-06T02:18:45.184Z",
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n54",
                                   "ivrSpeech": "Let me find someone to help you. One moment while I get an agent to help you.",
@@ -282,8 +580,8 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-05T22:14:36.303Z",
-                                      "isLatestPath": true,
+                                      "recordedAt": "2026-04-06T02:18:45.184Z",
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n58",
                                         "ivrSpeech": "Sorry. What's the account number or phone number that's on the account again?",
@@ -302,11 +600,11 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-04-05T22:14:36.303Z",
-                                            "isLatestPath": true,
+                                            "recordedAt": "2026-04-06T02:18:15.625Z",
+                                            "isLatestPath": false,
                                             "child": {
-                                              "id": "n59",
-                                              "ivrSpeech": "Which product",
+                                              "id": "n105",
+                                              "ivrSpeech": "so I can help you. What's the account",
                                               "children": [
                                                 {
                                                   "aiAction": {
@@ -322,16 +620,16 @@
                                                       "transferRequested": false
                                                     }
                                                   },
-                                                  "recordedAt": "2026-04-05T22:14:36.303Z",
-                                                  "isLatestPath": true,
+                                                  "recordedAt": "2026-04-06T02:17:09.199Z",
+                                                  "isLatestPath": false,
                                                   "child": {
-                                                    "id": "n60",
-                                                    "ivrSpeech": "Which are you call",
+                                                    "id": "n106",
+                                                    "ivrSpeech": "sure. So I can help you with your bill. Can you tell me the",
                                                     "children": [
                                                       {
                                                         "aiAction": {
                                                           "action": "speak",
-                                                          "speech": "representative",
+                                                          "speech": "billing question",
                                                           "reason": "",
                                                           "detected": {
                                                             "isIVRMenu": false,
@@ -342,16 +640,16 @@
                                                             "transferRequested": false
                                                           }
                                                         },
-                                                        "recordedAt": "2026-04-05T22:14:36.303Z",
-                                                        "isLatestPath": true,
+                                                        "recordedAt": "2026-04-06T02:16:19.246Z",
+                                                        "isLatestPath": false,
                                                         "child": {
-                                                          "id": "n61",
-                                                          "ivrSpeech": "okay can get you to an agent. But first, which",
+                                                          "id": "n107",
+                                                          "ivrSpeech": "so I can help you get to the right age what's the",
                                                           "children": [
                                                             {
                                                               "aiAction": {
                                                                 "action": "speak",
-                                                                "speech": "billing question",
+                                                                "speech": "representative",
                                                                 "reason": "",
                                                                 "detected": {
                                                                   "isIVRMenu": false,
@@ -362,16 +660,16 @@
                                                                   "transferRequested": false
                                                                 }
                                                               },
-                                                              "recordedAt": "2026-04-05T22:14:36.303Z",
-                                                              "isLatestPath": true,
+                                                              "recordedAt": "2026-04-06T02:16:19.246Z",
+                                                              "isLatestPath": false,
                                                               "child": {
-                                                                "id": "n62",
-                                                                "ivrSpeech": "please wait. One moment please while I handle your request.",
+                                                                "id": "n108",
+                                                                "ivrSpeech": "sure. So I can help you with your bill, can you tell me the account numb",
                                                                 "children": [
                                                                   {
                                                                     "aiAction": {
                                                                       "action": "speak",
-                                                                      "speech": "billing question",
+                                                                      "speech": "I don't have that information",
                                                                       "reason": "",
                                                                       "detected": {
                                                                         "isIVRMenu": false,
@@ -382,11 +680,11 @@
                                                                         "transferRequested": false
                                                                       }
                                                                     },
-                                                                    "recordedAt": "2026-04-03T20:56:18.325Z",
+                                                                    "recordedAt": "2026-04-06T02:16:19.246Z",
                                                                     "isLatestPath": false,
                                                                     "child": {
-                                                                      "id": "n63",
-                                                                      "ivrSpeech": "One moment while I get an agent to help you.",
+                                                                      "id": "n109",
+                                                                      "ivrSpeech": "Please wait. One moment please while I handle your request.",
                                                                       "children": [
                                                                         {
                                                                           "aiAction": {
@@ -401,19 +699,86 @@
                                                                               "transferRequested": false
                                                                             }
                                                                           },
-                                                                          "recordedAt": "2026-04-03T20:56:18.325Z",
+                                                                          "recordedAt": "2026-04-06T02:16:19.246Z",
                                                                           "isLatestPath": false,
                                                                           "child": {
-                                                                            "terminal": true,
-                                                                            "finalStatus": "initiated",
-                                                                            "durationSeconds": 103,
-                                                                            "reachedHuman": true,
-                                                                            "dtmfDigits": []
+                                                                            "id": "n110",
+                                                                            "ivrSpeech": "We're sorry.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "wait",
+                                                                                  "reason": "No action before next speech",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-06T02:16:19.246Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "terminal": true,
+                                                                                  "finalStatus": "initiated",
+                                                                                  "durationSeconds": 124,
+                                                                                  "reachedHuman": true,
+                                                                                  "dtmfDigits": []
+                                                                                }
+                                                                              }
+                                                                            ]
                                                                           }
                                                                         }
                                                                       ]
                                                                     }
-                                                                  },
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      },
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "wait",
+                                                          "reason": "No action before next speech",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-06T02:17:09.199Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n111",
+                                                          "ivrSpeech": "So I can help you. What's the account number or phone number on the account?",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "representative",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-06T02:17:09.199Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n112",
+                                                                "ivrSpeech": "What service are you calling about?",
+                                                                "children": [
                                                                   {
                                                                     "aiAction": {
                                                                       "action": "wait",
@@ -427,14 +792,294 @@
                                                                         "transferRequested": false
                                                                       }
                                                                     },
-                                                                    "recordedAt": "2026-04-05T22:14:36.303Z",
-                                                                    "isLatestPath": true,
+                                                                    "recordedAt": "2026-04-06T02:17:09.199Z",
+                                                                    "isLatestPath": false,
                                                                     "child": {
-                                                                      "terminal": true,
-                                                                      "finalStatus": "initiated",
-                                                                      "durationSeconds": 170,
-                                                                      "reachedHuman": true,
-                                                                      "dtmfDigits": []
+                                                                      "id": "n113",
+                                                                      "ivrSpeech": "What type of service are you calling about?",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "speak",
+                                                                            "speech": "add a line",
+                                                                            "reason": "",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-06T02:17:09.199Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n114",
+                                                                            "ivrSpeech": "One moment please while I handle your request.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "wait",
+                                                                                  "reason": "No action before next speech",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-06T02:17:09.199Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "id": "n115",
+                                                                                  "ivrSpeech": "One moment while I get an agent to help you.",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "wait",
+                                                                                        "reason": "No action before next speech",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": false,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": false,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-06T02:17:09.199Z",
+                                                                                      "isLatestPath": false,
+                                                                                      "child": {
+                                                                                        "terminal": true,
+                                                                                        "finalStatus": "initiated",
+                                                                                        "durationSeconds": 174,
+                                                                                        "reachedHuman": true,
+                                                                                        "dtmfDigits": []
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                },
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-06T02:18:15.625Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n116",
+                                                    "ivrSpeech": "Though we are currently closed, you can schedule a callback for a later time during our regular callback hours. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To schedule a callback during our regular callback hours, press 1.",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "press_digit",
+                                                          "digit": "1",
+                                                          "reason": "AI selected: The system is closed, but I can schedule a callback, which is the best option available.",
+                                                          "detected": {
+                                                            "isIVRMenu": true,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": true,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-06T02:18:15.625Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n117",
+                                                          "ivrSpeech": "I'm sorry. Your response was invalid. Please try Currently, the callback time zone is central time If you want to continue using this time zone, press 1. To choose a different time zone, press 2.",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "press_digit",
+                                                                "digit": "1",
+                                                                "reason": "AI selected: The system is asking for a callback time zone, and I need to select the option to continue.",
+                                                                "detected": {
+                                                                  "isIVRMenu": true,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": true,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-06T02:18:15.625Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n118",
+                                                                "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. To schedule an appointment for tomorrow, press 1. 4. Tuesday, press 2. 4. Wednesday, press 3",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "press_digit",
+                                                                      "digit": "1",
+                                                                      "reason": "AI selected: This is a menu option to schedule an appointment, which I need to select to proceed.",
+                                                                      "detected": {
+                                                                        "isIVRMenu": true,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": true,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-06T02:18:15.626Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "id": "n119",
+                                                                      "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. To schedule an appointment",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "press_digit",
+                                                                            "digit": "1",
+                                                                            "reason": "AI selected: The menu is complete and I need to select an option to schedule an appointment.",
+                                                                            "detected": {
+                                                                              "isIVRMenu": true,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": true,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-06T02:18:15.626Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n120",
+                                                                            "ivrSpeech": "Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To select the time for your callback, press the corresponding number",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "press_digit",
+                                                                                  "digit": "1",
+                                                                                  "reason": "AI selected: The current speech is a menu option for scheduling a callback, which has been repeated multiple times. I need to select an option to proceed.",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": true,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": true,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-06T02:18:15.626Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "id": "n121",
+                                                                                  "ivrSpeech": "I'm sorry. The time you entered is invalid. Please try again. Regular callback hours are Monday",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "speak",
+                                                                                        "speech": "representative",
+                                                                                        "reason": "",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": false,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": false,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-06T02:18:15.626Z",
+                                                                                      "isLatestPath": false,
+                                                                                      "child": {
+                                                                                        "id": "n122",
+                                                                                        "ivrSpeech": "I'm sorry. The time you entered is invalid. Please try again. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To select the time for your callback, press the corresponding numbers on your keypad. Followed by the pound key. For example, to choose 09:30, you'd press 93. Zero pound.",
+                                                                                        "children": [
+                                                                                          {
+                                                                                            "aiAction": {
+                                                                                              "action": "speak",
+                                                                                              "speech": "representative",
+                                                                                              "reason": "",
+                                                                                              "detected": {
+                                                                                                "isIVRMenu": false,
+                                                                                                "menuOptions": [],
+                                                                                                "isMenuComplete": false,
+                                                                                                "loopDetected": false,
+                                                                                                "shouldTerminate": false,
+                                                                                                "transferRequested": false
+                                                                                              }
+                                                                                            },
+                                                                                            "recordedAt": "2026-04-06T02:18:15.626Z",
+                                                                                            "isLatestPath": false,
+                                                                                            "child": {
+                                                                                              "id": "n123",
+                                                                                              "ivrSpeech": "I'm sorry. The time you entered is invalid. Please try again. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To select the time for your callback, press the corresponding numbers on your keypad. Followed by the pound key. For example, to choose 09:30, you'd press 93. 0. Pound.",
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "aiAction": {
+                                                                                                    "action": "speak",
+                                                                                                    "speech": "representative",
+                                                                                                    "reason": "",
+                                                                                                    "detected": {
+                                                                                                      "isIVRMenu": false,
+                                                                                                      "menuOptions": [],
+                                                                                                      "isMenuComplete": false,
+                                                                                                      "loopDetected": false,
+                                                                                                      "shouldTerminate": false,
+                                                                                                      "transferRequested": false
+                                                                                                    }
+                                                                                                  },
+                                                                                                  "recordedAt": "2026-04-06T02:18:15.626Z",
+                                                                                                  "isLatestPath": false,
+                                                                                                  "child": {
+                                                                                                    "terminal": true,
+                                                                                                    "finalStatus": "initiated",
+                                                                                                    "durationSeconds": 240,
+                                                                                                    "reachedHuman": false,
+                                                                                                    "dtmfDigits": [
+                                                                                                      "1",
+                                                                                                      "1",
+                                                                                                      "1",
+                                                                                                      "1",
+                                                                                                      "1"
+                                                                                                    ]
+                                                                                                  }
+                                                                                                }
+                                                                                              ]
+                                                                                            }
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
                                                                     }
                                                                   }
                                                                 ]
@@ -462,7 +1107,7 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-04-03T21:24:38.539Z",
+                                            "recordedAt": "2026-04-06T02:18:45.184Z",
                                             "isLatestPath": false,
                                             "child": {
                                               "id": "n64",
@@ -489,6 +1134,218 @@
                                                     "durationSeconds": 135,
                                                     "reachedHuman": true,
                                                     "dtmfDigits": []
+                                                  }
+                                                },
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "representative",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-06T02:18:45.184Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n124",
+                                                    "ivrSpeech": "Please wait. One moment please while I handle your request.",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "pay my bill",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n125",
+                                                          "ivrSpeech": "Though we are currently closed, you can schedule a callback for a later time during our regular callback hours. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To schedule a callback during our regular callback hours, press 1.",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "press_digit",
+                                                                "digit": "1",
+                                                                "reason": "AI selected: The system is offering a callback option, and I need to schedule it.",
+                                                                "detected": {
+                                                                  "isIVRMenu": true,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": true,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n126",
+                                                                "ivrSpeech": "I'm sorry. Your response was invalid. Currently, the callback time zone is central time If you want to continue using this time zone, press 1. To choose a different time zone, press 2.",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "press_digit",
+                                                                      "digit": "1",
+                                                                      "reason": "AI selected: The system is offering to continue with the central time zone, and since I've already pressed 1 for the callback, I need to proceed with that option.",
+                                                                      "detected": {
+                                                                        "isIVRMenu": true,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": true,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "id": "n127",
+                                                                      "ivrSpeech": "I'm sorry. Your response was invalid. Please try to schedule an appointment for tomorrow, press 1. 4. Tuesday, press 2. 4. Wednesday, press 3",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "press_digit",
+                                                                            "digit": "1",
+                                                                            "reason": "AI selected: The menu is complete and I need to schedule a callback for tomorrow.",
+                                                                            "detected": {
+                                                                              "isIVRMenu": true,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": true,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n128",
+                                                                            "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To select the time for your callback, press the corresponding numbers on your keypad. Followed by the pound key. For example, to choose 09:30, you'd press 93. 0. Pound.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "speak",
+                                                                                  "speech": "representative",
+                                                                                  "reason": "",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "id": "n129",
+                                                                                  "ivrSpeech": "I'm sorry. The time you entered is invalid. Please try again. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To select the time for your callback, press the corresponding numbers on your keypad. Followed by the pound key. For example, to choose 09:30, you'd press 93. 0. Pound.",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "speak",
+                                                                                        "speech": "representative",
+                                                                                        "reason": "",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": false,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": false,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                                                      "isLatestPath": false,
+                                                                                      "child": {
+                                                                                        "id": "n130",
+                                                                                        "ivrSpeech": "I'm sorry. The time you entered is valid. Please try again. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To select the time for your callback, press the corresponding numbers on your keypad. Followed by the pound key. For example, to choose 09:30, you'd press 9. 30. Pound.",
+                                                                                        "children": [
+                                                                                          {
+                                                                                            "aiAction": {
+                                                                                              "action": "speak",
+                                                                                              "speech": "one",
+                                                                                              "reason": "",
+                                                                                              "detected": {
+                                                                                                "isIVRMenu": false,
+                                                                                                "menuOptions": [],
+                                                                                                "isMenuComplete": false,
+                                                                                                "loopDetected": false,
+                                                                                                "shouldTerminate": false,
+                                                                                                "transferRequested": false
+                                                                                              }
+                                                                                            },
+                                                                                            "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                                                            "isLatestPath": false,
+                                                                                            "child": {
+                                                                                              "id": "n131",
+                                                                                              "ivrSpeech": "I'm sorry. The time you entered is invalid. Please try again. Regular callback hours are Monday through Friday from 8AM to 4PM, central time. To select the time for your callback, press the corresponding numbers on your keypad. Followed by the pound key. For example, to choose 09:30, you'd press 93. 0. Pound.",
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "aiAction": {
+                                                                                                    "action": "speak",
+                                                                                                    "speech": "one",
+                                                                                                    "reason": "",
+                                                                                                    "detected": {
+                                                                                                      "isIVRMenu": false,
+                                                                                                      "menuOptions": [],
+                                                                                                      "isMenuComplete": false,
+                                                                                                      "loopDetected": false,
+                                                                                                      "shouldTerminate": false,
+                                                                                                      "transferRequested": false
+                                                                                                    }
+                                                                                                  },
+                                                                                                  "recordedAt": "2026-04-06T02:18:45.185Z",
+                                                                                                  "isLatestPath": false,
+                                                                                                  "child": {
+                                                                                                    "terminal": true,
+                                                                                                    "finalStatus": "initiated",
+                                                                                                    "durationSeconds": 270,
+                                                                                                    "reachedHuman": false,
+                                                                                                    "dtmfDigits": [
+                                                                                                      "1",
+                                                                                                      "1",
+                                                                                                      "1"
+                                                                                                    ]
+                                                                                                  }
+                                                                                                }
+                                                                                              ]
+                                                                                            }
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               ]
@@ -798,8 +1655,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-29T18:01:07.740Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-06T14:08:07.618Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n13",
                 "ivrSpeech": "About.",
@@ -1001,8 +1858,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-03-29T17:52:42.523Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-04-06T14:08:07.618Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n20",
                       "ivrSpeech": "How can I assist you today?",
@@ -1021,8 +1878,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-03-29T17:52:42.523Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-06T14:08:07.618Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n21",
                             "ivrSpeech": "so I can help you.",
@@ -1040,8 +1897,8 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-03-29T17:52:42.523Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-06T14:08:07.618Z",
+                                "isLatestPath": true,
                                 "child": {
                                   "id": "n22",
                                   "ivrSpeech": "Can you repeat the number please?",
@@ -1060,8 +1917,8 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-03-29T17:52:42.523Z",
-                                      "isLatestPath": false,
+                                      "recordedAt": "2026-04-06T14:08:07.618Z",
+                                      "isLatestPath": true,
                                       "child": {
                                         "id": "n23",
                                         "ivrSpeech": "Are you still there? Can you tell me the account number or phone number on the account?",
@@ -1168,6 +2025,772 @@
                                                                       "durationSeconds": 119,
                                                                       "reachedHuman": false,
                                                                       "dtmfDigits": []
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-06T14:08:07.618Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n132",
+                                              "ivrSpeech": "Please wait.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "new service",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "id": "n133",
+                                                    "ivrSpeech": "Let me find someone to help you.",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "pay my bill",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                        "isLatestPath": true,
+                                                        "child": {
+                                                          "id": "n134",
+                                                          "ivrSpeech": "All of our representatives are assisting other callers. Rather than have you wait on hold, we can call you back when it's your turn. Between one hour. And fifteen minutes. And one hour.",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "callback",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                              "isLatestPath": true,
+                                                              "child": {
+                                                                "id": "n135",
+                                                                "ivrSpeech": "And fifty three minutes. From now. You will not lose your place in line if you choose to use this service. With a callback, you also receive the benefit of text message updates. To receive a callback as soon as possible, press 1. To decline and hold for a representative, press 3. To schedule a callback for a later time, press 4.",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "press_digit",
+                                                                      "digit": "1",
+                                                                      "reason": "AI selected: Choosing the callback option to avoid waiting on hold.",
+                                                                      "detected": {
+                                                                        "isIVRMenu": true,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": true,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                    "isLatestPath": true,
+                                                                    "child": {
+                                                                      "id": "n136",
+                                                                      "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. With a callback. You also receive the benefit of text message updates. To receive a I have your phone number as three 035518171. If that's right. Press 1. To reenter your number, press 2.",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "press_digit",
+                                                                            "digit": "2",
+                                                                            "reason": "AI selected: The system is asking to reenter the phone number, and pressing 2 is the next logical step since the previous attempt was invalid.",
+                                                                            "detected": {
+                                                                              "isIVRMenu": true,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": true,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                          "isLatestPath": true,
+                                                                          "child": {
+                                                                            "id": "n137",
+                                                                            "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. I have your phone number as (303) 551-8171. If that's right.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "wait",
+                                                                                  "reason": "No action before next speech",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                "isLatestPath": true,
+                                                                                "child": {
+                                                                                  "id": "n138",
+                                                                                  "ivrSpeech": "Starting with the area code, please enter your 10 digit phone number. Followed by the pound key.",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "press_digit",
+                                                                                        "digit": "1",
+                                                                                        "reason": "AI selected: The system is asking to confirm the phone number, and since this is a valid option to proceed, I will confirm it.",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": true,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": true,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                      "isLatestPath": true,
+                                                                                      "child": {
+                                                                                        "id": "n139",
+                                                                                        "ivrSpeech": "I'm sorry. The phone number you entered is not a valid number. Starting with the area",
+                                                                                        "children": [
+                                                                                          {
+                                                                                            "aiAction": {
+                                                                                              "action": "press_digit",
+                                                                                              "digit": "2",
+                                                                                              "reason": "AI selected: The system is asking for the phone number again, and I need to provide it to proceed.",
+                                                                                              "detected": {
+                                                                                                "isIVRMenu": true,
+                                                                                                "menuOptions": [],
+                                                                                                "isMenuComplete": true,
+                                                                                                "loopDetected": false,
+                                                                                                "shouldTerminate": false,
+                                                                                                "transferRequested": false
+                                                                                              }
+                                                                                            },
+                                                                                            "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                            "isLatestPath": true,
+                                                                                            "child": {
+                                                                                              "id": "n140",
+                                                                                              "ivrSpeech": "I'm sorry. The phone number you entered",
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "aiAction": {
+                                                                                                    "action": "speak",
+                                                                                                    "speech": "representative",
+                                                                                                    "reason": "",
+                                                                                                    "detected": {
+                                                                                                      "isIVRMenu": false,
+                                                                                                      "menuOptions": [],
+                                                                                                      "isMenuComplete": false,
+                                                                                                      "loopDetected": false,
+                                                                                                      "shouldTerminate": false,
+                                                                                                      "transferRequested": false
+                                                                                                    }
+                                                                                                  },
+                                                                                                  "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                                  "isLatestPath": true,
+                                                                                                  "child": {
+                                                                                                    "id": "n141",
+                                                                                                    "ivrSpeech": "I'm sorry. The phone number you entered is not a valid number. Starting with the area code, please enter your 10 digit phone number. Followed by the pound key.",
+                                                                                                    "children": [
+                                                                                                      {
+                                                                                                        "aiAction": {
+                                                                                                          "action": "speak",
+                                                                                                          "speech": "representative",
+                                                                                                          "reason": "",
+                                                                                                          "detected": {
+                                                                                                            "isIVRMenu": false,
+                                                                                                            "menuOptions": [],
+                                                                                                            "isMenuComplete": false,
+                                                                                                            "loopDetected": false,
+                                                                                                            "shouldTerminate": false,
+                                                                                                            "transferRequested": false
+                                                                                                          }
+                                                                                                        },
+                                                                                                        "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                                        "isLatestPath": true,
+                                                                                                        "child": {
+                                                                                                          "id": "n142",
+                                                                                                          "ivrSpeech": "I'm sorry. You've reached the maximum number of attempts allowed. Calls are recorded for quality and the purposes stated in our privacy notice. Please stay on the line for the next available representative. Current hold time is between one hour and fifteen minutes. And one hour. And fifty three minutes. From now.",
+                                                                                                          "children": [
+                                                                                                            {
+                                                                                                              "aiAction": {
+                                                                                                                "action": "wait",
+                                                                                                                "reason": "No action before next speech",
+                                                                                                                "detected": {
+                                                                                                                  "isIVRMenu": false,
+                                                                                                                  "menuOptions": [],
+                                                                                                                  "isMenuComplete": false,
+                                                                                                                  "loopDetected": false,
+                                                                                                                  "shouldTerminate": false,
+                                                                                                                  "transferRequested": false
+                                                                                                                }
+                                                                                                              },
+                                                                                                              "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                                              "isLatestPath": true,
+                                                                                                              "child": {
+                                                                                                                "id": "n143",
+                                                                                                                "ivrSpeech": "One moment while I get an agent to help you.",
+                                                                                                                "children": [
+                                                                                                                  {
+                                                                                                                    "aiAction": {
+                                                                                                                      "action": "press_digit",
+                                                                                                                      "digit": "3",
+                                                                                                                      "reason": "AI selected: The system is asking to stay on the line for the next available representative, and this is the best option available.",
+                                                                                                                      "detected": {
+                                                                                                                        "isIVRMenu": true,
+                                                                                                                        "menuOptions": [],
+                                                                                                                        "isMenuComplete": true,
+                                                                                                                        "loopDetected": false,
+                                                                                                                        "shouldTerminate": false,
+                                                                                                                        "transferRequested": false
+                                                                                                                      }
+                                                                                                                    },
+                                                                                                                    "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                                                    "isLatestPath": true,
+                                                                                                                    "child": {
+                                                                                                                      "id": "n144",
+                                                                                                                      "ivrSpeech": "All of our service representatives are currently helping other customers. We are experiencing heavy call volumes, which may result in a delay of more than ten minutes before being connected to a representative,",
+                                                                                                                      "children": [
+                                                                                                                        {
+                                                                                                                          "aiAction": {
+                                                                                                                            "action": "press_digit",
+                                                                                                                            "digit": "3",
+                                                                                                                            "reason": "AI selected: Pressing 3 to hold for a representative, as previous attempts to speak with one have failed.",
+                                                                                                                            "detected": {
+                                                                                                                              "isIVRMenu": true,
+                                                                                                                              "menuOptions": [],
+                                                                                                                              "isMenuComplete": true,
+                                                                                                                              "loopDetected": false,
+                                                                                                                              "shouldTerminate": false,
+                                                                                                                              "transferRequested": false
+                                                                                                                            }
+                                                                                                                          },
+                                                                                                                          "recordedAt": "2026-04-06T14:08:07.618Z",
+                                                                                                                          "isLatestPath": true,
+                                                                                                                          "child": {
+                                                                                                                            "terminal": true,
+                                                                                                                            "finalStatus": "initiated",
+                                                                                                                            "durationSeconds": 301,
+                                                                                                                            "reachedHuman": true,
+                                                                                                                            "dtmfDigits": [
+                                                                                                                              "1",
+                                                                                                                              "2",
+                                                                                                                              "1",
+                                                                                                                              "2",
+                                                                                                                              "3",
+                                                                                                                              "3",
+                                                                                                                              "3"
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        }
+                                                                                                                      ]
+                                                                                                                    }
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            }
+                                                                                                          ]
+                                                                                                        }
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                }
+                                                                                              ]
+                                                                                            }
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "pay my bill",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-05T22:58:48.061Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n65",
+                                  "ivrSpeech": "What help do you need with your service? You'd say things like news",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-05T22:58:48.061Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n66",
+                                        "ivrSpeech": "so I can help you. What's the account number or phone number on the account?",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "billing",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-05T22:58:48.061Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n67",
+                                              "ivrSpeech": "Sure. So I can help you with your bill. Can you tell me the account number or phone number on the account?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "7 2 0 5 8 4 6 3 5 8",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n68",
+                                                    "ivrSpeech": "Are you still there? Can you tell me the account number or phone number on the account?",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "7 2 0 5 8 4 6 3 5 8",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n69",
+                                                          "ivrSpeech": "I got your number as 72058463587205846. Is that correct?",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "No",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n70",
+                                                                "ivrSpeech": "Which product are you calling about?",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "speak",
+                                                                      "speech": "representative",
+                                                                      "reason": "",
+                                                                      "detected": {
+                                                                        "isIVRMenu": false,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": false,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "id": "n71",
+                                                                      "ivrSpeech": "To get you to the right agent, please tell me which product are you calling about.",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "speak",
+                                                                            "speech": "representative",
+                                                                            "reason": "",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n72",
+                                                                            "ivrSpeech": "Okay. I can get you to an agent. But first, which are you calling about? A personal or business account.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "speak",
+                                                                                  "speech": "personal account",
+                                                                                  "reason": "",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "id": "n73",
+                                                                                  "ivrSpeech": "Which are you calling?",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "press_digit",
+                                                                                        "digit": "1",
+                                                                                        "reason": "AI selected: The system is asking which account type I'm calling about, and I've seen this menu before. I will select the personal account option.",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": true,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": true,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                      "isLatestPath": false,
+                                                                                      "child": {
+                                                                                        "id": "n74",
+                                                                                        "ivrSpeech": "Okay. Hold on a minute.",
+                                                                                        "children": [
+                                                                                          {
+                                                                                            "aiAction": {
+                                                                                              "action": "wait",
+                                                                                              "reason": "No action before next speech",
+                                                                                              "detected": {
+                                                                                                "isIVRMenu": false,
+                                                                                                "menuOptions": [],
+                                                                                                "isMenuComplete": false,
+                                                                                                "loopDetected": false,
+                                                                                                "shouldTerminate": false,
+                                                                                                "transferRequested": false
+                                                                                              }
+                                                                                            },
+                                                                                            "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                            "isLatestPath": false,
+                                                                                            "child": {
+                                                                                              "id": "n75",
+                                                                                              "ivrSpeech": "Questions about your bill? I can send you a link with information like a bill guide, payment options, and more. Is it okay to text it to you?",
+                                                                                              "children": [
+                                                                                                {
+                                                                                                  "aiAction": {
+                                                                                                    "action": "speak",
+                                                                                                    "speech": "No, can I speak with a representative?",
+                                                                                                    "reason": "",
+                                                                                                    "detected": {
+                                                                                                      "isIVRMenu": false,
+                                                                                                      "menuOptions": [],
+                                                                                                      "isMenuComplete": false,
+                                                                                                      "loopDetected": false,
+                                                                                                      "shouldTerminate": false,
+                                                                                                      "transferRequested": false
+                                                                                                    }
+                                                                                                  },
+                                                                                                  "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                  "isLatestPath": false,
+                                                                                                  "child": {
+                                                                                                    "id": "n76",
+                                                                                                    "ivrSpeech": "Sorry. Questions about your bill? I can send you a link with information like a bill died, payment options, and more. Is it okay to text it to you?",
+                                                                                                    "children": [
+                                                                                                      {
+                                                                                                        "aiAction": {
+                                                                                                          "action": "speak",
+                                                                                                          "speech": "representative",
+                                                                                                          "reason": "",
+                                                                                                          "detected": {
+                                                                                                            "isIVRMenu": false,
+                                                                                                            "menuOptions": [],
+                                                                                                            "isMenuComplete": false,
+                                                                                                            "loopDetected": false,
+                                                                                                            "shouldTerminate": false,
+                                                                                                            "transferRequested": false
+                                                                                                          }
+                                                                                                        },
+                                                                                                        "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                        "isLatestPath": false,
+                                                                                                        "child": {
+                                                                                                          "id": "n77",
+                                                                                                          "ivrSpeech": "No problem. I can read it to you. Att.com/billguide. That's att.com/billguide. Please tell me what else you'd like to do.",
+                                                                                                          "children": [
+                                                                                                            {
+                                                                                                              "aiAction": {
+                                                                                                                "action": "wait",
+                                                                                                                "reason": "No action before next speech",
+                                                                                                                "detected": {
+                                                                                                                  "isIVRMenu": false,
+                                                                                                                  "menuOptions": [],
+                                                                                                                  "isMenuComplete": false,
+                                                                                                                  "loopDetected": false,
+                                                                                                                  "shouldTerminate": false,
+                                                                                                                  "transferRequested": false
+                                                                                                                }
+                                                                                                              },
+                                                                                                              "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                              "isLatestPath": false,
+                                                                                                              "child": {
+                                                                                                                "id": "n78",
+                                                                                                                "ivrSpeech": "Do you need assistance?",
+                                                                                                                "children": [
+                                                                                                                  {
+                                                                                                                    "aiAction": {
+                                                                                                                      "action": "wait",
+                                                                                                                      "reason": "No action before next speech",
+                                                                                                                      "detected": {
+                                                                                                                        "isIVRMenu": false,
+                                                                                                                        "menuOptions": [],
+                                                                                                                        "isMenuComplete": false,
+                                                                                                                        "loopDetected": false,
+                                                                                                                        "shouldTerminate": false,
+                                                                                                                        "transferRequested": false
+                                                                                                                      }
+                                                                                                                    },
+                                                                                                                    "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                                    "isLatestPath": false,
+                                                                                                                    "child": {
+                                                                                                                      "id": "n79",
+                                                                                                                      "ivrSpeech": "Please wait. One moment please while I handle your request.",
+                                                                                                                      "children": [
+                                                                                                                        {
+                                                                                                                          "aiAction": {
+                                                                                                                            "action": "wait",
+                                                                                                                            "reason": "No action before next speech",
+                                                                                                                            "detected": {
+                                                                                                                              "isIVRMenu": false,
+                                                                                                                              "menuOptions": [],
+                                                                                                                              "isMenuComplete": false,
+                                                                                                                              "loopDetected": false,
+                                                                                                                              "shouldTerminate": false,
+                                                                                                                              "transferRequested": false
+                                                                                                                            }
+                                                                                                                          },
+                                                                                                                          "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                                          "isLatestPath": false,
+                                                                                                                          "child": {
+                                                                                                                            "id": "n80",
+                                                                                                                            "ivrSpeech": "We are experiencing longer than normal wait times. For your convenience, we'd like to offer you the chance to schedule a callback for a later time. With a callback, you also receive the benefit of text message updates. To receive a callback as soon as possible, press 1. To end this call and not schedule a callback for a later time, press 2. To decline and hold for a representative, press 3.",
+                                                                                                                            "children": [
+                                                                                                                              {
+                                                                                                                                "aiAction": {
+                                                                                                                                  "action": "press_digit",
+                                                                                                                                  "digit": "1",
+                                                                                                                                  "reason": "AI selected: Choosing to schedule a callback as it is the best option available.",
+                                                                                                                                  "detected": {
+                                                                                                                                    "isIVRMenu": true,
+                                                                                                                                    "menuOptions": [],
+                                                                                                                                    "isMenuComplete": true,
+                                                                                                                                    "loopDetected": false,
+                                                                                                                                    "shouldTerminate": false,
+                                                                                                                                    "transferRequested": false
+                                                                                                                                  }
+                                                                                                                                },
+                                                                                                                                "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                                                "isLatestPath": false,
+                                                                                                                                "child": {
+                                                                                                                                  "id": "n81",
+                                                                                                                                  "ivrSpeech": "I'm sorry. Your response was invalid. Please try again. Currently,",
+                                                                                                                                  "children": [
+                                                                                                                                    {
+                                                                                                                                      "aiAction": {
+                                                                                                                                        "action": "press_digit",
+                                                                                                                                        "digit": "1",
+                                                                                                                                        "reason": "AI selected: The system is prompting for a valid response, and I need to select the callback option again to proceed.",
+                                                                                                                                        "detected": {
+                                                                                                                                          "isIVRMenu": true,
+                                                                                                                                          "menuOptions": [],
+                                                                                                                                          "isMenuComplete": true,
+                                                                                                                                          "loopDetected": false,
+                                                                                                                                          "shouldTerminate": false,
+                                                                                                                                          "transferRequested": false
+                                                                                                                                        }
+                                                                                                                                      },
+                                                                                                                                      "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                                                      "isLatestPath": false,
+                                                                                                                                      "child": {
+                                                                                                                                        "id": "n82",
+                                                                                                                                        "ivrSpeech": "the callback time zone is central time If you want to continue using this time zone, To schedule an appointment for tomorrow, press 1. 4. Tuesday, press 2. 4. Wednesday, press 3",
+                                                                                                                                        "children": [
+                                                                                                                                          {
+                                                                                                                                            "aiAction": {
+                                                                                                                                              "action": "press_digit",
+                                                                                                                                              "digit": "1",
+                                                                                                                                              "reason": "AI selected: Pressing 1 to schedule a callback as the previous attempt was invalid.",
+                                                                                                                                              "detected": {
+                                                                                                                                                "isIVRMenu": true,
+                                                                                                                                                "menuOptions": [],
+                                                                                                                                                "isMenuComplete": true,
+                                                                                                                                                "loopDetected": false,
+                                                                                                                                                "shouldTerminate": false,
+                                                                                                                                                "transferRequested": false
+                                                                                                                                              }
+                                                                                                                                            },
+                                                                                                                                            "recordedAt": "2026-04-05T22:58:48.061Z",
+                                                                                                                                            "isLatestPath": false,
+                                                                                                                                            "child": {
+                                                                                                                                              "terminal": true,
+                                                                                                                                              "finalStatus": "initiated",
+                                                                                                                                              "durationSeconds": 300,
+                                                                                                                                              "reachedHuman": false,
+                                                                                                                                              "dtmfDigits": [
+                                                                                                                                                "1",
+                                                                                                                                                "1",
+                                                                                                                                                "1",
+                                                                                                                                                "1"
+                                                                                                                                              ]
+                                                                                                                                            }
+                                                                                                                                          }
+                                                                                                                                        ]
+                                                                                                                                      }
+                                                                                                                                    }
+                                                                                                                                  ]
+                                                                                                                                }
+                                                                                                                              }
+                                                                                                                            ]
+                                                                                                                          }
+                                                                                                                        }
+                                                                                                                      ]
+                                                                                                                    }
+                                                                                                                  }
+                                                                                                                ]
+                                                                                                              }
+                                                                                                            }
+                                                                                                          ]
+                                                                                                        }
+                                                                                                      }
+                                                                                                    ]
+                                                                                                  }
+                                                                                                }
+                                                                                              ]
+                                                                                            }
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
                                                                     }
                                                                   }
                                                                 ]

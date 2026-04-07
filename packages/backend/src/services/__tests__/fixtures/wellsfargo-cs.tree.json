@@ -2,7 +2,7 @@
   "version": 2,
   "id": "wellsfargo-cs",
   "testCaseId": "wellsfargo-cs",
-  "lastRecordedAt": "2026-03-29T18:25:18.880Z",
+  "lastRecordedAt": "2026-04-06T14:08:07.301Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-03-29T18:25:18.880Z",
+        "recordedAt": "2026-04-06T14:08:07.301Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -42,8 +42,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-03-29T18:01:07.733Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-06T14:08:07.301Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "Monitor.",
@@ -357,286 +357,16 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-03-29T18:01:07.733Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-04-06T14:08:07.301Z",
+                    "isLatestPath": true,
                     "child": {
-                      "id": "n5",
-                      "ivrSpeech": "All right, other options. You can say open a new account, find a branch or ATM.",
+                      "id": "n46",
+                      "ivrSpeech": "Alright. Other options. You can say open a new account, find a branch or ATM, verify an account, or damaged card. Otherwise, to access your account, say or enter the account or card number you're calling about.",
                       "children": [
                         {
                           "aiAction": {
-                            "action": "wait",
-                            "reason": "No action before next speech",
-                            "detected": {
-                              "isIVRMenu": false,
-                              "menuOptions": [],
-                              "isMenuComplete": false,
-                              "loopDetected": false,
-                              "shouldTerminate": false,
-                              "transferRequested": false
-                            }
-                          },
-                          "recordedAt": "2026-03-29T17:52:42.515Z",
-                          "isLatestPath": false,
-                          "child": {
-                            "id": "n6",
-                            "ivrSpeech": "Otherwise, to access your account, say, or enter the account, or card number, you're calling about.",
-                            "children": [
-                              {
-                                "aiAction": {
-                                  "action": "speak",
-                                  "speech": "Representative",
-                                  "reason": "",
-                                  "detected": {
-                                    "isIVRMenu": false,
-                                    "menuOptions": [],
-                                    "isMenuComplete": false,
-                                    "loopDetected": false,
-                                    "shouldTerminate": false,
-                                    "transferRequested": false
-                                  }
-                                },
-                                "recordedAt": "2026-03-29T17:52:42.515Z",
-                                "isLatestPath": false,
-                                "child": {
-                                  "id": "n7",
-                                  "ivrSpeech": "I'll connect you to a banker but first, please use a short phrase to describe what you're calling about. You can say things like, order new checks or change my PIN. These are just examples. So, tell me what you're calling about.",
-                                  "children": [
-                                    {
-                                      "aiAction": {
-                                        "action": "speak",
-                                        "speech": "I need to speak with a representative about my account.",
-                                        "reason": "",
-                                        "detected": {
-                                          "isIVRMenu": false,
-                                          "menuOptions": [],
-                                          "isMenuComplete": false,
-                                          "loopDetected": false,
-                                          "shouldTerminate": false,
-                                          "transferRequested": false
-                                        }
-                                      },
-                                      "recordedAt": "2026-03-29T17:52:42.515Z",
-                                      "isLatestPath": false,
-                                      "child": {
-                                        "id": "n8",
-                                        "ivrSpeech": "If you would like to receive written Communications from Wells, Fargo in an alternative format in compliance, with the Americans with Disabilities Act, please let a representative know or contact.",
-                                        "children": [
-                                          {
-                                            "aiAction": {
-                                              "action": "wait",
-                                              "reason": "No action before next speech",
-                                              "detected": {
-                                                "isIVRMenu": false,
-                                                "menuOptions": [],
-                                                "isMenuComplete": false,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-03-20T23:52:10.419Z",
-                                            "isLatestPath": false,
-                                            "child": {
-                                              "id": "n9",
-                                              "ivrSpeech": "4720, by the way, you can also find tax related interest information on your year-end statements or online at Wells fargo.com. Please hold while I connect you with a banker who can assist you,",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "wait",
-                                                    "reason": "No action before next speech",
-                                                    "detected": {
-                                                      "isIVRMenu": false,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": false,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-03-20T23:52:10.419Z",
-                                                  "isLatestPath": false,
-                                                  "child": {
-                                                    "id": "n10",
-                                                    "ivrSpeech": "We are experiencing higher than normal, call volumes. The next available representative will take your call.",
-                                                    "children": [
-                                                      {
-                                                        "aiAction": {
-                                                          "action": "wait",
-                                                          "reason": "No action before next speech",
-                                                          "detected": {
-                                                            "isIVRMenu": false,
-                                                            "menuOptions": [],
-                                                            "isMenuComplete": false,
-                                                            "loopDetected": false,
-                                                            "shouldTerminate": false,
-                                                            "transferRequested": false
-                                                          }
-                                                        },
-                                                        "recordedAt": "2026-03-20T23:52:10.419Z",
-                                                        "isLatestPath": false,
-                                                        "child": {
-                                                          "id": "n11",
-                                                          "ivrSpeech": "Thank you for continuing to hold as an important security measure. Please, make sure that we have your current phone number email and mailing address on file. So we can contact you quickly, if we ever detect certain unusual account activity.",
-                                                          "children": [
-                                                            {
-                                                              "aiAction": {
-                                                                "action": "wait",
-                                                                "reason": "No action before next speech",
-                                                                "detected": {
-                                                                  "isIVRMenu": false,
-                                                                  "menuOptions": [],
-                                                                  "isMenuComplete": false,
-                                                                  "loopDetected": false,
-                                                                  "shouldTerminate": false,
-                                                                  "transferRequested": false
-                                                                }
-                                                              },
-                                                              "recordedAt": "2026-03-20T23:52:10.419Z",
-                                                              "isLatestPath": false,
-                                                              "child": {
-                                                                "terminal": true,
-                                                                "finalStatus": "in-progress",
-                                                                "durationSeconds": 183,
-                                                                "reachedHuman": true,
-                                                                "dtmfDigits": []
-                                                              }
-                                                            }
-                                                          ]
-                                                        }
-                                                      }
-                                                    ]
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          },
-                                          {
-                                            "aiAction": {
-                                              "action": "speak",
-                                              "speech": "Representative",
-                                              "reason": "",
-                                              "detected": {
-                                                "isIVRMenu": false,
-                                                "menuOptions": [],
-                                                "isMenuComplete": false,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-03-29T17:52:42.515Z",
-                                            "isLatestPath": false,
-                                            "child": {
-                                              "id": "n21",
-                                              "ivrSpeech": "I'll connect you to a banker, but first, please use a short phrase to describe what you're calling.",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "speak",
-                                                    "speech": "I need help with something other than account access and would like to speak with a representative.",
-                                                    "reason": "",
-                                                    "detected": {
-                                                      "isIVRMenu": false,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": false,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-03-29T17:52:42.515Z",
-                                                  "isLatestPath": false,
-                                                  "child": {
-                                                    "id": "n22",
-                                                    "ivrSpeech": "If you would like to receive written communications from Wealth Fargo in an alternative format in compliance with the Americans with Disabilities Act, please let a representative know or contact us at 1-800-642-4720. All right. You may hold while I transfer you to a banker.",
-                                                    "children": [
-                                                      {
-                                                        "aiAction": {
-                                                          "action": "wait",
-                                                          "reason": "No action before next speech",
-                                                          "detected": {
-                                                            "isIVRMenu": false,
-                                                            "menuOptions": [],
-                                                            "isMenuComplete": false,
-                                                            "loopDetected": false,
-                                                            "shouldTerminate": false,
-                                                            "transferRequested": false
-                                                          }
-                                                        },
-                                                        "recordedAt": "2026-03-29T17:52:42.515Z",
-                                                        "isLatestPath": false,
-                                                        "child": {
-                                                          "id": "n23",
-                                                          "ivrSpeech": "We appreciate your business. The next available representative will take your call.",
-                                                          "children": [
-                                                            {
-                                                              "aiAction": {
-                                                                "action": "wait",
-                                                                "reason": "No action before next speech",
-                                                                "detected": {
-                                                                  "isIVRMenu": false,
-                                                                  "menuOptions": [],
-                                                                  "isMenuComplete": false,
-                                                                  "loopDetected": false,
-                                                                  "shouldTerminate": false,
-                                                                  "transferRequested": false
-                                                                }
-                                                              },
-                                                              "recordedAt": "2026-03-29T17:52:42.515Z",
-                                                              "isLatestPath": false,
-                                                              "child": {
-                                                                "id": "n24",
-                                                                "ivrSpeech": "Thank you for calling Wells Fargo. My name is Jordan. This call may be recorded, monitored, and analyzed by Wells Fargo and its service providers. Can you please provide your account or card number?",
-                                                                "children": [
-                                                                  {
-                                                                    "aiAction": {
-                                                                      "action": "wait",
-                                                                      "reason": "No action before next speech",
-                                                                      "detected": {
-                                                                        "isIVRMenu": false,
-                                                                        "menuOptions": [],
-                                                                        "isMenuComplete": false,
-                                                                        "loopDetected": false,
-                                                                        "shouldTerminate": false,
-                                                                        "transferRequested": false
-                                                                      }
-                                                                    },
-                                                                    "recordedAt": "2026-03-29T17:52:42.515Z",
-                                                                    "isLatestPath": false,
-                                                                    "child": {
-                                                                      "terminal": true,
-                                                                      "finalStatus": "initiated",
-                                                                      "durationSeconds": 211,
-                                                                      "reachedHuman": true,
-                                                                      "dtmfDigits": []
-                                                                    }
-                                                                  }
-                                                                ]
-                                                              }
-                                                            }
-                                                          ]
-                                                        }
-                                                      }
-                                                    ]
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
-                                }
-                              }
-                            ]
-                          }
-                        },
-                        {
-                          "aiAction": {
                             "action": "speak",
-                            "speech": "I need help with something else and would like to speak with a representative.",
+                            "speech": "representative",
                             "reason": "",
                             "detected": {
                               "isIVRMenu": false,
@@ -647,16 +377,16 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-03-29T18:01:07.734Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-06T14:08:07.301Z",
+                          "isLatestPath": true,
                           "child": {
-                            "id": "n25",
-                            "ivrSpeech": "I'll connect you to a banker, but first, please use a short phrase to describe what you're calling about. You can say things like, order new checks or change my pin. These are just examples, so tell me what you're calling about.",
+                            "id": "n47",
+                            "ivrSpeech": "I'll connect you to a banker. But first, please use a short phrase to describe what you're calling about. You can say things order new checks or change my PIN. These are just examples. So tell me what you're calling about.",
                             "children": [
                               {
                                 "aiAction": {
                                   "action": "speak",
-                                  "speech": "I need help with something else and would like to speak with a representative.",
+                                  "speech": "speak with a representative",
                                   "reason": "",
                                   "detected": {
                                     "isIVRMenu": false,
@@ -667,11 +397,57 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-03-29T18:01:07.734Z",
+                                "recordedAt": "2026-04-05T21:04:14.651Z",
                                 "isLatestPath": false,
                                 "child": {
-                                  "id": "n26",
-                                  "ivrSpeech": "If you would like to receive written communications from Wells Fargo in an alternative format in compliance with the Americans with Disabilities Act, please let a representative know or contact us at 1-800-642-4720. By the way, you can also find tax-related interest information on your year-end statements or online at wellsfargo.com. Please hold while I connect you with a banker who can assist you.",
+                                  "id": "n48",
+                                  "ivrSpeech": "If you would like to receive written communications from Wells Fargo in an alternative format in compliance with the Americans with Disabilities Act, please let a representative know or contact us at 1806424720. By the way, you can also find tax related interest information on your year end statements",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "speak with a representative",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-05T21:04:14.651Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 143,
+                                        "reachedHuman": true,
+                                        "dtmfDigits": []
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-06T14:08:07.301Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n49",
+                                  "ivrSpeech": "I'll connect you to a banker. But first, please use a short phrase to describe what you're calling about. You can say things like,",
                                   "children": [
                                     {
                                       "aiAction": {
@@ -686,16 +462,17 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-03-29T18:01:07.734Z",
-                                      "isLatestPath": false,
+                                      "recordedAt": "2026-04-06T14:08:07.301Z",
+                                      "isLatestPath": true,
                                       "child": {
-                                        "id": "n27",
-                                        "ivrSpeech": "You",
+                                        "id": "n50",
+                                        "ivrSpeech": "order new checks or change my PIN. These are just examples. So tell me what you're calling about,",
                                         "children": [
                                           {
                                             "aiAction": {
-                                              "action": "wait",
-                                              "reason": "No action before next speech",
+                                              "action": "speak",
+                                              "speech": "representative",
+                                              "reason": "",
                                               "detected": {
                                                 "isIVRMenu": false,
                                                 "menuOptions": [],
@@ -705,11 +482,11 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-03-29T18:01:07.734Z",
-                                            "isLatestPath": false,
+                                            "recordedAt": "2026-04-06T14:08:07.301Z",
+                                            "isLatestPath": true,
                                             "child": {
-                                              "id": "n28",
-                                              "ivrSpeech": "We appreciate your business. The next available representative will take your call.",
+                                              "id": "n51",
+                                              "ivrSpeech": "If you would like to receive written from Wells Fargo in an alternative format, in compliance with the Americans with Disabilities Act. Please let a representative know or contact us at 1806424720. By the way, you can also find tax related interest information on your year end statements or online at wellsfargo.com. Please hold while I connect you with a banker who can assist you.",
                                               "children": [
                                                 {
                                                   "aiAction": {
@@ -724,36 +501,14 @@
                                                       "transferRequested": false
                                                     }
                                                   },
-                                                  "recordedAt": "2026-03-29T18:01:07.734Z",
-                                                  "isLatestPath": false,
+                                                  "recordedAt": "2026-04-06T14:08:07.301Z",
+                                                  "isLatestPath": true,
                                                   "child": {
-                                                    "id": "n29",
-                                                    "ivrSpeech": "Thank you for calling Wells Fargo. This call may be recorded, monitored, or analyzed by Wells Fargo and its service providers. My name is Pam. Can I have your first and last name, please?",
-                                                    "children": [
-                                                      {
-                                                        "aiAction": {
-                                                          "action": "wait",
-                                                          "reason": "No action before next speech",
-                                                          "detected": {
-                                                            "isIVRMenu": false,
-                                                            "menuOptions": [],
-                                                            "isMenuComplete": false,
-                                                            "loopDetected": false,
-                                                            "shouldTerminate": false,
-                                                            "transferRequested": false
-                                                          }
-                                                        },
-                                                        "recordedAt": "2026-03-29T18:01:07.734Z",
-                                                        "isLatestPath": false,
-                                                        "child": {
-                                                          "terminal": true,
-                                                          "finalStatus": "initiated",
-                                                          "durationSeconds": 188,
-                                                          "reachedHuman": true,
-                                                          "dtmfDigits": []
-                                                        }
-                                                      }
-                                                    ]
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 144,
+                                                    "reachedHuman": true,
+                                                    "dtmfDigits": []
                                                   }
                                                 }
                                               ]
@@ -789,7 +544,7 @@
                 }
               },
               "recordedAt": "2026-03-29T18:25:18.880Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n30",
                 "ivrSpeech": "For account acts, say your account or",
@@ -1014,7 +769,7 @@
                       }
                     },
                     "recordedAt": "2026-03-29T18:25:18.880Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n39",
                       "ivrSpeech": "I'm having",
@@ -1033,7 +788,7 @@
                             }
                           },
                           "recordedAt": "2026-03-29T18:25:18.880Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n40",
                             "ivrSpeech": "All right, other options. To open a new account, press 1. To locate a branch or ATM, press 2. To verify an account, press 3. Or to report a damaged card, press 4. Otherwise, to access your account, enter the account or card number you're calling about.",
@@ -1053,7 +808,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-03-29T18:25:18.880Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n41",
                                   "ivrSpeech": "To open a new account, press 1. To locate a brand, press 2.",
@@ -1073,7 +828,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-03-29T18:25:18.880Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n42",
                                         "ivrSpeech": "If you would like to receive written communications from Wells Fargo in an alternative format in compliance with the Americans with Disabilities Act, please let a representative know or contact us at 1-800-642-4720. Please hold.",
@@ -1092,7 +847,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-03-29T18:25:18.880Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n43",
                                               "ivrSpeech": "For service on an existing account, press one. If you are calling to apply for a new account, press two.",
@@ -1112,7 +867,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-03-29T18:25:18.880Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n44",
                                                     "ivrSpeech": "For service on an existing account, press 1. If you are calling to apply for an.",
@@ -1132,7 +887,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-03-29T18:25:18.880Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n45",
                                                           "ivrSpeech": "We appreciate your business. The next available representative will take your call. Hi. Thank you for calling Wells Fargo. My name is Diane. This call may be recorded, monitored, or analyzed by Wells Fargo and service providers. May I have your, it's either your account number or debit card number, please? Okay.",
@@ -1151,7 +906,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-03-29T18:25:18.880Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "terminal": true,
                                                                 "finalStatus": "initiated",

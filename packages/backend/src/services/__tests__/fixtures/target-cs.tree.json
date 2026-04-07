@@ -1,0 +1,506 @@
+{
+  "version": 2,
+  "id": "target-cs",
+  "testCaseId": "target-cs",
+  "lastRecordedAt": "2026-04-06T14:08:06.888Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "Thanks for calling Target.",
+    "children": [
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-06T14:08:06.888Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "In store purchase,",
+          "children": [
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-03T01:21:29.883Z",
+              "isLatestPath": false,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "experience, or merchandise, press 1. Gift registry, press 2. Online purchase or experience, including drive up or order pickup, press 3. Target credit, debit, or reloadable, Target gift cards, or third party payments, press 4. Information on how to become a vendor with Target, press 5.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "1",
+                      "reason": "AI selected: Menu is complete with options 1-5. No explicit 'representative' option listed. Option 1 covers in-store purchase/experience/merchandise which is the most general customer service path. This is the best option to reach a live representative.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-03T01:21:29.883Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n3",
+                      "ivrSpeech": "Sorry. We didn't get that. Please try again. Target store experience, press 1. Price adjustments or Target Circle, press 2. Safety, property damage, injury, or illness concern with a product, press 3. Quality concern with a product, press 4. Recalls, press 5. To return to the main menu, press star.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "1",
+                            "reason": "AI selected: New sub-menu presented after pressing 1 from main menu. 'Target store experience, press 1' is the best option for reaching a representative about an in-store matter. Pressing 1 to navigate toward a live agent.",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-03T01:21:29.883Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n4",
+                            "ivrSpeech": "Sorry. We didn't get that. Please try again.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "press_digit",
+                                  "digit": "1",
+                                  "reason": "AI selected: System said 'please try again' after my press of 1 wasn't recognized. Menu 3/4 show the same options (loop). Pressing 1 for 'Target store experience' as the best path to a representative.",
+                                  "detected": {
+                                    "isIVRMenu": true,
+                                    "menuOptions": [],
+                                    "isMenuComplete": true,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-03T01:21:29.883Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n5",
+                                  "ivrSpeech": "For information about Target's privacy practices, including categories of personal information collected, collection and use purposes, retention information, and how to opt out of personal information being sold or shared for targeted advertising please visit target.com/privacy.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-03T01:21:29.883Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n6",
+                                        "ivrSpeech": "Just a moment while we transfer you to a team member. For great service and target operations, your call may be monitored or recorded.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-03T01:21:29.883Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n7",
+                                              "ivrSpeech": "Thank you for calling Target. My name is Sierra, one of the seniors specialists. How can I help you?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-03T01:21:29.883Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 164,
+                                                    "reachedHuman": false,
+                                                    "dtmfDigits": [
+                                                      "1",
+                                                      "1",
+                                                      "1"
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "aiAction": {
+                "action": "press_digit",
+                "digit": "4",
+                "reason": "AI selected: Pressing 4 to speak with a representative about Target credit, debit, or gift cards aligns with the call purpose.",
+                "detected": {
+                  "isIVRMenu": true,
+                  "menuOptions": [],
+                  "isMenuComplete": true,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-03T18:14:01.779Z",
+              "isLatestPath": false,
+              "child": {
+                "id": "n8",
+                "ivrSpeech": "Sorry. We didn't get that. Please try again. Target credit and debit cards? Press 1. Target reloadable accounts, press 2. Questions about the credit application process, press 3. Target gift cards, press 4. Third party payments, press 5. To return to the main menu, press star.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "3",
+                      "reason": "AI selected: The system is asking for a selection, and I need to choose an option that aligns with the call purpose. Option 3 for questions about the credit application process is the best choice available.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-03T18:14:01.779Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n9",
+                      "ivrSpeech": "Sorry. We didn't get that. Please try again. Target credit and debit card.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "representative",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-03T18:14:01.779Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n10",
+                            "ivrSpeech": "Thanks for calling Target card new accounts. Know your card number? Press 1. Don't know your card number but have an existing card? Press 2. Have an application in progress? Or received a letter in response to your application? Press 3. Have questions regarding our cards or the application process? Press 4.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "questions regarding our cards or the application process",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-03T18:14:01.780Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n11",
+                                  "ivrSpeech": "Sorry. We didn't that. Please try again. Know your card number? Press 1. Don't know your card number but have an existing card? Press 2. Have an application in progress? Or received a letter in response to your application? Press 3. Have questions regarding our cards or the application process? Press 4.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "representative",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-03T18:14:01.780Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n12",
+                                        "ivrSpeech": "Sorry. We didn't get that. Please try again. Know your card number? Press 1. Don't know your card number but have an existing card? Press 2. Have an application in progress? Or received a letter in response to your application? Press 3. Have questions regarding our cards or the application process? Press 4.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "representative",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-03T16:02:33.161Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 162,
+                                              "reachedHuman": false,
+                                              "dtmfDigits": ["4", "3"]
+                                            }
+                                          },
+                                          {
+                                            "aiAction": {
+                                              "action": "press_digit",
+                                              "digit": "4",
+                                              "reason": "AI selected: Choosing the option for questions regarding cards or the application process, which aligns with the call purpose.",
+                                              "detected": {
+                                                "isIVRMenu": true,
+                                                "menuOptions": [],
+                                                "isMenuComplete": true,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-03T18:14:01.780Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n15",
+                                              "ivrSpeech": "Sorry. We'd thanks for calling. Goodbye.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "questions about the credit application process",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-03T18:14:01.780Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 159,
+                                                    "reachedHuman": false,
+                                                    "dtmfDigits": [
+                                                      "4",
+                                                      "3",
+                                                      "4"
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "representative",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-03T16:48:20.170Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n13",
+                      "ivrSpeech": "Sorry. We didn't get that. Please try again. Target credit and debit cards? Press 1. Target reloadable account press 2. Questions about the credit application process, press 3. Target gift cards, press 4. Third party payments, press 5. To return to the main menu, press star.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "representative",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-03T16:48:20.170Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n14",
+                            "ivrSpeech": "Sorry. We didn't get that. Please try again. Target credit and debit cards? Press 1. Target reloadable accounts, press 2. Questions about the credit application process, press 3. Target gift cards, press 4. Third party payments, press 5. To return to the main menu, press star.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "representative",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-03T16:48:20.170Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 132,
+                                  "reachedHuman": false,
+                                  "dtmfDigits": ["4"]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "aiAction": {
+                "action": "press_digit",
+                "digit": "1",
+                "reason": "AI selected: The menu is complete, and option 1 relates to my call purpose about an in-store purchase.",
+                "detected": {
+                  "isIVRMenu": true,
+                  "menuOptions": [],
+                  "isMenuComplete": true,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-06T14:08:06.888Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n16",
+                "ivrSpeech": "Sorry. We didn't get that. Please try again. In store purchase, experience, or merchandise, Target store experience, press 1.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "1",
+                      "reason": "AI selected: The system is repeating the same menu options, indicating it's complete. I need to select the option for in-store purchase.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-06T14:08:06.888Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "terminal": true,
+                      "finalStatus": "initiated",
+                      "durationSeconds": 53,
+                      "reachedHuman": true,
+                      "dtmfDigits": ["1", "1"]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
