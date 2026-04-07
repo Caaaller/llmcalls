@@ -13,6 +13,28 @@ import { formatConversationForAI, ActionHistoryEntry } from '../config/prompts';
 const INVALID_ENTRY_PATTERNS =
   /did not recognize|invalid entry|not a valid|not recognized/i;
 
+const DIGIT_WORD_MAP: Record<string, Array<string>> = {
+  '0': ['zero', 'oh'],
+  '1': ['one'],
+  '2': ['two'],
+  '3': ['three'],
+  '4': ['four'],
+  '5': ['five'],
+  '6': ['six'],
+  '7': ['seven'],
+  '8': ['eight'],
+  '9': ['nine'],
+  '*': ['star', 'asterisk'],
+  '#': ['pound', 'hash'],
+};
+
+function transcriptContainsDigit(transcript: string, digit: string): boolean {
+  const lower = transcript.toLowerCase();
+  if (lower.includes(digit)) return true;
+  const words = DIGIT_WORD_MAP[digit] || [];
+  return words.some(w => new RegExp(`\\b${w}\\b`).test(lower));
+}
+
 /**
  * Scan action history for digits that were pressed and followed by "invalid entry" responses.
  * Checks both immediate next turn AND any turn within the next 2 entries for the error message
@@ -250,6 +272,25 @@ Analyze the current speech and decide what to do. Consider:
         digit: opt.digit,
         option: opt.option.toLowerCase().trim(),
       }));
+    }
+
+    // Guard against hallucinated press_digit — the chosen digit must actually
+    // appear (digit char or spoken word) somewhere in the current IVR speech.
+    // Otherwise downgrade to "wait" and keep listening.
+    if (
+      action.action === 'press_digit' &&
+      action.digit &&
+      !transcriptContainsDigit(currentSpeech, action.digit)
+    ) {
+      console.log(
+        `[NAV] Rejecting hallucinated press_digit ${action.digit} — not in transcript: "${currentSpeech}"`
+      );
+      return {
+        ...action,
+        action: 'wait',
+        digit: undefined,
+        reason: `rejected hallucinated press_digit ${action.digit}: not present in transcript`,
+      };
     }
 
     return action;
