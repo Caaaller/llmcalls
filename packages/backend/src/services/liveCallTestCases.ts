@@ -124,6 +124,19 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     },
   },
   {
+    id: 'usps-failed-pickup',
+    name: 'USPS — report failed package pickup marked as completed',
+    description:
+      'USPS IVR. AI must navigate menus to reach a human to report that a scheduled pickup was marked completed but never happened. Callback number is different from the intended end user, so hallucinated DTMF presses are especially damaging.',
+    phoneNumber: '+18002758777',
+    callPurpose:
+      "Failed package pickup. Pickup request EMC717292788 was marked as completed even though it didn't actually happen",
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 420,
+    },
+  },
+  {
     id: 'umr-coverage',
     name: 'UMR Insurance — conversational AI with short listen window',
     description:
