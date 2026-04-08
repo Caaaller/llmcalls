@@ -189,6 +189,42 @@
   background: #c82333;
 }
 
+.call-details-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-repeat-call {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.btn-repeat-call:hover:not(:disabled) {
+  background: #0069d9;
+}
+
+.btn-repeat-call:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.repeat-call-error {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
 .loading {
   text-align: center;
   padding: 40px;

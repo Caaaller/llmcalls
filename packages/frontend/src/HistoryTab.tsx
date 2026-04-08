@@ -1,18 +1,33 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import './HistoryTab.css';
 import {
   api,
   type CallHistoryResponse,
   type CallDetailsResponse,
   type CallDetails,
+  type InitiateCallPayload,
+  type InitiateCallResponse,
 } from './api/client';
 import { useCallRecording, getSeekSeconds } from './hooks/useCallRecording';
 import { CallRecordingPlayer } from './components/CallRecordingPlayer';
 
 function HistoryTab() {
   const [selectedCallSid, setSelectedCallSid] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const recording = useCallRecording(selectedCallSid);
+
+  const repeatCall = useMutation<
+    InitiateCallResponse,
+    Error,
+    InitiateCallPayload
+  >({
+    mutationFn: payload => api.calls.initiate(payload),
+    onSuccess: data => {
+      queryClient.invalidateQueries({ queryKey: ['calls', 'history'] });
+      setSelectedCallSid(data.call.sid);
+    },
+  });
   const { recordingUrl, audioRef, audioCurrentTime, handleSeekToEvent } =
     recording;
 
@@ -169,13 +184,43 @@ function HistoryTab() {
             <>
               <div className="call-details-header">
                 <h3>Call Details</h3>
-                <button
-                  onClick={() => setSelectedCallSid(null)}
-                  className="btn-close"
-                >
-                  ✕
-                </button>
+                <div className="call-details-header-actions">
+                  <button
+                    onClick={() => {
+                      const to = selectedCall.metadata?.to;
+                      const transferNumber =
+                        selectedCall.metadata?.transferNumber;
+                      if (!to || !transferNumber) return;
+                      repeatCall.mutate({
+                        to,
+                        transferNumber,
+                        callPurpose: selectedCall.metadata?.callPurpose ?? '',
+                        customInstructions: '',
+                      });
+                    }}
+                    disabled={
+                      repeatCall.isPending ||
+                      !selectedCall.metadata?.to ||
+                      !selectedCall.metadata?.transferNumber
+                    }
+                    className="btn-repeat-call"
+                    title="Place a new call with the same number, purpose, and transfer settings"
+                  >
+                    {repeatCall.isPending ? 'Calling…' : '🔁 Repeat Call'}
+                  </button>
+                  <button
+                    onClick={() => setSelectedCallSid(null)}
+                    className="btn-close"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
+              {repeatCall.isError && (
+                <div className="repeat-call-error">
+                  Failed to repeat call: {repeatCall.error.message}
+                </div>
+              )}
 
               <div className="call-info">
                 <div className="info-row">
