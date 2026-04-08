@@ -14,8 +14,16 @@ function toE164(phone: string): string | null {
   return null;
 }
 
+const DTMF_DEDUP_WINDOW_MS = 3000;
+
+interface LastDtmf {
+  digits: string;
+  at: number;
+}
+
 class TelnyxService {
   private client: Telnyx;
+  private lastDtmfByCall = new Map<string, LastDtmf>();
 
   constructor() {
     const apiKey = process.env.TELNYX_API_KEY;
@@ -78,11 +86,24 @@ class TelnyxService {
   }
 
   async sendDTMF(callControlId: string, digits: string): Promise<boolean> {
+    const now = Date.now();
+    const last = this.lastDtmfByCall.get(callControlId);
+    if (
+      last &&
+      last.digits === digits &&
+      now - last.at < DTMF_DEDUP_WINDOW_MS
+    ) {
+      console.log(
+        `[DTMF] Duplicate press suppressed: ${digits} (${now - last.at}ms since last)`
+      );
+      return false;
+    }
     try {
       await this.client.calls.actions.sendDtmf(callControlId, {
         digits,
         duration_millis: 500,
       });
+      this.lastDtmfByCall.set(callControlId, { digits, at: now });
       return true;
     } catch (error) {
       console.error('Error sending DTMF:', toError(error).message);

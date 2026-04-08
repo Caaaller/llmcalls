@@ -22,7 +22,7 @@ const DEEPGRAM_URL =
   '&channels=1' +
   '&language=en-US' +
   '&smart_format=true' +
-  '&endpointing=500' +
+  '&endpointing=1000' +
   '&utterance_end_ms=1000' +
   '&interim_results=true';
 
@@ -38,6 +38,34 @@ interface DeepgramResult {
 interface DeepgramUtteranceEnd {
   type: 'UtteranceEnd';
   last_word_end: number;
+}
+
+const INCOMPLETE_TRAILING_WORDS = new Set([
+  'press',
+  'to',
+  'for',
+  'select',
+  'enter',
+  'say',
+  'dial',
+  'the',
+  'a',
+  'an',
+  'or',
+  'and',
+]);
+
+function isIncompleteUtterance(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+  const words = trimmed.split(/\s+/);
+  if (words.length < 3) return true;
+  const lastWord = words[words.length - 1]
+    .toLowerCase()
+    .replace(/[^a-z']/g, '');
+  const endsWithTerminal = /[.!?]$/.test(trimmed);
+  if (!endsWithTerminal && INCOMPLETE_TRAILING_WORDS.has(lastWord)) return true;
+  return false;
 }
 
 const SILENT_HOLD_TIMEOUT_MS = 30_000; // Assume hold after 30s of no speech
@@ -92,6 +120,13 @@ function openDeepgram(
         // Fire on speech_final (faster than waiting for UtteranceEnd)
         if (r.speech_final) {
           const fullText = state.transcript.trim();
+          if (isIncompleteUtterance(fullText)) {
+            console.log(
+              `[DG] speech_final suppressed (incomplete): "${fullText.substring(0, 80)}"`
+            );
+            // Keep transcript & do not set speechFired — let UtteranceEnd handle it
+            return;
+          }
           state.transcript = '';
           state.speechFired = true;
           console.log(
