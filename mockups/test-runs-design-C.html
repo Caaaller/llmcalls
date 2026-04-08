@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Runs - Design C: Dashboard + Expandable Table</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f6fa; display: flex; min-height: 100vh; }
+
+  .sidebar { width: 240px; background: #1a1d2e; color: #c5c8d4; padding: 20px; flex-shrink: 0; }
+  .sidebar h1 { color: #fff; font-size: 1.4rem; margin-bottom: 20px; }
+  .sidebar-nav { display: flex; flex-direction: column; gap: 4px; }
+  .sidebar-nav button { background: none; border: none; color: #c5c8d4; text-align: left; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; }
+  .sidebar-nav button:hover { background: rgba(255,255,255,0.08); }
+  .sidebar-nav button.active { background: rgba(102, 126, 234, 0.2); color: #667eea; font-weight: 600; }
+
+  .main { flex: 1; padding: 24px 32px; overflow-y: auto; max-height: 100vh; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #e9ecef; }
+  .header h2 { color: #333; }
+  .btn-refresh { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+  /* Top-level dashboard stats */
+  .dashboard-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: white; border-radius: 10px; padding: 16px; border-left: 4px solid; }
+  .stat-card.total { border-left-color: #667eea; }
+  .stat-card.last-pass { border-left-color: #28a745; }
+  .stat-card.last-fail { border-left-color: #dc3545; }
+  .stat-card.avg-dur { border-left-color: #17a2b8; }
+  .stat-card.pass-rate { border-left-color: #ffc107; }
+  .stat-value { font-size: 1.6rem; font-weight: 700; color: #333; }
+  .stat-label { font-size: 0.75rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  /* Runs table */
+  .runs-table { width: 100%; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .runs-table-header { display: grid; grid-template-columns: 40px 2fr 1fr 80px 80px 80px 120px 60px; padding: 12px 16px; background: #f8f9fa; font-size: 0.75rem; color: #999; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; border-bottom: 1px solid #e9ecef; }
+  .runs-table-row { display: grid; grid-template-columns: 40px 2fr 1fr 80px 80px 80px 120px 60px; padding: 14px 16px; border-bottom: 1px solid #f5f5f5; align-items: center; cursor: pointer; transition: background 0.15s; }
+  .runs-table-row:hover { background: #fafbfe; }
+  .runs-table-row.selected { background: #f0f4ff; }
+  .runs-table-row:last-child { border-bottom: none; }
+
+  .row-status { width: 10px; height: 10px; border-radius: 50%; }
+  .row-status.passed { background: #28a745; }
+  .row-status.failed { background: #dc3545; }
+  .row-date { font-weight: 500; color: #333; font-size: 0.9rem; }
+  .row-subtitle { color: #999; font-size: 0.8rem; }
+  .row-tests { font-size: 0.9rem; color: #333; }
+  .row-passed { color: #28a745; font-weight: 600; font-size: 0.9rem; }
+  .row-failed { color: #dc3545; font-weight: 600; font-size: 0.9rem; }
+  .row-duration { color: #667eea; font-weight: 500; font-size: 0.9rem; }
+
+  /* Pass rate mini bar */
+  .mini-bar { width: 100%; height: 4px; background: #e9ecef; border-radius: 2px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; background: #28a745; border-radius: 2px; }
+
+  .row-actions { text-align: center; }
+  .btn-delete { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.1rem; }
+  .btn-delete:hover { color: #dc3545; }
+
+  /* Expanded row: test case detail */
+  .expanded-detail { grid-column: 1 / -1; padding: 16px 20px; background: #fafbfe; border-bottom: 1px solid #e9ecef; }
+  .expanded-detail h4 { margin-bottom: 12px; color: #333; font-size: 0.95rem; }
+
+  .test-case-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .test-card { background: white; border-radius: 8px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; border: 1px solid #f0f0f0; }
+  .test-card.fail { border-color: #f8d7da; background: #fff8f8; }
+  .test-card-icon { font-size: 1rem; margin-top: 2px; }
+  .test-card-body { flex: 1; }
+  .test-card-name { font-weight: 500; color: #333; font-size: 0.9rem; }
+  .test-card-meta { font-size: 0.8rem; color: #666; margin-top: 2px; }
+  .test-card-error { font-size: 0.8rem; color: #dc3545; margin-top: 4px; padding: 4px 8px; background: #f8d7da; border-radius: 4px; }
+  .test-card-actions { display: flex; flex-direction: column; gap: 4px; }
+  .btn-small { padding: 4px 10px; font-size: 0.75rem; border-radius: 5px; border: none; cursor: pointer; font-weight: 600; }
+  .btn-call { background: #f0f4ff; color: #667eea; }
+  .btn-call:hover { background: #dee5ff; }
+
+  /* Call detail overlay in expanded area */
+  .call-detail-section { margin-top: 14px; padding: 16px; background: white; border-radius: 10px; border: 1px solid #e9ecef; }
+  .call-detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .call-detail-header h5 { color: #333; }
+  .call-detail-close { background: none; border: none; color: #999; cursor: pointer; font-size: 1.1rem; }
+
+  .call-detail-info { display: flex; gap: 16px; margin-bottom: 12px; font-size: 0.85rem; color: #666; }
+  .call-detail-info strong { color: #333; }
+
+  .audio-section { margin: 10px 0; }
+  .audio-section audio { width: 100%; height: 36px; }
+
+  .event-list { font-size: 0.85rem; }
+  .event-item { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f5f5f5; }
+  .event-item:last-child { border-bottom: none; }
+  .event-time { color: #999; min-width: 70px; font-size: 0.8rem; }
+  .event-text { color: #333; }
+  .event-text.dtmf { color: #e67e22; }
+  .event-text.ivr { color: #3498db; }
+  .event-text.transfer { color: #9b59b6; }
+  .event-text.user-msg { color: #2196f3; }
+  .event-text.ai-msg { color: #9c27b0; }
+
+  .design-label { position: fixed; bottom: 12px; right: 12px; background: #667eea; color: white; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; z-index: 100; }
+</style>
+</head>
+<body>
+  <div class="design-label">Design C: Dashboard Table</div>
+
+  <div class="sidebar">
+    <h1>CallBot</h1>
+    <nav class="sidebar-nav">
+      <button>New Call</button>
+      <button>Call History</button>
+      <button>Evaluations</button>
+      <button class="active">Test Runs</button>
+    </nav>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <h2>Test Runs</h2>
+      <button class="btn-refresh">Refresh</button>
+    </div>
+
+    <!-- Dashboard Summary -->
+    <div class="dashboard-stats">
+      <div class="stat-card total">
+        <div class="stat-value">23</div>
+        <div class="stat-label">Total Runs (14d)</div>
+      </div>
+      <div class="stat-card last-pass">
+        <div class="stat-value" style="color:#28a745">15</div>
+        <div class="stat-label">Passed Runs</div>
+      </div>
+      <div class="stat-card last-fail">
+        <div class="stat-value" style="color:#dc3545">8</div>
+        <div class="stat-label">Failed Runs</div>
+      </div>
+      <div class="stat-card avg-dur">
+        <div class="stat-value" style="color:#17a2b8">4:15</div>
+        <div class="stat-label">Avg Duration</div>
+      </div>
+      <div class="stat-card pass-rate">
+        <div class="stat-value" style="color:#e67e22">87%</div>
+        <div class="stat-label">Test Pass Rate</div>
+      </div>
+    </div>
+
+    <!-- Runs Table -->
+    <div class="runs-table">
+      <div class="runs-table-header">
+        <span></span>
+        <span>Run</span>
+        <span>Status</span>
+        <span>Tests</span>
+        <span>Passed</span>
+        <span>Failed</span>
+        <span>Pass Rate</span>
+        <span></span>
+      </div>
+
+      <!-- Row 1 - Selected / expanded -->
+      <div class="runs-table-row selected">
+        <div><div class="row-status passed"></div></div>
+        <div>
+          <div class="row-date">Mar 20, 2026 10:30 AM</div>
+          <div class="row-subtitle">4m 32s</div>
+        </div>
+        <div class="row-tests">All passed</div>
+        <div class="row-passed">12</div>
+        <div class="row-passed">12</div>
+        <div class="row-failed">0</div>
+        <div><div class="mini-bar"><div class="mini-bar-fill" style="width:100%"></div></div></div>
+        <div class="row-actions"><button class="btn-delete">&times;</button></div>
+      </div>
+
+      <!-- Expanded detail -->
+      <div class="expanded-detail">
+        <h4>Test Cases (12)</h4>
+        <div class="test-case-grid">
+          <div class="test-card">
+            <span class="test-card-icon">&#x2705;</span>
+            <div class="test-card-body">
+              <div class="test-card-name">Wells Fargo Customer Service</div>
+              <div class="test-card-meta">42s</div>
+            </div>
+            <div class="test-card-actions"><button class="btn-small btn-call">View Call</button></div>
+          </div>
+          <div class="test-card">
+            <span class="test-card-icon">&#x2705;</span>
+            <div class="test-card-body">
+              <div class="test-card-name">Chase Bank Balance Check</div>
+              <div class="test-card-meta">38s</div>
+            </div>
+            <div class="test-card-actions"><button class="btn-small btn-call">View Call</button></div>
+          </div>
+          <div class="test-card">
+            <span class="test-card-icon">&#x2705;</span>
+            <div class="test-card-body">
+              <div class="test-card-name">Comcast Internet Support</div>
+              <div class="test-card-meta">55s</div>
+            </div>
+            <div class="test-card-actions"><button class="btn-small btn-call">View Call</button></div>
+          </div>
+          <div class="test-card">
+            <span class="test-card-icon">&#x2705;</span>
+            <div class="test-card-body">
+              <div class="test-card-name">Delta Airlines Booking</div>
+              <div class="test-card-meta">33s</div>
+            </div>
+            <div class="test-card-actions"><button class="btn-small btn-call">View Call</button></div>
+          </div>
+        </div>
+
+        <!-- Example call detail shown -->
+        <div class="call-detail-section">
+          <div class="call-detail-header">
+            <h5>Chase Bank Balance Check — Call Detail</h5>
+            <button class="call-detail-close">&times;</button>
+          </div>
+          <div class="call-detail-info">
+            <span><strong>SID:</strong> CA1234...abcd</span>
+            <span><strong>To:</strong> +18005551234</span>
+            <span><strong>Purpose:</strong> Check balance</span>
+          </div>
+          <div class="audio-section">
+            <audio controls style="width:100%"><source src="#" type="audio/mpeg"></audio>
+          </div>
+          <div class="event-list">
+            <div class="event-item">
+              <span class="event-time">0:05</span>
+              <span class="event-text ai-msg">🤖 Welcome to Chase. How can I help?</span>
+            </div>
+            <div class="event-item">
+              <span class="event-time">0:08</span>
+              <span class="event-text dtmf">🔢 DTMF: 1 (Account balance)</span>
+            </div>
+            <div class="event-item">
+              <span class="event-time">0:12</span>
+              <span class="event-text ivr">📋 IVR: Press 1 checking, Press 2 savings</span>
+            </div>
+            <div class="event-item">
+              <span class="event-time">0:15</span>
+              <span class="event-text user-msg">👤 Check my balance</span>
+            </div>
+            <div class="event-item">
+              <span class="event-time">0:22</span>
+              <span class="event-text transfer">🔄 Transfer to agent</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="runs-table-row">
+        <div><div class="row-status failed"></div></div>
+        <div>
+          <div class="row-date">Mar 19, 2026 3:15 PM</div>
+          <div class="row-subtitle">6m 11s</div>
+        </div>
+        <div class="row-tests">4 failed</div>
+        <div class="row-passed">10</div>
+        <div class="row-passed">10</div>
+        <div class="row-failed">4</div>
+        <div><div class="mini-bar"><div class="mini-bar-fill" style="width:71%"></div></div></div>
+        <div class="row-actions"><button class="btn-delete">&times;</button></div>
+      </div>
+
+      <!-- Row 3 -->
+      <div class="runs-table-row">
+        <div><div class="row-status passed"></div></div>
+        <div>
+          <div class="row-date">Mar 19, 2026 11:00 AM</div>
+          <div class="row-subtitle">3m 05s</div>
+        </div>
+        <div class="row-tests">All passed</div>
+        <div class="row-passed">8</div>
+        <div class="row-passed">8</div>
+        <div class="row-failed">0</div>
+        <div><div class="mini-bar"><div class="mini-bar-fill" style="width:100%"></div></div></div>
+        <div class="row-actions"><button class="btn-delete">&times;</button></div>
+      </div>
+
+      <!-- Row 4 -->
+      <div class="runs-table-row">
+        <div><div class="row-status failed"></div></div>
+        <div>
+          <div class="row-date">Mar 18, 2026 5:42 PM</div>
+          <div class="row-subtitle">3m 48s</div>
+        </div>
+        <div class="row-tests">2 failed</div>
+        <div class="row-passed">6</div>
+        <div class="row-passed">6</div>
+        <div class="row-failed">2</div>
+        <div><div class="mini-bar"><div class="mini-bar-fill" style="width:75%"></div></div></div>
+        <div class="row-actions"><button class="btn-delete">&times;</button></div>
+      </div>
+
+      <!-- Row 5 -->
+      <div class="runs-table-row">
+        <div><div class="row-status passed"></div></div>
+        <div>
+          <div class="row-date">Mar 17, 2026 9:20 AM</div>
+          <div class="row-subtitle">5m 22s</div>
+        </div>
+        <div class="row-tests">All passed</div>
+        <div class="row-passed">14</div>
+        <div class="row-passed">14</div>
+        <div class="row-failed">0</div>
+        <div><div class="mini-bar"><div class="mini-bar-fill" style="width:100%"></div></div></div>
+        <div class="row-actions"><button class="btn-delete">&times;</button></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup C - Minimal Chat-like</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 60px 20px; }
+  .logo { font-size: 48px; margin-bottom: 8px; }
+  h1 { font-size: 28px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+  .tagline { color: #888; font-size: 16px; margin-bottom: 48px; }
+  .form { max-width: 560px; width: 100%; }
+  .input-group { position: relative; margin-bottom: 16px; }
+  .input-group input { width: 100%; padding: 18px 20px; border: 2px solid #eee; border-radius: 14px; font-size: 17px; outline: none; transition: all 0.2s; background: #fafafa; }
+  .input-group input:focus { border-color: #667eea; background: #fff; box-shadow: 0 0 0 4px rgba(102,126,234,0.1); }
+  .input-group .label { position: absolute; top: -9px; left: 14px; background: #fff; padding: 0 6px; font-size: 12px; color: #888; font-weight: 500; }
+  .input-group input:focus + .label { color: #667eea; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .btn { width: 100%; padding: 18px; background: #1a1a1a; color: #fff; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; transition: all 0.15s; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .btn:hover { background: #333; }
+  .btn:active { transform: scale(0.99); }
+  .how-it-works { margin-top: 48px; max-width: 560px; width: 100%; }
+  .how-it-works h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #bbb; margin-bottom: 20px; text-align: center; }
+  .steps { display: flex; gap: 24px; }
+  .step-card { flex: 1; text-align: center; padding: 20px 12px; }
+  .step-num { width: 36px; height: 36px; border-radius: 50%; background: #f5f5f5; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: #667eea; margin-bottom: 10px; }
+  .step-card h4 { font-size: 14px; margin-bottom: 4px; }
+  .step-card p { font-size: 12px; color: #999; line-height: 1.4; }
+</style>
+</head>
+<body>
+  <div class="logo">📞</div>
+  <h1>Skip the Wait</h1>
+  <p class="tagline">We'll navigate the phone tree so you don't have to</p>
+
+  <div class="form">
+    <div class="input-group">
+      <input type="tel" placeholder="Company phone number" value="1-800-869-3557">
+      <span class="label">Calling</span>
+    </div>
+
+    <div class="input-group">
+      <input type="text" placeholder="What do you need help with?" value="speak with a representative">
+      <span class="label">Reason</span>
+    </div>
+
+    <div class="input-group">
+      <input type="tel" placeholder="Your phone number" value="(720) 584-6358">
+      <span class="label">Call me at</span>
+    </div>
+
+    <button class="btn" onclick="alert('Calling Wells Fargo now... We\'ll ring you when a human answers.')">
+      <span style="font-size: 20px;">📞</span> Start Call
+    </button>
+  </div>
+
+  <div class="how-it-works">
+    <h3>How it works</h3>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <h4>We call them</h4>
+        <p>AI dials the number and navigates the phone menu for you</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <h4>Wait is on us</h4>
+        <p>Go about your day while AI waits on hold</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <h4>We call you</h4>
+        <p>When a real person answers, we connect them to your phone</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Runs — Option A: Clean Minimal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1d2e;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: #1a1d2e;
+      color: #c9cdd6;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .brand-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.3px;
+    }
+
+    .new-call-btn {
+      margin: 14px 12px 6px;
+      padding: 9px 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-section {
+      padding: 14px 12px 6px;
+    }
+
+    .sidebar-heading {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6b7280;
+      font-weight: 600;
+      padding: 0 6px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #a0a7b4;
+      cursor: pointer;
+    }
+
+    .sidebar-item:hover { background: rgba(255,255,255,0.06); }
+    .sidebar-item-time { font-size: 11px; color: #5a6070; }
+
+    .sidebar-nav {
+      margin-top: auto;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 8px 12px 12px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: #8892a4;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .nav-btn:hover { background: rgba(255,255,255,0.06); color: #c9cdd6; }
+
+    .nav-btn.active {
+      background: rgba(102, 126, 234, 0.18);
+      color: #667eea;
+    }
+
+    .nav-icon { width: 18px; display: flex; align-items: center; justify-content: center; opacity: 0.8; }
+
+    /* ── Main content ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .page-header {
+      padding: 18px 24px 14px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .page-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1d2e;
+    }
+
+    .page-subtitle {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .btn-refresh {
+      padding: 7px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      background: #fff;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ── Split layout ── */
+    .split-layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Runs list (left panel) ── */
+    .runs-panel {
+      width: 300px;
+      min-width: 300px;
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+    }
+
+    .panel-count {
+      font-size: 11px;
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .runs-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .run-item {
+      padding: 13px 16px;
+      border-bottom: 1px solid #f0f2f5;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .run-item:hover { background: #fafafa; }
+
+    .run-item.active {
+      background: rgba(102, 126, 234, 0.05);
+      border-left: 3px solid #667eea;
+      padding-left: 13px;
+    }
+
+    .run-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .run-date {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1a1d2e;
+    }
+
+    .run-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-passed { background: #d4edda; color: #28a745; }
+    .badge-failed { background: #f8d7da; color: #dc3545; }
+    .badge-running { background: #cce5ff; color: #0066cc; }
+
+    .run-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .run-progress {
+      height: 4px;
+      border-radius: 2px;
+      background: #f3f4f6;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .run-progress-bar {
+      height: 100%;
+      border-radius: 2px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* ── Detail panel (right) ── */
+    .detail-panel {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-inner {
+      padding: 22px 28px;
+      max-width: 860px;
+    }
+
+    .detail-run-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .detail-run-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1d2e;
+    }
+
+    .detail-run-meta {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 3px;
+    }
+
+    .btn-delete {
+      padding: 6px 12px;
+      border: 1px solid #f8d7da;
+      border-radius: 6px;
+      background: #fff;
+      color: #dc3545;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Summary row */
+    .summary-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .summary-val {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .val-total { color: #1a1d2e; }
+    .val-pass { color: #28a745; }
+    .val-fail { color: #dc3545; }
+    .val-closed { color: #d4a017; }
+    .val-skipped { color: #6c757d; }
+    .val-dur { color: #667eea; }
+
+    .summary-lbl {
+      font-size: 11px;
+      color: #9ca3af;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* Progress bar in detail */
+    .detail-progress {
+      height: 8px;
+      border-radius: 4px;
+      background: #f3f4f6;
+      overflow: hidden;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    /* Test cases */
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+
+    .test-case {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 9px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .test-case-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .test-case.fail { border-left: 3px solid #dc3545; }
+    .test-case.pass { border-left: 3px solid #28a745; }
+    .test-case.closed { border-left: 3px solid #d4a017; }
+    .test-case.skipped { border-left: 3px solid #6c757d; opacity: 0.7; }
+
+    .tc-icon { font-size: 14px; flex-shrink: 0; }
+
+    .tc-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 500;
+      color: #1a1d2e;
+    }
+
+    .tc-name .skipped-label {
+      font-size: 11px;
+      color: #6c757d;
+      margin-left: 6px;
+      font-weight: 400;
+    }
+
+    .tc-duration {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .tc-error {
+      font-size: 11px;
+      color: #dc3545;
+      background: #fff5f5;
+      padding: 2px 8px;
+      border-radius: 4px;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tc-btn {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    .tc-btn.why {
+      border-color: #fde68a;
+      background: #fffbeb;
+      color: #b45309;
+    }
+
+    .detail-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      gap: 10px;
+      padding: 60px 20px;
+    }
+
+    .detail-empty-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .detail-empty-title { font-size: 14px; font-weight: 600; color: #6b7280; }
+    .detail-empty-sub { font-size: 12px; color: #9ca3af; }
+
+    /* Option label banner */
+    .option-banner {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      text-align: center;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">CB</div>
+      <span class="brand-text">CallBot</span>
+    </div>
+
+    <button class="new-call-btn">
+      <span>+</span> New Call
+    </button>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Recent</div>
+      <div class="sidebar-item">
+        <span>Acme Healthcare</span>
+        <span class="sidebar-item-time">2h ago</span>
+      </div>
+      <div class="sidebar-item">
+        <span>City Water Dept</span>
+        <span class="sidebar-item-time">1d ago</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-btn">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.01L6.6 10.8z"/></svg>
+        </span>
+        New Call
+      </button>
+      <button class="nav-btn">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+        </span>
+        Call History
+      </button>
+      <button class="nav-btn">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        </span>
+        Evaluations
+      </button>
+      <button class="nav-btn active">
+        <span class="nav-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z"/></svg>
+        </span>
+        Test Runs
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="option-banner">Option A — Clean Minimal (email-client layout)</div>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Test Runs</div>
+        <div class="page-subtitle">Automated regression suite results</div>
+      </div>
+      <button class="btn-refresh">Refresh</button>
+    </div>
+
+    <div class="split-layout">
+
+      <!-- Left: runs list -->
+      <div class="runs-panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent Runs</span>
+          <span class="panel-count">8 runs</span>
+        </div>
+
+        <div class="runs-list">
+
+          <!-- Run 1 — selected -->
+          <div class="run-item active">
+            <div class="run-item-top">
+              <span class="run-date">Apr 1, 2026, 2:14 PM</span>
+              <span class="run-badge badge-failed">Failed</span>
+            </div>
+            <div class="run-meta">
+              <span>7/10 passed &middot; 1 closed &middot; 2 skipped</span>
+              <span>4m 32s</span>
+            </div>
+            <div class="run-progress">
+              <!-- green 70%, red 20%, gold 0%, gray 10% -->
+              <div class="run-progress-bar" style="width:70%; background:#28a745;"></div>
+              <div class="run-progress-bar" style="left:70%; width:20%; background:#dc3545;"></div>
+              <div class="run-progress-bar" style="left:90%; width:10%; background:#6c757d;"></div>
+            </div>
+          </div>
+
+          <!-- Run 2 -->
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 31, 2026, 11:08 AM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-meta">
+              <span>9/9 passed &middot; 1 closed</span>
+              <span>5m 11s</span>
+            </div>
+            <div class="run-progress">
+              <div class="run-progress-bar" style="width:90%; background:#28a745;"></div>
+              <div class="run-progress-bar" style="left:90%; width:10%; background:#d4a017;"></div>
+            </div>
+          </div>
+
+          <!-- Run 3 — single test run -->
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 30, 2026, 4:55 PM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-meta">
+              <span>1/1 run &middot; 9 skipped</span>
+              <span>38s</span>
+            </div>
+            <div class="run-progress">
+              <div class="run-progress-bar" style="width:10%; background:#28a745;"></div>
+              <div class="run-progress-bar" style="left:10%; width:90%; background:#6c757d;"></div>
+            </div>
+          </div>
+
+          <!-- Run 4 -->
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 29, 2026, 9:22 AM</span>
+              <span class="run-badge badge-failed">Failed</span>
+            </div>
+            <div class="run-meta">
+              <span>5/10 passed &middot; 5 failed</span>
+              <span>6m 03s</span>
+            </div>
+            <div class="run-progress">
+              <div class="run-progress-bar" style="width:50%; background:#28a745;"></div>
+              <div class="run-progress-bar" style="left:50%; width:50%; background:#dc3545;"></div>
+            </div>
+          </div>
+
+          <!-- Run 5 -->
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 28, 2026, 3:40 PM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-meta">
+              <span>10/10 passed</span>
+              <span>5m 48s</span>
+            </div>
+            <div class="run-progress">
+              <div class="run-progress-bar" style="width:100%; background:#28a745;"></div>
+            </div>
+          </div>
+
+          <!-- Run 6 -->
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 27, 2026, 10:15 AM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-meta">
+              <span>10/10 passed</span>
+              <span>5m 22s</span>
+            </div>
+            <div class="run-progress">
+              <div class="run-progress-bar" style="width:100%; background:#28a745;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: detail panel -->
+      <div class="detail-panel">
+        <div class="detail-inner">
+
+          <div class="detail-run-header">
+            <div>
+              <div class="detail-run-title">Apr 1, 2026 at 2:14 PM</div>
+              <div class="detail-run-meta">Full suite &middot; 10 tests &middot; completed in 4m 32s</div>
+            </div>
+            <button class="btn-delete">Delete</button>
+          </div>
+
+          <!-- Summary cards -->
+          <div class="summary-row">
+            <div class="summary-card">
+              <div class="summary-val val-total">10</div>
+              <div class="summary-lbl">Total</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-val val-pass">7</div>
+              <div class="summary-lbl">Passed</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-val val-fail">1</div>
+              <div class="summary-lbl">Failed</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-val val-closed">1</div>
+              <div class="summary-lbl">Closed</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-val val-skipped">1</div>
+              <div class="summary-lbl">Skipped</div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-val val-dur">4m 32s</div>
+              <div class="summary-lbl">Duration</div>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="detail-progress">
+            <div style="position:absolute;left:0;width:70%;height:100%;background:#28a745;"></div>
+            <div style="position:absolute;left:70%;width:10%;height:100%;background:#dc3545;"></div>
+            <div style="position:absolute;left:80%;width:10%;height:100%;background:#d4a017;"></div>
+            <div style="position:absolute;left:90%;width:10%;height:100%;background:#6c757d;"></div>
+          </div>
+
+          <!-- Test cases -->
+          <div class="section-label">Test Cases (10)</div>
+
+          <!-- FAILED -->
+          <div class="test-case fail">
+            <div class="test-case-row">
+              <span class="tc-icon">&#10060;</span>
+              <span class="tc-name">Transfer to billing — presses 3 at main menu</span>
+              <span class="tc-error">Expected transfer, got termination</span>
+              <span class="tc-duration">41s</span>
+              <button class="tc-btn">View Call</button>
+              <button class="tc-btn why">Why?</button>
+            </div>
+          </div>
+
+          <!-- CLOSED -->
+          <div class="test-case closed">
+            <div class="test-case-row">
+              <span class="tc-icon">&#128347;</span>
+              <span class="tc-name">Appointment scheduling — press 1</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">28s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+          <!-- SKIPPED -->
+          <div class="test-case skipped">
+            <div class="test-case-row">
+              <span class="tc-icon" style="color:#6c757d;">&#8212;</span>
+              <span class="tc-name">New patient registration<span class="skipped-label">skipped</span></span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">—</span>
+            </div>
+          </div>
+
+          <!-- PASSED x7 -->
+          <div class="test-case pass">
+            <div class="test-case-row">
+              <span class="tc-icon">&#9989;</span>
+              <span class="tc-name">Main menu navigation — press 2 for support</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">32s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+          <div class="test-case pass">
+            <div class="test-case-row">
+              <span class="tc-icon">&#9989;</span>
+              <span class="tc-name">Hold queue detection — waits for agent</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">1m 12s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+          <div class="test-case pass">
+            <div class="test-case-row">
+              <span class="tc-icon">&#9989;</span>
+              <span class="tc-name">Prescription refill — automated IVR path</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">27s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+          <div class="test-case pass">
+            <div class="test-case-row">
+              <span class="tc-icon">&#9989;</span>
+              <span class="tc-name">Emergency line — press 0 for operator</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">19s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+          <div class="test-case pass">
+            <div class="test-case-row">
+              <span class="tc-icon">&#9989;</span>
+              <span class="tc-name">Insurance verification — speech recognition</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">44s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+          <div class="test-case pass">
+            <div class="test-case-row">
+              <span class="tc-icon">&#9989;</span>
+              <span class="tc-name">Lab results line — press 4</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">23s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+          <div class="test-case pass">
+            <div class="test-case-row">
+              <span class="tc-icon">&#9989;</span>
+              <span class="tc-name">Callback request — leaves voicemail</span>
+              <span style="flex:1"></span>
+              <span class="tc-duration">35s</span>
+              <button class="tc-btn">View Call</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

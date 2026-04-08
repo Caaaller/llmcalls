@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Runs — Option C: Dashboard Style</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1d2e;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: #1a1d2e;
+      color: #c9cdd6;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .brand-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .new-call-btn {
+      margin: 14px 12px 6px;
+      padding: 9px 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-section {
+      padding: 14px 12px 6px;
+    }
+
+    .sidebar-heading {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #6b7280;
+      font-weight: 600;
+      padding: 0 6px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #a0a7b4;
+      cursor: pointer;
+    }
+
+    .sidebar-item:hover { background: rgba(255,255,255,0.06); }
+    .sidebar-item-time { font-size: 11px; color: #5a6070; }
+
+    .sidebar-nav {
+      margin-top: auto;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      padding: 8px 12px 12px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: #8892a4;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .nav-btn:hover { background: rgba(255,255,255,0.06); color: #c9cdd6; }
+
+    .nav-btn.active {
+      background: rgba(102, 126, 234, 0.18);
+      color: #667eea;
+    }
+
+    .nav-icon { width: 18px; display: flex; align-items: center; justify-content: center; opacity: 0.8; }
+
+    /* ── Main ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .option-banner {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      text-align: center;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+
+    .page-header {
+      padding: 16px 24px 14px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .page-title { font-size: 17px; font-weight: 700; color: #1a1d2e; }
+    .page-subtitle { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+    .btn-refresh {
+      padding: 7px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      background: #fff;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ── Split ── */
+    .split-layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Runs list ── */
+    .runs-panel {
+      width: 280px;
+      min-width: 280px;
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+    }
+
+    .panel-count {
+      font-size: 10px;
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .runs-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .run-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f5f5f5;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .run-item:hover { background: #fafafa; }
+
+    .run-item.active {
+      background: rgba(102, 126, 234, 0.05);
+      border-left: 3px solid #667eea;
+      padding-left: 11px;
+    }
+
+    .run-item-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .run-date { font-size: 12px; font-weight: 600; color: #1a1d2e; }
+
+    .run-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-passed { background: #d4edda; color: #28a745; }
+    .badge-failed { background: #f8d7da; color: #dc3545; }
+
+    .run-item-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .run-progress {
+      height: 5px;
+      border-radius: 3px;
+      background: #f3f4f6;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .seg { height: 100%; position: absolute; top: 0; }
+
+    /* ── Detail panel ── */
+    .detail-panel {
+      flex: 1;
+      overflow-y: auto;
+      background: #f0f2f5;
+    }
+
+    .detail-inner {
+      padding: 20px 24px;
+    }
+
+    /* Dashboard stat cards at top */
+    .dashboard-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px 18px;
+      border: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .stat-card.stat-pass::before { background: #28a745; }
+    .stat-card.stat-fail::before { background: #dc3545; }
+    .stat-card.stat-closed::before { background: #d4a017; }
+    .stat-card.stat-skip::before { background: #adb5bd; }
+    .stat-card.stat-total::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+    .stat-card.stat-dur::before { background: linear-gradient(90deg, #667eea, #764ba2); }
+
+    .stat-label {
+      font-size: 11px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-value.val-pass { color: #28a745; }
+    .stat-value.val-fail { color: #dc3545; }
+    .stat-value.val-closed { color: #d4a017; }
+    .stat-value.val-skip { color: #6c757d; }
+    .stat-value.val-total { color: #1a1d2e; }
+    .stat-value.val-dur { color: #667eea; font-size: 22px; }
+
+    .stat-sub {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .stat-bar {
+      margin-top: 10px;
+      height: 4px;
+      border-radius: 2px;
+      background: #f3f4f6;
+      overflow: hidden;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    /* Run info row */
+    .run-info-row {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .run-info-left { }
+
+    .run-info-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1d2e;
+    }
+
+    .run-info-meta {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .run-info-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Progress bar full-width -->*/
+    .detail-progress {
+      height: 8px;
+      border-radius: 4px;
+      background: #e5e7eb;
+      overflow: hidden;
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .btn-delete {
+      padding: 6px 12px;
+      border: 1px solid #f8d7da;
+      border-radius: 6px;
+      background: #fff;
+      color: #dc3545;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Section header for test cases */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .section-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1d2e;
+    }
+
+    .section-label-count {
+      font-size: 11px;
+      color: #9ca3af;
+      font-weight: 400;
+      margin-left: 5px;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 4px;
+    }
+
+    .filter-tab {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #6b7280;
+      cursor: pointer;
+    }
+
+    .filter-tab.active {
+      background: #1a1d2e;
+      color: #fff;
+      border-color: #1a1d2e;
+    }
+
+    /* Test case cards */
+    .tc-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .tc-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: box-shadow 0.1s;
+    }
+
+    .tc-card:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .tc-card.tc-fail {
+      border-left: 3px solid #dc3545;
+    }
+
+    .tc-card.tc-pass {
+      border-left: 3px solid #28a745;
+    }
+
+    .tc-card.tc-closed {
+      border-left: 3px solid #d4a017;
+    }
+
+    .tc-card.tc-skip {
+      border-left: 3px solid #adb5bd;
+      opacity: 0.75;
+    }
+
+    .tc-status-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .badge-pass-bg { background: #d4edda; }
+    .badge-fail-bg { background: #f8d7da; }
+    .badge-closed-bg { background: #fff3cd; }
+    .badge-skip-bg { background: #f3f4f6; }
+
+    .tc-body { flex: 1; min-width: 0; }
+
+    .tc-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1d2e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tc-name .skip-label {
+      font-size: 11px;
+      color: #9ca3af;
+      font-weight: 400;
+      margin-left: 6px;
+    }
+
+    .tc-error-line {
+      font-size: 11px;
+      color: #dc3545;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tc-closed-line {
+      font-size: 11px;
+      color: #d4a017;
+      margin-top: 2px;
+    }
+
+    .tc-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .tc-dur {
+      font-size: 11px;
+      color: #9ca3af;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    .tc-btn {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 11px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+    }
+
+    .tc-btn.why {
+      border-color: #fde68a;
+      background: #fffbeb;
+      color: #b45309;
+    }
+
+    .detail-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: #9ca3af;
+      gap: 10px;
+    }
+
+    .detail-empty-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    .detail-empty-title { font-size: 14px; font-weight: 600; color: #6b7280; }
+    .detail-empty-sub { font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">CB</div>
+      <span class="brand-text">CallBot</span>
+    </div>
+
+    <button class="new-call-btn">
+      <span>+</span> New Call
+    </button>
+
+    <div class="sidebar-section">
+      <div class="sidebar-heading">Recent</div>
+      <div class="sidebar-item">
+        <span>Acme Healthcare</span>
+        <span class="sidebar-item-time">2h ago</span>
+      </div>
+      <div class="sidebar-item">
+        <span>City Water Dept</span>
+        <span class="sidebar-item-time">1d ago</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-btn">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.01L6.6 10.8z"/></svg></span>
+        New Call
+      </button>
+      <button class="nav-btn">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg></span>
+        Call History
+      </button>
+      <button class="nav-btn">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg></span>
+        Evaluations
+      </button>
+      <button class="nav-btn active">
+        <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z"/></svg></span>
+        Test Runs
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="option-banner">Option C — Dashboard Style (stat cards + filter tabs + card list)</div>
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Test Runs</div>
+        <div class="page-subtitle">Automated regression suite results</div>
+      </div>
+      <button class="btn-refresh">Refresh</button>
+    </div>
+
+    <div class="split-layout">
+
+      <!-- Left: runs list -->
+      <div class="runs-panel">
+        <div class="panel-header">
+          <span class="panel-title">Recent Runs</span>
+          <span class="panel-count">8 runs</span>
+        </div>
+
+        <div class="runs-list">
+
+          <div class="run-item active">
+            <div class="run-item-top">
+              <span class="run-date">Apr 1, 2026, 2:14 PM</span>
+              <span class="run-badge badge-failed">Failed</span>
+            </div>
+            <div class="run-item-meta">
+              <span>7 pass &middot; 1 fail &middot; 1 closed &middot; 1 skip</span>
+              <span>4m 32s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:70%;background:#28a745;"></div>
+              <div class="seg" style="left:70%;width:10%;background:#dc3545;"></div>
+              <div class="seg" style="left:80%;width:10%;background:#d4a017;"></div>
+              <div class="seg" style="left:90%;width:10%;background:#adb5bd;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 31, 2026, 11:08 AM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-meta">
+              <span>9 pass &middot; 1 closed</span>
+              <span>5m 11s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:90%;background:#28a745;"></div>
+              <div class="seg" style="left:90%;width:10%;background:#d4a017;"></div>
+            </div>
+          </div>
+
+          <!-- Single test run -->
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 30, 2026, 4:55 PM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-meta">
+              <span>1 run &middot; 9 skipped</span>
+              <span>38s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:10%;background:#28a745;"></div>
+              <div class="seg" style="left:10%;width:90%;background:#adb5bd;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 29, 2026, 9:22 AM</span>
+              <span class="run-badge badge-failed">Failed</span>
+            </div>
+            <div class="run-item-meta">
+              <span>5 pass &middot; 5 fail</span>
+              <span>6m 03s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:50%;background:#28a745;"></div>
+              <div class="seg" style="left:50%;width:50%;background:#dc3545;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 28, 2026, 3:40 PM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-meta">
+              <span>10 pass</span>
+              <span>5m 48s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:100%;background:#28a745;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-top">
+              <span class="run-date">Mar 27, 2026, 10:15 AM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-meta">
+              <span>10 pass</span>
+              <span>5m 22s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:100%;background:#28a745;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: dashboard detail -->
+      <div class="detail-panel">
+        <div class="detail-inner">
+
+          <!-- Run info bar -->
+          <div class="run-info-row">
+            <div class="run-info-left">
+              <div class="run-info-title">Apr 1, 2026 at 2:14 PM</div>
+              <div class="run-info-meta">Full suite &middot; 10 tests &middot; completed in 4m 32s</div>
+            </div>
+            <div class="run-info-right">
+              <span style="font-size:12px;color:#9ca3af;">Full suite</span>
+              <button class="btn-delete">Delete</button>
+            </div>
+          </div>
+
+          <!-- Dashboard stat cards -->
+          <div class="dashboard-stats">
+            <div class="stat-card stat-pass">
+              <div class="stat-label">Passed</div>
+              <div class="stat-value val-pass">7</div>
+              <div class="stat-sub">70% pass rate</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width:70%;background:#28a745;"></div>
+              </div>
+            </div>
+            <div class="stat-card stat-fail">
+              <div class="stat-label">Failed</div>
+              <div class="stat-value val-fail">1</div>
+              <div class="stat-sub">10% fail rate</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width:10%;background:#dc3545;"></div>
+              </div>
+            </div>
+            <div class="stat-card stat-closed">
+              <div class="stat-label">Closed</div>
+              <div class="stat-value val-closed">1</div>
+              <div class="stat-sub">Business was closed</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width:10%;background:#d4a017;"></div>
+              </div>
+            </div>
+            <div class="stat-card stat-skip">
+              <div class="stat-label">Skipped</div>
+              <div class="stat-value val-skip">1</div>
+              <div class="stat-sub">Not run in this batch</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width:10%;background:#adb5bd;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Segmented progress bar -->
+          <div class="detail-progress">
+            <div style="position:absolute;left:0;width:70%;height:100%;background:#28a745;"></div>
+            <div style="position:absolute;left:70%;width:10%;height:100%;background:#dc3545;"></div>
+            <div style="position:absolute;left:80%;width:10%;height:100%;background:#d4a017;"></div>
+            <div style="position:absolute;left:90%;width:10%;height:100%;background:#adb5bd;"></div>
+          </div>
+
+          <!-- Section header with filter tabs -->
+          <div class="section-header">
+            <div class="section-label">
+              Test Cases <span class="section-label-count">(10)</span>
+            </div>
+            <div class="filter-tabs">
+              <button class="filter-tab active">All</button>
+              <button class="filter-tab">Failed</button>
+              <button class="filter-tab">Passed</button>
+              <button class="filter-tab">Skipped</button>
+            </div>
+          </div>
+
+          <!-- Test case cards -->
+          <div class="tc-grid">
+
+            <!-- FAILED -->
+            <div class="tc-card tc-fail">
+              <div class="tc-status-badge badge-fail-bg">&#10060;</div>
+              <div class="tc-body">
+                <div class="tc-name">Transfer to billing — presses 3 at main menu</div>
+                <div class="tc-error-line">Expected transfer to billing, got call termination after timeout</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">41s</span>
+                <button class="tc-btn">View Call</button>
+                <button class="tc-btn why">Why?</button>
+              </div>
+            </div>
+
+            <!-- CLOSED -->
+            <div class="tc-card tc-closed">
+              <div class="tc-status-badge badge-closed-bg">&#128347;</div>
+              <div class="tc-body">
+                <div class="tc-name">Appointment scheduling — press 1</div>
+                <div class="tc-closed-line">Business reported as closed</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">28s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+            <!-- SKIPPED -->
+            <div class="tc-card tc-skip">
+              <div class="tc-status-badge badge-skip-bg" style="color:#9ca3af;font-size:16px; font-weight:700;">&#8212;</div>
+              <div class="tc-body">
+                <div class="tc-name">New patient registration <span class="skip-label">not run in this batch</span></div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">—</span>
+              </div>
+            </div>
+
+            <!-- PASSED x7 -->
+            <div class="tc-card tc-pass">
+              <div class="tc-status-badge badge-pass-bg">&#9989;</div>
+              <div class="tc-body">
+                <div class="tc-name">Main menu navigation — press 2 for support</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">32s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+            <div class="tc-card tc-pass">
+              <div class="tc-status-badge badge-pass-bg">&#9989;</div>
+              <div class="tc-body">
+                <div class="tc-name">Hold queue detection — waits for agent</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">1m 12s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+            <div class="tc-card tc-pass">
+              <div class="tc-status-badge badge-pass-bg">&#9989;</div>
+              <div class="tc-body">
+                <div class="tc-name">Prescription refill — automated IVR path</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">27s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+            <div class="tc-card tc-pass">
+              <div class="tc-status-badge badge-pass-bg">&#9989;</div>
+              <div class="tc-body">
+                <div class="tc-name">Emergency line — press 0 for operator</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">19s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+            <div class="tc-card tc-pass">
+              <div class="tc-status-badge badge-pass-bg">&#9989;</div>
+              <div class="tc-body">
+                <div class="tc-name">Insurance verification — speech recognition</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">44s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+            <div class="tc-card tc-pass">
+              <div class="tc-status-badge badge-pass-bg">&#9989;</div>
+              <div class="tc-body">
+                <div class="tc-name">Lab results line — press 4</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">23s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+            <div class="tc-card tc-pass">
+              <div class="tc-status-badge badge-pass-bg">&#9989;</div>
+              <div class="tc-body">
+                <div class="tc-name">Callback request — leaves voicemail</div>
+              </div>
+              <div class="tc-right">
+                <span class="tc-dur">35s</span>
+                <button class="tc-btn">View Call</button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

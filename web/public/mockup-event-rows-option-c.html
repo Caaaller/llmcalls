@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option C — Vertical Timeline Rail</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f9fafb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #374151;
+    padding: 32px;
+  }
+  .label-bar {
+    background: #1a1d2e;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 6px 6px 0 0;
+    display: inline-block;
+  }
+  .demo-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 8px 8px 8px;
+    padding: 16px 16px 20px;
+    max-width: 620px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Timeline rail ── */
+  .timeline {
+    position: relative;
+    padding-left: 32px; /* space for rail + dot */
+  }
+
+  /* The vertical line running through all items */
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 12px;
+    bottom: 8px;
+    width: 2px;
+    background: #e5e7eb;
+    border-radius: 1px;
+  }
+
+  .tl-item {
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  /* Dot on the rail */
+  .tl-dot {
+    position: absolute;
+    left: -26px;
+    top: 11px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1.5px currentColor;
+    flex-shrink: 0;
+  }
+  .dot-user       { color: #2196f3; background: #2196f3; }
+  .dot-ai         { color: #9c27b0; background: #9c27b0; }
+  .dot-dtmf       { color: #667eea; background: #667eea; }
+  .dot-ivr        { color: #ff9800; background: #ff9800; }
+  .dot-transfer   { color: #28a745; background: #28a745; }
+  .dot-hold       { color: #ffc107; background: #ffc107; }
+  .dot-termination { color: #dc3545; background: #dc3545; }
+  .dot-system     { color: #9ca3af; background: #9ca3af; }
+  .dot-info       { color: #17a2b8; background: #17a2b8; }
+
+  /* Card */
+  .tl-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 6px 10px 7px;
+  }
+  /* Top row: time + badge */
+  .tl-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 3px;
+  }
+  .tl-time {
+    font-size: 10px;
+    color: #9ca3af;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .tl-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .tl-text {
+    font-size: 12px;
+    color: #374151;
+    line-height: 1.4;
+  }
+
+  /* Color per type */
+  .type-user       { background: #e3f2fd; color: #1565c0; }
+  .type-ai         { background: #f3e5f5; color: #7b1fa2; }
+  .type-dtmf       { background: #ede7f6; color: #4527a0; }
+  .type-ivr        { background: #fff3e0; color: #e65100; }
+  .type-transfer   { background: #e8f5e9; color: #2e7d32; }
+  .type-hold       { background: #fffde7; color: #f57f17; }
+  .type-termination { background: #ffebee; color: #c62828; }
+  .type-system     { background: #f3f4f6; color: #374151; }
+  .type-info       { background: #e0f7fa; color: #006064; }
+
+  /* Accent top border on card matching type */
+  .tl-item.event-user    .tl-card { border-top: 2px solid #2196f3; }
+  .tl-item.event-ai      .tl-card { border-top: 2px solid #9c27b0; }
+  .tl-item.event-dtmf    .tl-card { border-top: 2px solid #667eea; }
+  .tl-item.event-ivr     .tl-card { border-top: 2px solid #ff9800; }
+  .tl-item.event-transfer .tl-card { border-top: 2px solid #28a745; }
+  .tl-item.event-hold    .tl-card { border-top: 2px solid #ffc107; }
+  .tl-item.event-termination .tl-card { border-top: 2px solid #dc3545; }
+  .tl-item.event-system  .tl-card { border-top: 2px solid #9ca3af; }
+  .tl-item.event-info    .tl-card { border-top: 2px solid #17a2b8; }
+
+  .description {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.6;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 14px;
+  }
+  .description strong { color: #374151; }
+</style>
+</head>
+<body>
+
+<div class="label-bar">Option C — Vertical Timeline Rail</div>
+<div class="demo-panel">
+  <div class="panel-title">Call Events — 14 events</div>
+
+  <div class="timeline">
+
+    <!-- 1. IVR -->
+    <div class="tl-item event-ivr">
+      <div class="tl-dot dot-ivr"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:00.0</span>
+          <span class="tl-badge type-ivr">IVR</span>
+        </div>
+        <div class="tl-text">Thank you for calling Acme Support. Press 1 for billing, 2 for technical support, or 3 for account changes.</div>
+      </div>
+    </div>
+
+    <!-- 2. SYSTEM -->
+    <div class="tl-item event-system">
+      <div class="tl-dot dot-system"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:01.2</span>
+          <span class="tl-badge type-system">SYSTEM</span>
+        </div>
+        <div class="tl-text">Speech recognition started — Deepgram Nova-2 active</div>
+      </div>
+    </div>
+
+    <!-- 3. USER -->
+    <div class="tl-item event-user">
+      <div class="tl-dot dot-user"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:04.8</span>
+          <span class="tl-badge type-user">USER</span>
+        </div>
+        <div class="tl-text">I need help with my bill from last month, there's a charge I don't recognize</div>
+      </div>
+    </div>
+
+    <!-- 4. AI -->
+    <div class="tl-item event-ai">
+      <div class="tl-dot dot-ai"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:05.1</span>
+          <span class="tl-badge type-ai">AI</span>
+        </div>
+        <div class="tl-text">Detected intent: billing inquiry. Pressing 1 to navigate to billing menu.</div>
+      </div>
+    </div>
+
+    <!-- 5. DTMF -->
+    <div class="tl-item event-dtmf">
+      <div class="tl-dot dot-dtmf"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:05.3</span>
+          <span class="tl-badge type-dtmf">DTMF</span>
+        </div>
+        <div class="tl-text">Key pressed: <strong>1</strong></div>
+      </div>
+    </div>
+
+    <!-- 6. IVR -->
+    <div class="tl-item event-ivr">
+      <div class="tl-dot dot-ivr"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:06.0</span>
+          <span class="tl-badge type-ivr">IVR</span>
+        </div>
+        <div class="tl-text">Billing department. To review recent charges, press 1. To dispute a charge, press 2. To speak with an agent, press 0.</div>
+      </div>
+    </div>
+
+    <!-- 7. DTMF -->
+    <div class="tl-item event-dtmf">
+      <div class="tl-dot dot-dtmf"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:09.7</span>
+          <span class="tl-badge type-dtmf">DTMF</span>
+        </div>
+        <div class="tl-text">Key pressed: <strong>2</strong></div>
+      </div>
+    </div>
+
+    <!-- 8. IVR -->
+    <div class="tl-item event-ivr">
+      <div class="tl-dot dot-ivr"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:10.1</span>
+          <span class="tl-badge type-ivr">IVR</span>
+        </div>
+        <div class="tl-text">Please hold while we transfer you to a billing specialist.</div>
+      </div>
+    </div>
+
+    <!-- 9. HOLD -->
+    <div class="tl-item event-hold">
+      <div class="tl-dot dot-hold"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:10.5</span>
+          <span class="tl-badge type-hold">HOLD</span>
+        </div>
+        <div class="tl-text">Hold music detected — 18 seconds</div>
+      </div>
+    </div>
+
+    <!-- 10. USER -->
+    <div class="tl-item event-user">
+      <div class="tl-dot dot-user"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:28.3</span>
+          <span class="tl-badge type-user">USER</span>
+        </div>
+        <div class="tl-text">Yes, my account number is 48821 and the charge was on March 3rd for $47.99</div>
+      </div>
+    </div>
+
+    <!-- 11. INFO -->
+    <div class="tl-item event-info">
+      <div class="tl-dot dot-info"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:29.0</span>
+          <span class="tl-badge type-info">INFO</span>
+        </div>
+        <div class="tl-text">Objective matched: account number collected, charge date provided</div>
+      </div>
+    </div>
+
+    <!-- 12. TRANSFER -->
+    <div class="tl-item event-transfer">
+      <div class="tl-dot dot-transfer"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:31.4</span>
+          <span class="tl-badge type-transfer">TRANSFER</span>
+        </div>
+        <div class="tl-text">Call transferred to live agent queue — estimated wait 4 minutes</div>
+      </div>
+    </div>
+
+    <!-- 13. AI -->
+    <div class="tl-item event-ai">
+      <div class="tl-dot dot-ai"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:31.9</span>
+          <span class="tl-badge type-ai">AI</span>
+        </div>
+        <div class="tl-text">Transfer successful — all objectives completed. Ending monitoring.</div>
+      </div>
+    </div>
+
+    <!-- 14. TERMINATION -->
+    <div class="tl-item event-termination">
+      <div class="tl-dot dot-termination"></div>
+      <div class="tl-card">
+        <div class="tl-header">
+          <span class="tl-time">0:32.1</span>
+          <span class="tl-badge type-termination">END</span>
+        </div>
+        <div class="tl-text">Call ended — total duration 32.1s, result: success</div>
+      </div>
+    </div>
+
+  </div><!-- /.timeline -->
+
+  <div class="description">
+    <strong>Design notes:</strong> A continuous vertical rail connects all events with colored dots marking each node. Cards have a type-colored top border instead of a left border, freeing the left side for the rail. The visual language echoes GitHub Actions, Linear, and incident timelines — highly scannable and familiar to engineers.
+  </div>
+</div>
+
+</body>
+</html>

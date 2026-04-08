@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call History — Option A: Mirror Test Runs (Split Panel)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1d2e;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: #1a1d2e;
+      color: #c9cdd6;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .brand-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 0.3px;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 14px 10px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      color: #8a8ea0;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: #fff; }
+    .nav-item.active { background: rgba(102,126,234,0.18); color: #fff; }
+
+    .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+
+    /* ── Main ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .top-bar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 18px 24px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .top-bar h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1d2e;
+    }
+
+    .top-bar-sub {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+
+    .btn-refresh {
+      padding: 7px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      background: #fff;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-refresh:hover { background: #f9fafb; }
+
+    /* ── Split layout ── */
+    .layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Left panel: calls list ── */
+    .calls-panel {
+      width: 300px;
+      min-width: 300px;
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+    }
+
+    .panel-count {
+      font-size: 11px;
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .calls-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .call-item {
+      padding: 13px 16px;
+      border-bottom: 1px solid #f0f2f5;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .call-item:hover { background: #fafafa; }
+
+    .call-item.active {
+      background: rgba(102,126,234,0.05);
+      border-left: 3px solid #667eea;
+      padding-left: 13px;
+    }
+
+    .call-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+
+    .call-number {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1d2e;
+    }
+
+    .call-status-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-completed { background: #d4edda; color: #28a745; }
+    .badge-failed { background: #f8d7da; color: #dc3545; }
+    .badge-in-progress { background: #cce5ff; color: #004085; }
+    .badge-terminated { background: #fff3cd; color: #856404; }
+
+    .call-item-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .call-item-stats {
+      display: flex;
+      gap: 10px;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .call-progress {
+      height: 4px;
+      border-radius: 2px;
+      background: #f3f4f6;
+      overflow: hidden;
+      margin-top: 7px;
+      position: relative;
+    }
+
+    .call-progress-bar {
+      height: 100%;
+      border-radius: 2px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* ── Right panel: detail ── */
+    .detail-panel {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-inner {
+      padding: 22px 28px;
+      max-width: 860px;
+    }
+
+    .detail-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .detail-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1d2e;
+    }
+
+    .detail-meta {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 3px;
+    }
+
+    /* ── Summary cards ── */
+    .summary-cards {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .card-value {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .card-value.duration { color: #667eea; }
+    .card-value.messages { color: #1a1d2e; }
+    .card-value.dtmf { color: #ff9800; }
+    .card-value.cost { color: #28a745; }
+    .card-value.outcome-ok { color: #28a745; }
+    .card-value.outcome-fail { color: #dc3545; }
+
+    .card-label {
+      font-size: 11px;
+      color: #9ca3af;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    /* ── Detail progress ── */
+    .detail-progress {
+      height: 8px;
+      border-radius: 4px;
+      background: #f3f4f6;
+      overflow: hidden;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .detail-progress-bar {
+      height: 100%;
+      position: absolute;
+      top: 0;
+    }
+
+    /* ── Section ── */
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+
+    /* ── Timeline events (like test cases) ── */
+    .timeline-events {
+      margin-bottom: 24px;
+    }
+
+    .event-row {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 9px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .event-row.event-user { border-left: 3px solid #2196f3; }
+    .event-row.event-ai { border-left: 3px solid #9c27b0; }
+    .event-row.event-dtmf { border-left: 3px solid #667eea; }
+    .event-row.event-transfer { border-left: 3px solid #28a745; }
+    .event-row.event-ivr { border-left: 3px solid #ff9800; }
+    .event-row.event-termination { border-left: 3px solid #dc3545; }
+    .event-row.event-hold { border-left: 3px solid #ffc107; }
+
+    .event-inner {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      gap: 12px;
+    }
+
+    .event-time {
+      font-size: 11px;
+      color: #9ca3af;
+      width: 140px;
+      flex-shrink: 0;
+      font-weight: 500;
+    }
+
+    .event-type-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+      width: 70px;
+      text-align: center;
+    }
+
+    .type-user { background: #e3f2fd; color: #1565c0; }
+    .type-ai { background: #f3e5f5; color: #7b1fa2; }
+    .type-dtmf { background: #ede7f6; color: #4527a0; }
+    .type-transfer { background: #e8f5e9; color: #2e7d32; }
+    .type-ivr { background: #fff3e0; color: #e65100; }
+    .type-termination { background: #ffebee; color: #c62828; }
+    .type-hold { background: #fffde7; color: #f57f17; }
+
+    .event-text {
+      flex: 1;
+      font-size: 13px;
+      color: #374151;
+    }
+
+    .event-text strong { color: #1a1d2e; }
+
+    /* ── Chip row ── */
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .chip {
+      background: #f8f9fa;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 11px;
+      color: #555;
+      border: 1px solid #e9ecef;
+    }
+
+    .chip.highlight {
+      background: #f0f3ff;
+      color: #667eea;
+      border-color: #c5cdf5;
+      font-weight: 500;
+    }
+
+    /* ── Empty state ── */
+    .empty-detail {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      gap: 10px;
+      padding: 60px 20px;
+    }
+
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: #f3f4f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .empty-title { font-size: 14px; font-weight: 600; color: #6b7280; }
+    .empty-sub { font-size: 12px; color: #9ca3af; }
+
+    /* ── Option badge ── */
+    .option-badge {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      z-index: 999;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="option-badge">OPTION A — Split Panel</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">AI</div>
+    <span class="brand-text">LLM Calls</span>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item">
+      <span class="nav-icon">+</span> New Call
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">⊞</span> Dashboard
+    </div>
+    <div class="nav-item active">
+      <span class="nav-icon">☎</span> Call History
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">▶</span> Test Runs
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">✦</span> Evaluations
+    </div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="top-bar">
+    <div>
+      <h2>Call History</h2>
+      <div class="top-bar-sub">Live IVR call recordings and transcripts</div>
+    </div>
+    <button class="btn-refresh">Refresh</button>
+  </div>
+
+  <div class="layout">
+    <!-- Left: calls list -->
+    <div class="calls-panel">
+      <div class="panel-header">
+        <span class="panel-title">Recent Calls</span>
+        <span class="panel-count">12 calls</span>
+      </div>
+      <div class="calls-list">
+
+        <!-- Call 1 — active -->
+        <div class="call-item active">
+          <div class="call-item-header">
+            <span class="call-number">+1 (415) 555-0192</span>
+            <span class="call-status-badge badge-completed">Completed</span>
+          </div>
+          <div class="call-item-meta">
+            <span>Apr 7, 2026 · 2:14 PM</span>
+            <span>3m 42s</span>
+          </div>
+          <div class="call-item-stats">
+            <span>18 messages</span>
+            <span>4 DTMF</span>
+            <span>Transfer OK</span>
+          </div>
+          <div class="call-progress">
+            <div class="call-progress-bar" style="left:0;width:100%;background:#28a745;"></div>
+          </div>
+        </div>
+
+        <!-- Call 2 -->
+        <div class="call-item">
+          <div class="call-item-header">
+            <span class="call-number">+1 (212) 555-0847</span>
+            <span class="call-status-badge badge-failed">Failed</span>
+          </div>
+          <div class="call-item-meta">
+            <span>Apr 7, 2026 · 1:09 PM</span>
+            <span>0m 58s</span>
+          </div>
+          <div class="call-item-stats">
+            <span>5 messages</span>
+            <span>1 DTMF</span>
+            <span>No transfer</span>
+          </div>
+          <div class="call-progress">
+            <div class="call-progress-bar" style="left:0;width:30%;background:#dc3545;"></div>
+          </div>
+        </div>
+
+        <!-- Call 3 -->
+        <div class="call-item">
+          <div class="call-item-header">
+            <span class="call-number">+1 (650) 555-0334</span>
+            <span class="call-status-badge badge-completed">Completed</span>
+          </div>
+          <div class="call-item-meta">
+            <span>Apr 7, 2026 · 11:52 AM</span>
+            <span>5m 11s</span>
+          </div>
+          <div class="call-item-stats">
+            <span>31 messages</span>
+            <span>7 DTMF</span>
+            <span>Transfer OK</span>
+          </div>
+          <div class="call-progress">
+            <div class="call-progress-bar" style="left:0;width:100%;background:#28a745;"></div>
+          </div>
+        </div>
+
+        <!-- Call 4 -->
+        <div class="call-item">
+          <div class="call-item-header">
+            <span class="call-number">+1 (303) 555-0621</span>
+            <span class="call-status-badge badge-terminated">Terminated</span>
+          </div>
+          <div class="call-item-meta">
+            <span>Apr 6, 2026 · 4:33 PM</span>
+            <span>2m 05s</span>
+          </div>
+          <div class="call-item-stats">
+            <span>12 messages</span>
+            <span>2 DTMF</span>
+            <span>Hold detected</span>
+          </div>
+          <div class="call-progress">
+            <div class="call-progress-bar" style="left:0;width:60%;background:#d4a017;"></div>
+          </div>
+        </div>
+
+        <!-- Call 5 -->
+        <div class="call-item">
+          <div class="call-item-header">
+            <span class="call-number">+1 (415) 555-0192</span>
+            <span class="call-status-badge badge-completed">Completed</span>
+          </div>
+          <div class="call-item-meta">
+            <span>Apr 6, 2026 · 2:01 PM</span>
+            <span>4m 27s</span>
+          </div>
+          <div class="call-item-stats">
+            <span>24 messages</span>
+            <span>5 DTMF</span>
+            <span>Transfer OK</span>
+          </div>
+          <div class="call-progress">
+            <div class="call-progress-bar" style="left:0;width:100%;background:#28a745;"></div>
+          </div>
+        </div>
+
+        <!-- Call 6 -->
+        <div class="call-item">
+          <div class="call-item-header">
+            <span class="call-number">+1 (800) 555-1234</span>
+            <span class="call-status-badge badge-failed">Failed</span>
+          </div>
+          <div class="call-item-meta">
+            <span>Apr 5, 2026 · 10:17 AM</span>
+            <span>1m 12s</span>
+          </div>
+          <div class="call-item-stats">
+            <span>7 messages</span>
+            <span>2 DTMF</span>
+            <span>No transfer</span>
+          </div>
+          <div class="call-progress">
+            <div class="call-progress-bar" style="left:0;width:25%;background:#dc3545;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right: detail panel -->
+    <div class="detail-panel">
+      <div class="detail-inner">
+        <div class="detail-header">
+          <div>
+            <div class="detail-title">+1 (415) 555-0192</div>
+            <div class="detail-meta">Apr 7, 2026 at 2:14 PM · 3m 42s · Call SID: CA7f3a1e2b...</div>
+          </div>
+          <button style="padding:6px 12px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;color:#374151;font-size:12px;cursor:pointer;">
+            Play Recording
+          </button>
+        </div>
+
+        <!-- chip row -->
+        <div class="chip-row">
+          <span class="chip highlight">Purpose: Schedule appointment</span>
+          <span class="chip">To: +1 (415) 555-0192</span>
+          <span class="chip">From: +1 (303) 396-2866</span>
+          <span class="chip">Transfer: +1 (415) 555-0999</span>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="summary-cards">
+          <div class="summary-card">
+            <div class="card-value duration">3m 42s</div>
+            <div class="card-label">Duration</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-value messages">18</div>
+            <div class="card-label">Messages</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-value dtmf">4</div>
+            <div class="card-label">DTMF Presses</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-value outcome-ok">Transfer OK</div>
+            <div class="card-label">Outcome</div>
+          </div>
+          <div class="summary-card">
+            <div class="card-value cost">$0.12</div>
+            <div class="card-label">Est. Cost</div>
+          </div>
+        </div>
+
+        <!-- Progress bar (call completion) -->
+        <div class="detail-progress">
+          <div class="detail-progress-bar" style="left:0;width:100%;background:#28a745;"></div>
+        </div>
+
+        <!-- Timeline events -->
+        <div class="timeline-events">
+          <div class="section-label">Event Timeline (18 events)</div>
+
+          <div class="event-row event-ai">
+            <div class="event-inner">
+              <span class="event-time">2:14:03 PM</span>
+              <span class="event-type-badge type-ai">AI</span>
+              <span class="event-text">Thank you for calling, please hold while I connect you.</span>
+            </div>
+          </div>
+
+          <div class="event-row event-ivr">
+            <div class="event-inner">
+              <span class="event-time">2:14:08 PM</span>
+              <span class="event-type-badge type-ivr">IVR Menu</span>
+              <span class="event-text">1=Appointments, 2=Billing, 3=General, 0=Operator</span>
+            </div>
+          </div>
+
+          <div class="event-row event-dtmf">
+            <div class="event-inner">
+              <span class="event-time">2:14:12 PM</span>
+              <span class="event-type-badge type-dtmf">DTMF</span>
+              <span class="event-text"><strong>Press 1</strong> — Appointments option selected</span>
+            </div>
+          </div>
+
+          <div class="event-row event-user">
+            <div class="event-inner">
+              <span class="event-time">2:14:19 PM</span>
+              <span class="event-type-badge type-user">User</span>
+              <span class="event-text">I'd like to schedule an appointment for next Tuesday.</span>
+            </div>
+          </div>
+
+          <div class="event-row event-ai">
+            <div class="event-inner">
+              <span class="event-time">2:14:24 PM</span>
+              <span class="event-type-badge type-ai">AI</span>
+              <span class="event-text">Sure, I can help you with that. Can I have your name and date of birth?</span>
+            </div>
+          </div>
+
+          <div class="event-row event-user">
+            <div class="event-inner">
+              <span class="event-time">2:14:31 PM</span>
+              <span class="event-type-badge type-user">User</span>
+              <span class="event-text">John Smith, March 15th 1985.</span>
+            </div>
+          </div>
+
+          <div class="event-row event-ivr">
+            <div class="event-inner">
+              <span class="event-time">2:15:10 PM</span>
+              <span class="event-type-badge type-ivr">IVR Menu</span>
+              <span class="event-text">1=Morning, 2=Afternoon, 3=Evening</span>
+            </div>
+          </div>
+
+          <div class="event-row event-dtmf">
+            <div class="event-inner">
+              <span class="event-time">2:15:14 PM</span>
+              <span class="event-type-badge type-dtmf">DTMF</span>
+              <span class="event-text"><strong>Press 2</strong> — Afternoon slot preferred</span>
+            </div>
+          </div>
+
+          <div class="event-row event-hold">
+            <div class="event-inner">
+              <span class="event-time">2:16:02 PM</span>
+              <span class="event-type-badge type-hold">Hold</span>
+              <span class="event-text">Hold queue detected — waiting for agent</span>
+            </div>
+          </div>
+
+          <div class="event-row event-transfer">
+            <div class="event-inner">
+              <span class="event-time">2:17:38 PM</span>
+              <span class="event-type-badge type-transfer">Transfer</span>
+              <span class="event-text"><strong>Transfer Successful</strong> to +1 (415) 555-0999</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

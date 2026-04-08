@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option D — Minimal Left Bar</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f9fafb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #374151;
+    padding: 32px;
+  }
+  .label-bar {
+    background: #1a1d2e;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 6px 6px 0 0;
+    display: inline-block;
+  }
+  .demo-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 8px 8px 8px;
+    padding: 16px 16px 20px;
+    max-width: 620px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Option D: Minimal — no card, just a colored left bar ── */
+  .event-row {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 1px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .event-row:hover {
+    background: #f9fafb;
+  }
+
+  /* The colored accent bar */
+  .accent-bar {
+    width: 3px;
+    flex-shrink: 0;
+    border-radius: 2px 0 0 2px;
+  }
+  .bar-user       { background: #2196f3; }
+  .bar-ai         { background: #9c27b0; }
+  .bar-dtmf       { background: #667eea; }
+  .bar-ivr        { background: #ff9800; }
+  .bar-transfer   { background: #28a745; }
+  .bar-hold       { background: #ffc107; }
+  .bar-termination { background: #dc3545; }
+  .bar-system     { background: #d1d5db; }
+  .bar-info       { background: #17a2b8; }
+
+  /* Content area */
+  .event-content {
+    padding: 4px 10px 5px 9px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Caption line: time + badge — above the text */
+  .event-caption {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 1px;
+  }
+  .event-time {
+    font-size: 10px;
+    color: #b0b7c0;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.1px;
+  }
+  .event-badge {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .badge-user       { color: #1565c0; }
+  .badge-ai         { color: #7b1fa2; }
+  .badge-dtmf       { color: #4527a0; }
+  .badge-ivr        { color: #e65100; }
+  .badge-transfer   { color: #2e7d32; }
+  .badge-hold       { color: #f57f17; }
+  .badge-termination { color: #c62828; }
+  .badge-system     { color: #6b7280; }
+  .badge-info       { color: #006064; }
+
+  /* Main text */
+  .event-text {
+    font-size: 12.5px;
+    color: #374151;
+    line-height: 1.4;
+    white-space: normal;
+  }
+  .event-text strong {
+    color: #111827;
+    font-weight: 600;
+  }
+
+  /* Subtle divider between rows */
+  .event-row + .event-row {
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .description {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.6;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 14px;
+  }
+  .description strong { color: #374151; }
+</style>
+</head>
+<body>
+
+<div class="label-bar">Option D — Minimal Left Bar</div>
+<div class="demo-panel">
+  <div class="panel-title">Call Events — 14 events</div>
+
+  <!-- 1. IVR -->
+  <div class="event-row">
+    <div class="accent-bar bar-ivr"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:00.0</span>
+        <span class="event-badge badge-ivr">IVR</span>
+      </div>
+      <div class="event-text">Thank you for calling Acme Support. Press 1 for billing, 2 for technical support, or 3 for account changes.</div>
+    </div>
+  </div>
+
+  <!-- 2. SYSTEM -->
+  <div class="event-row">
+    <div class="accent-bar bar-system"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:01.2</span>
+        <span class="event-badge badge-system">SYSTEM</span>
+      </div>
+      <div class="event-text">Speech recognition started — Deepgram Nova-2 active</div>
+    </div>
+  </div>
+
+  <!-- 3. USER -->
+  <div class="event-row">
+    <div class="accent-bar bar-user"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:04.8</span>
+        <span class="event-badge badge-user">USER</span>
+      </div>
+      <div class="event-text">I need help with my bill from last month, there's a charge I don't recognize</div>
+    </div>
+  </div>
+
+  <!-- 4. AI -->
+  <div class="event-row">
+    <div class="accent-bar bar-ai"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:05.1</span>
+        <span class="event-badge badge-ai">AI</span>
+      </div>
+      <div class="event-text">Detected intent: billing inquiry. Pressing 1 to navigate to billing menu.</div>
+    </div>
+  </div>
+
+  <!-- 5. DTMF -->
+  <div class="event-row">
+    <div class="accent-bar bar-dtmf"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:05.3</span>
+        <span class="event-badge badge-dtmf">DTMF</span>
+      </div>
+      <div class="event-text">Key pressed: <strong>1</strong></div>
+    </div>
+  </div>
+
+  <!-- 6. IVR -->
+  <div class="event-row">
+    <div class="accent-bar bar-ivr"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:06.0</span>
+        <span class="event-badge badge-ivr">IVR</span>
+      </div>
+      <div class="event-text">Billing department. To review recent charges, press 1. To dispute a charge, press 2. To speak with an agent, press 0.</div>
+    </div>
+  </div>
+
+  <!-- 7. DTMF -->
+  <div class="event-row">
+    <div class="accent-bar bar-dtmf"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:09.7</span>
+        <span class="event-badge badge-dtmf">DTMF</span>
+      </div>
+      <div class="event-text">Key pressed: <strong>2</strong></div>
+    </div>
+  </div>
+
+  <!-- 8. IVR -->
+  <div class="event-row">
+    <div class="accent-bar bar-ivr"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:10.1</span>
+        <span class="event-badge badge-ivr">IVR</span>
+      </div>
+      <div class="event-text">Please hold while we transfer you to a billing specialist.</div>
+    </div>
+  </div>
+
+  <!-- 9. HOLD -->
+  <div class="event-row">
+    <div class="accent-bar bar-hold"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:10.5</span>
+        <span class="event-badge badge-hold">HOLD</span>
+      </div>
+      <div class="event-text">Hold music detected — 18 seconds</div>
+    </div>
+  </div>
+
+  <!-- 10. USER -->
+  <div class="event-row">
+    <div class="accent-bar bar-user"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:28.3</span>
+        <span class="event-badge badge-user">USER</span>
+      </div>
+      <div class="event-text">Yes, my account number is 48821 and the charge was on March 3rd for $47.99</div>
+    </div>
+  </div>
+
+  <!-- 11. INFO -->
+  <div class="event-row">
+    <div class="accent-bar bar-info"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:29.0</span>
+        <span class="event-badge badge-info">INFO</span>
+      </div>
+      <div class="event-text">Objective matched: account number collected, charge date provided</div>
+    </div>
+  </div>
+
+  <!-- 12. TRANSFER -->
+  <div class="event-row">
+    <div class="accent-bar bar-transfer"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:31.4</span>
+        <span class="event-badge badge-transfer">TRANSFER</span>
+      </div>
+      <div class="event-text">Call transferred to live agent queue — estimated wait 4 minutes</div>
+    </div>
+  </div>
+
+  <!-- 13. AI -->
+  <div class="event-row">
+    <div class="accent-bar bar-ai"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:31.9</span>
+        <span class="event-badge badge-ai">AI</span>
+      </div>
+      <div class="event-text">Transfer successful — all objectives completed. Ending monitoring.</div>
+    </div>
+  </div>
+
+  <!-- 14. TERMINATION -->
+  <div class="event-row">
+    <div class="accent-bar bar-termination"></div>
+    <div class="event-content">
+      <div class="event-caption">
+        <span class="event-time">0:32.1</span>
+        <span class="event-badge badge-termination">END</span>
+      </div>
+      <div class="event-text">Call ended — total duration 32.1s, result: success</div>
+    </div>
+  </div>
+
+  <div class="description">
+    <strong>Design notes:</strong> No card borders at all — rows are borderless with only a 3px left accent bar and a faint hairline divider between rows. Time and badge type sit as a small caption line above the text. Maximally dense and quiet — gets out of the way and lets text breathe. Closest in spirit to VS Code's output panel or a log viewer.
+  </div>
+</div>
+
+</body>
+</html>

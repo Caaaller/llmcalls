@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup A - Simple Single Column</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 480px; width: 100%; padding: 40px; }
+  h1 { font-size: 24px; text-align: center; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 32px; }
+  .field { margin-bottom: 24px; }
+  .field label { display: block; font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #333; }
+  .field .hint { font-size: 12px; color: #999; margin-top: 4px; }
+  .field input, .field textarea { width: 100%; padding: 14px 16px; border: 2px solid #e8e8e8; border-radius: 10px; font-size: 16px; transition: border-color 0.2s; outline: none; }
+  .field input:focus, .field textarea:focus { border-color: #667eea; }
+  .field textarea { resize: none; height: 60px; font-family: inherit; }
+  .btn { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; border-radius: 10px; font-size: 18px; font-weight: 600; cursor: pointer; margin-top: 8px; transition: transform 0.1s, box-shadow 0.2s; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+  .btn:active { transform: translateY(0); }
+  .advanced-toggle { text-align: center; margin-top: 20px; }
+  .advanced-toggle button { background: none; border: none; color: #999; font-size: 13px; cursor: pointer; }
+  .advanced-toggle button:hover { color: #667eea; }
+  .advanced { display: none; margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee; }
+  .advanced.open { display: block; }
+  .advanced select { width: 100%; padding: 12px; border: 2px solid #e8e8e8; border-radius: 10px; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Skip the Wait</h1>
+  <p class="subtitle">AI navigates the phone menu. You talk to the human.</p>
+
+  <div class="field">
+    <label>Who do you want to call?</label>
+    <input type="tel" placeholder="1-800-869-3557" value="1-800-869-3557">
+    <div class="hint">Enter a phone number (e.g. Wells Fargo: 1-800-869-3557)</div>
+  </div>
+
+  <div class="field">
+    <label>What do you need?</label>
+    <input type="text" placeholder="speak with a representative" value="speak with a representative">
+    <div class="hint">e.g. "check order status", "cancel subscription", "billing question"</div>
+  </div>
+
+  <div class="field">
+    <label>Your phone number</label>
+    <input type="tel" placeholder="(720) 584-6358" value="(720) 584-6358">
+    <div class="hint">We'll call you back when a real person answers</div>
+  </div>
+
+  <button class="btn" onclick="alert('Call started! We\'ll call you at (720) 584-6358 when a human picks up.')">Start Call</button>
+
+  <div class="advanced-toggle">
+    <button onclick="document.querySelector('.advanced').classList.toggle('open')">Advanced Settings</button>
+  </div>
+  <div class="advanced">
+    <div class="field">
+      <label>Custom Instructions</label>
+      <textarea placeholder="Optional: extra context for the AI..."></textarea>
+    </div>
+    <div class="field">
+      <label>Voice</label>
+      <select>
+        <option>Polly.Matthew (Male, Natural)</option>
+        <option>Polly.Joanna (Female, Natural)</option>
+      </select>
+    </div>
+  </div>
+</div>
+</body>
+</html>

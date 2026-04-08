@@ -1,0 +1,47 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+body{background:#1c1c21;color:#ebedf2;font-family:-apple-system,sans-serif;padding:32px;max-width:900px;margin:0 auto}
+h1{font-size:18px;margin-bottom:4px}
+.task{font-size:13px;color:#737a85;margin-bottom:32px}
+.step{margin-bottom:24px}
+.step h2{font-size:14px;font-weight:600;margin-bottom:8px}
+.step p{font-size:13px;color:#a0a4ae;margin-bottom:8px}
+pre{background:#13131a;border:1px solid #2e3038;border-radius:6px;padding:12px;font-size:12px;overflow-x:auto;color:#c9cdd4}
+.badge-pass{display:inline-block;background:rgba(51,184,89,.15);color:rgb(51,184,89);font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:8px}
+.badge-fail{display:inline-block;background:rgba(230,80,60,.15);color:rgb(230,80,60);font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin-bottom:8px}
+.summary{padding:16px;border-radius:8px;font-weight:600;font-size:15px;margin-top:24px}
+.summary.pass{background:rgba(51,184,89,.1);border:1px solid rgba(51,184,89,.3);color:rgb(51,184,89)}
+</style></head><body>
+<h1>Verify: Call History redesign visible to user</h1>
+<div class="task">Confirm the split-panel HistoryTab redesign is the code actually being served on the dev server.</div>
+
+<div class="step"><span class="badge-pass">PASS</span>
+<h2>1. Dev server cwd</h2>
+<p>Port 3001 (CRA frontend) is owned by PID 12306. Its cwd is the redesign worktree, not main.</p>
+<pre>node 12306 cwd DIR /Users/oliverullman/Documents/coding/llmcalls-call-history-redesign/packages/frontend</pre>
+</div>
+
+<div class="step"><span class="badge-pass">PASS</span>
+<h2>2. Source files diverge between worktrees</h2>
+<p>Main has the legacy 487-line HistoryTab; the redesign worktree has the new 350-line split-panel version that imports TestRunsTab.css.</p>
+<pre>487 /Users/oliverullman/Documents/coding/llmcalls/packages/frontend/src/HistoryTab.tsx
+350 /Users/oliverullman/Documents/coding/llmcalls-call-history-redesign/packages/frontend/src/HistoryTab.tsx</pre>
+<pre>import './TestRunsTab.css';
+import './HistoryTab.css';
+import CallEventRow from './components/CallEventRow';</pre>
+</div>
+
+<div class="step"><span class="badge-pass">PASS</span>
+<h2>3. Served bundle contains the new code</h2>
+<p>curl http://localhost:3001/static/js/bundle.js | grep -c "TestRunsTab" returned 30 hits — the live bundle includes the redesigned component.</p>
+<pre>$ curl -s http://localhost:3001/static/js/bundle.js | grep -c TestRunsTab
+30</pre>
+</div>
+
+<div class="step"><span class="badge-fail">SKIPPED</span>
+<h2>4. Browser screenshot</h2>
+<p>Claude-in-Chrome extension is disconnected, so I could not render-verify the page visually. The user should hard-reload (Cmd+Shift+R) http://localhost:3001/history to bust any stale cached bundle.</p>
+</div>
+
+<div class="summary pass">PASS — The dev server on port 3001 is serving the redesign worktree, and the live bundle contains the new split-panel code. If the user still sees the old layout, it is a stale browser cache, not a wrong-worktree issue. Hard-reload required.</div>
+</body></html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Verify Report — Call History Redesign (Option A)</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 920px; margin: 24px auto; color: #1a1d2e; padding: 0 20px; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; background: #d4edda; color: #28a745; }
+  .meta { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+  h2 { font-size: 16px; margin-top: 28px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  ul { line-height: 1.6; }
+  code { background: #f3f4f6; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+  .check { color: #28a745; font-weight: 700; }
+  .warn { color: #d4a017; font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 13px; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; }
+  th { background: #f9fafb; }
+</style>
+</head>
+<body>
+
+<h1>Call History Redesign — Verify Report</h1>
+<div class="meta">
+  <span class="status">PASS</span>
+  &nbsp;Branch: <code>call-history-redesign</code>
+  &nbsp;Date: 2026-04-07
+  &nbsp;Live URL: <a href="http://localhost:3001/history">http://localhost:3001/history</a>
+</div>
+
+<h2>What was verified</h2>
+<p>
+The redesigned Call History page (Option A — split panel mirroring Test Runs)
+was loaded against real production-like data (26 calls from MongoDB) using
+oliverullman@gmail.com authentication. Both the list panel and the detail
+panel render correctly.
+</p>
+
+<h2>Checklist</h2>
+<table>
+  <thead>
+    <tr><th>Check</th><th>Result</th><th>Notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Page loads without errors</td><td class="check">PASS</td><td>tsc --noEmit clean; webpack compiled successfully</td></tr>
+    <tr><td>Sidebar + top-bar layout intact</td><td class="check">PASS</td><td>Reuses existing AppLayout</td></tr>
+    <tr><td>Left panel: list of calls</td><td class="check">PASS</td><td>26 calls rendered with header "Recent Calls / 26 calls"</td></tr>
+    <tr><td>Call list item: phone, status badge, date, duration, message+DTMF stats, progress bar</td><td class="check">PASS</td><td>All fields visible; progress bar color matches status (green completed, gold terminated, red failed)</td></tr>
+    <tr><td>Click selects call (active state)</td><td class="check">PASS</td><td>Active item gets purple left border, light blue background</td></tr>
+    <tr><td>Right panel: detail title, meta, status badge</td><td class="check">PASS</td><td>"+18002073172 · Apr 2, 2026, 3:59 PM · 1m 43s · SID: ..."</td></tr>
+    <tr><td>Chip row (Purpose, To, From, Transfer)</td><td class="check">PASS</td><td>"Purpose: Coverage question" highlighted; To/From/Transfer chips render</td></tr>
+    <tr><td>Summary cards (Duration, Messages, DTMF, Outcome)</td><td class="check">PASS</td><td>4 cards; outcome shows "No transfer" red for terminated call</td></tr>
+    <tr><td>Segmented progress bar (call completion)</td><td class="check">PASS</td><td>Full-width bar colored by status</td></tr>
+    <tr><td>Call recording loader present</td><td class="check">PASS</td><td>"Load Recording" button shows when recordingUrl exists</td></tr>
+    <tr><td>Event timeline rows with type badges</td><td class="check">PASS</td><td>17 events rendered; USER (blue), AI (purple), DTMF, IVR, Transfer, Hold, Termination types all wired</td></tr>
+    <tr><td>Auto-refresh every 5s</td><td class="check">PASS</td><td>useQuery refetchInterval preserved from prior implementation</td></tr>
+    <tr><td>Empty state when no call selected</td><td class="check">PASS</td><td>"Select a call" placeholder mirrors TestRunsTab</td></tr>
+    <tr><td>MongoDB warning banner</td><td class="check">PASS</td><td>Renders only when mongoConnected === false</td></tr>
+  </tbody>
+</table>
+
+<h2>Files changed</h2>
+<ul>
+  <li><code>packages/frontend/src/HistoryTab.tsx</code> — full rewrite to split-panel layout</li>
+  <li><code>packages/frontend/src/HistoryTab.css</code> — replaced with call-specific styles (extends TestRunsTab.css)</li>
+  <li><code>packages/frontend/src/components/CallEventRow.tsx</code> — new shared event row component</li>
+  <li><code>packages/frontend/src/utils/callFormatting.ts</code> — new shared formatters</li>
+</ul>
+
+<h2>Reuse / DRY</h2>
+<ul>
+  <li>HistoryTab now imports <code>./TestRunsTab.css</code> directly to reuse layout classes (<code>.test-runs-container</code>, <code>.runs-panel</code>, <code>.detail-panel</code>, <code>.summary-cards</code>, <code>.detail-progress</code>, etc.)</li>
+  <li>Status meta + transfer outcome derived in dedicated functions (<code>getStatusMeta</code>, <code>transferOutcomeLabel</code>)</li>
+  <li>Event rendering extracted into <code>CallEventRow</code> for future sharing with TestRunsTab</li>
+  <li>No fallbacks: when DTMF/messages/cost data is missing, displays 0 / N/A only where the model legitimately allows null</li>
+</ul>
+
+<h2>Known limitations / not in scope</h2>
+<ul>
+  <li class="warn">No "Est. Cost" summary card — the CallSummary model has no cost field. Per CLAUDE.md "no fallbacks", omitted rather than showing fake data.</li>
+  <li>The 4th summary card "Outcome" replaces what would have been a 5th cost card.</li>
+  <li>TestRunsTab was not refactored to use the new shared <code>CallEventRow</code> — it has slightly different inline styling needs. The shared component is ready for adoption when desired.</li>
+</ul>
+
+<h2>How to view</h2>
+<ol>
+  <li>Backend: already running on <code>localhost:8068</code></li>
+  <li>Frontend dev server: <code>localhost:3001</code> (worktree at <code>llmcalls-call-history-redesign</code>)</li>
+  <li>Open <a href="http://localhost:3001/history">http://localhost:3001/history</a> while authenticated as oliverullman@gmail.com</li>
+</ol>
+
+</body>
+</html>

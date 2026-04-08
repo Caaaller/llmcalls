@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup B - Step-by-Step Wizard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .card { background: #fff; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 440px; width: 100%; overflow: hidden; }
+  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 28px 32px; color: #fff; }
+  .header h1 { font-size: 22px; margin-bottom: 4px; }
+  .header p { opacity: 0.85; font-size: 14px; }
+  .steps { display: flex; gap: 8px; padding: 20px 32px 0; }
+  .step-dot { width: 100%; height: 4px; border-radius: 2px; background: #e8e8e8; }
+  .step-dot.active { background: #667eea; }
+  .step-dot.done { background: #667eea; }
+  .body { padding: 24px 32px 32px; }
+  .step { display: none; }
+  .step.active { display: block; }
+  .step h2 { font-size: 20px; margin-bottom: 4px; }
+  .step .desc { color: #888; font-size: 14px; margin-bottom: 20px; }
+  .step input { width: 100%; padding: 16px; border: 2px solid #e8e8e8; border-radius: 12px; font-size: 18px; outline: none; transition: border-color 0.2s; }
+  .step input:focus { border-color: #667eea; }
+  .step input::placeholder { color: #ccc; }
+  .quick-picks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .quick-pick { padding: 8px 14px; border-radius: 20px; border: 1.5px solid #e8e8e8; background: #fafafa; font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .quick-pick:hover { border-color: #667eea; background: #f0f0ff; }
+  .nav { display: flex; gap: 12px; margin-top: 24px; }
+  .nav button { flex: 1; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-back { background: #f5f5f5; border: none; color: #666; }
+  .btn-back:hover { background: #eee; }
+  .btn-next { background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: #fff; }
+  .btn-next:hover { box-shadow: 0 4px 15px rgba(102,126,234,0.3); }
+  .review { background: #f9f9fb; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .review-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+  .review-row:last-child { border: none; }
+  .review-label { color: #888; font-size: 13px; }
+  .review-value { font-weight: 600; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>Skip the Wait</h1>
+    <p>Set up your call in 3 easy steps</p>
+  </div>
+  <div class="steps">
+    <div class="step-dot active" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+    <div class="step-dot" id="dot3"></div>
+  </div>
+  <div class="body">
+    <div class="step active" id="step1">
+      <h2>Who are you calling?</h2>
+      <p class="desc">Enter the company's phone number</p>
+      <input type="tel" placeholder="1-800-555-1234" id="phone-input" value="1-800-869-3557">
+      <div class="quick-picks">
+        <span class="quick-pick" onclick="document.getElementById('phone-input').value='1-800-869-3557'">Wells Fargo</span>
+        <span class="quick-pick" onclick="document.getElementById('phone-input').value='1-888-280-4331'">Amazon</span>
+        <span class="quick-pick" onclick="document.getElementById('phone-input').value='1-888-237-8289'">Best Buy</span>
+        <span class="quick-pick" onclick="document.getElementById('phone-input').value='1-800-440-0680'">Target</span>
+      </div>
+      <div class="nav">
+        <button class="btn-next" onclick="goStep(2)">Next</button>
+      </div>
+    </div>
+
+    <div class="step" id="step2">
+      <h2>What do you need?</h2>
+      <p class="desc">Tell us briefly so the AI knows what to ask for</p>
+      <input type="text" placeholder="e.g. speak with a representative" id="purpose-input" value="speak with a representative">
+      <div class="quick-picks">
+        <span class="quick-pick" onclick="document.getElementById('purpose-input').value='speak with a representative'">Talk to someone</span>
+        <span class="quick-pick" onclick="document.getElementById('purpose-input').value='check order status'">Order status</span>
+        <span class="quick-pick" onclick="document.getElementById('purpose-input').value='cancel my account'">Cancel account</span>
+        <span class="quick-pick" onclick="document.getElementById('purpose-input').value='billing question'">Billing</span>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goStep(1)">Back</button>
+        <button class="btn-next" onclick="goStep(3)">Next</button>
+      </div>
+    </div>
+
+    <div class="step" id="step3">
+      <h2>Where should we call you?</h2>
+      <p class="desc">We'll connect you once a real person answers</p>
+      <input type="tel" placeholder="(555) 123-4567" value="(720) 584-6358">
+      <div class="review" style="margin-top: 20px;">
+        <div class="review-row">
+          <span class="review-label">Calling</span>
+          <span class="review-value">1-800-869-3557</span>
+        </div>
+        <div class="review-row">
+          <span class="review-label">Reason</span>
+          <span class="review-value">speak with a representative</span>
+        </div>
+      </div>
+      <div class="nav">
+        <button class="btn-back" onclick="goStep(2)">Back</button>
+        <button class="btn-next" onclick="alert('Call started! Sit back and relax. We\'ll call you when a human picks up.')">Start Call</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  document.querySelectorAll('.step-dot').forEach((d, i) => {
+    d.classList.toggle('active', i < n);
+    d.classList.toggle('done', i < n - 1);
+  });
+}
+</script>
+</body>
+</html>

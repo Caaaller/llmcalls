@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup E - Tabs: New Call / Saved / History</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .card { background: #fff; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); max-width: 500px; width: 100%; overflow: hidden; }
+  .tabs { display: flex; border-bottom: 1px solid #eee; }
+  .tab { flex: 1; padding: 16px; text-align: center; font-size: 14px; font-weight: 600; color: #999; cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; }
+  .tab.active { color: #667eea; border-bottom-color: #667eea; }
+  .tab:hover { color: #667eea; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .body { padding: 28px; }
+
+  /* New Call */
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #333; }
+  .field .hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+  .combo { position: relative; }
+  .combo input, .field input { width: 100%; padding: 14px 16px; border: 2px solid #e8e8e8; border-radius: 12px; font-size: 16px; outline: none; transition: border-color 0.2s; }
+  .combo input:focus, .field input:focus { border-color: #667eea; }
+  .dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 2px solid #667eea; border-top: none; border-radius: 0 0 12px 12px; display: none; z-index: 10; max-height: 200px; overflow-y: auto; }
+  .dropdown.open { display: block; }
+  .dd-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; }
+  .dd-item:hover { background: #f5f5ff; }
+  .dd-icon { width: 28px; height: 28px; border-radius: 6px; background: #f0f0ff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #667eea; }
+  .dd-name { font-size: 14px; font-weight: 500; }
+  .dd-num { font-size: 12px; color: #999; }
+  .btn-call { width: 100%; padding: 16px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px; }
+  .btn-call:hover { box-shadow: 0 6px 20px rgba(102,126,234,0.35); }
+
+  /* Saved list */
+  .saved-list { padding: 12px 28px 28px; }
+  .saved-empty { text-align: center; padding: 40px 20px; color: #ccc; }
+  .saved-empty .big-icon { font-size: 40px; margin-bottom: 8px; }
+  .saved-card { display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 12px; border: 1.5px solid #eee; margin-bottom: 10px; transition: border-color 0.15s; cursor: pointer; }
+  .saved-card:hover { border-color: #667eea; }
+  .saved-card .s-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #667eea20, #764ba220); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: #667eea; flex-shrink: 0; }
+  .saved-card .s-info { flex: 1; min-width: 0; }
+  .saved-card .s-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .saved-card .s-detail { font-size: 12px; color: #999; }
+  .saved-card .s-actions { display: flex; gap: 6px; }
+  .s-btn { width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.15s; }
+  .s-btn-play { background: #667eea; color: #fff; }
+  .s-btn-play:hover { background: #5a6fd6; }
+  .s-btn-del { background: #f5f5f5; color: #999; }
+  .s-btn-del:hover { background: #fee; color: #e55; }
+
+  /* History */
+  .history-list { padding: 12px 28px 28px; }
+  .h-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+  .h-item:last-child { border: none; }
+  .h-status { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .h-status.success { background: #34c759; }
+  .h-status.fail { background: #ff3b30; }
+  .h-info { flex: 1; min-width: 0; }
+  .h-company { font-weight: 600; font-size: 14px; }
+  .h-reason { font-size: 12px; color: #999; }
+  .h-meta { text-align: right; flex-shrink: 0; }
+  .h-time { font-size: 12px; color: #999; }
+  .h-duration { font-size: 11px; color: #bbb; }
+  .h-replay { width: 30px; height: 30px; border-radius: 50%; background: #f5f5f5; border: none; cursor: pointer; font-size: 12px; margin-left: 8px; flex-shrink: 0; transition: background 0.15s; }
+  .h-replay:hover { background: #667eea; color: #fff; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('new')">New Call</div>
+    <div class="tab" onclick="switchTab('saved')">Saved</div>
+    <div class="tab" onclick="switchTab('history')">History</div>
+  </div>
+
+  <!-- New Call Tab -->
+  <div class="tab-content active" id="tab-new">
+    <div class="body">
+      <div class="field">
+        <label>Who are you calling?</label>
+        <div class="combo">
+          <input type="text" id="c-input" placeholder="Company name or phone number" autocomplete="off" oninput="filter()" onfocus="filter()">
+          <div class="dropdown" id="c-dd"></div>
+        </div>
+      </div>
+      <div class="field">
+        <label>What do you need?</label>
+        <input type="text" placeholder="e.g. speak with a representative" value="speak with a representative">
+      </div>
+      <div class="field">
+        <label>Your phone number</label>
+        <input type="tel" placeholder="(555) 123-4567" value="(720) 584-6358">
+        <div class="hint">We'll call you when a real person answers</div>
+      </div>
+      <button class="btn-call" onclick="alert('Call started!')">
+        <span>Start Call</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Saved Tab -->
+  <div class="tab-content" id="tab-saved">
+    <div class="saved-list">
+      <div class="saved-card">
+        <div class="s-icon">W</div>
+        <div class="s-info">
+          <div class="s-name">Bank - Check Balance</div>
+          <div class="s-detail">Wells Fargo &middot; 1-800-869-3557</div>
+        </div>
+        <div class="s-actions">
+          <button class="s-btn s-btn-play" title="Call now">&#9654;</button>
+          <button class="s-btn s-btn-del" title="Delete">&times;</button>
+        </div>
+      </div>
+      <div class="saved-card">
+        <div class="s-icon">A</div>
+        <div class="s-info">
+          <div class="s-name">Amazon Returns</div>
+          <div class="s-detail">Amazon &middot; 1-888-280-4331</div>
+        </div>
+        <div class="s-actions">
+          <button class="s-btn s-btn-play" title="Call now">&#9654;</button>
+          <button class="s-btn s-btn-del" title="Delete">&times;</button>
+        </div>
+      </div>
+      <div class="saved-card">
+        <div class="s-icon">C</div>
+        <div class="s-info">
+          <div class="s-name">Internet Bill Question</div>
+          <div class="s-detail">Comcast &middot; 1-800-934-6489</div>
+        </div>
+        <div class="s-actions">
+          <button class="s-btn s-btn-play" title="Call now">&#9654;</button>
+          <button class="s-btn s-btn-del" title="Delete">&times;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div class="tab-content" id="tab-history">
+    <div class="history-list">
+      <div class="h-item">
+        <div class="h-status success"></div>
+        <div class="h-info">
+          <div class="h-company">Wells Fargo</div>
+          <div class="h-reason">speak with a representative</div>
+        </div>
+        <div class="h-meta">
+          <div class="h-time">2 min ago</div>
+          <div class="h-duration">1m 37s</div>
+        </div>
+        <button class="h-replay" title="Call again">&#8635;</button>
+      </div>
+      <div class="h-item">
+        <div class="h-status fail"></div>
+        <div class="h-info">
+          <div class="h-company">Bank of America</div>
+          <div class="h-reason">account inquiry</div>
+        </div>
+        <div class="h-meta">
+          <div class="h-time">1 hr ago</div>
+          <div class="h-duration">3m 02s</div>
+        </div>
+        <button class="h-replay" title="Call again">&#8635;</button>
+      </div>
+      <div class="h-item">
+        <div class="h-status success"></div>
+        <div class="h-info">
+          <div class="h-company">Amazon</div>
+          <div class="h-reason">return item</div>
+        </div>
+        <div class="h-meta">
+          <div class="h-time">Yesterday</div>
+          <div class="h-duration">2m 15s</div>
+        </div>
+        <button class="h-replay" title="Call again">&#8635;</button>
+      </div>
+      <div class="h-item">
+        <div class="h-status success"></div>
+        <div class="h-info">
+          <div class="h-company">Best Buy</div>
+          <div class="h-reason">check order status</div>
+        </div>
+        <div class="h-meta">
+          <div class="h-time">Mar 15</div>
+          <div class="h-duration">1m 58s</div>
+        </div>
+        <button class="h-replay" title="Call again">&#8635;</button>
+      </div>
+      <div class="h-item">
+        <div class="h-status success"></div>
+        <div class="h-info">
+          <div class="h-company">Target</div>
+          <div class="h-reason">speak with a representative</div>
+        </div>
+        <div class="h-meta">
+          <div class="h-time">Mar 14</div>
+          <div class="h-duration">2m 41s</div>
+        </div>
+        <button class="h-replay" title="Call again">&#8635;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cos = [
+  { name: 'Wells Fargo', num: '1-800-869-3557', l: 'W' },
+  { name: 'Amazon', num: '1-888-280-4331', l: 'A' },
+  { name: 'Best Buy', num: '1-888-237-8289', l: 'B' },
+  { name: 'Target', num: '1-800-440-0680', l: 'T' },
+  { name: 'Bank of America', num: '1-800-432-1000', l: 'B' },
+  { name: 'AT&T', num: '1-800-331-0500', l: 'A' },
+  { name: 'Verizon', num: '1-800-922-0204', l: 'V' },
+  { name: 'Comcast / Xfinity', num: '1-800-934-6489', l: 'C' },
+  { name: 'Delta Airlines', num: '1-800-221-1212', l: 'D' },
+  { name: 'United Airlines', num: '1-800-864-8331', l: 'U' },
+];
+
+function filter() {
+  const q = document.getElementById('c-input').value.toLowerCase();
+  const dd = document.getElementById('c-dd');
+  if (!q) { dd.classList.remove('open'); return; }
+  const m = cos.filter(c => c.name.toLowerCase().includes(q) || c.num.includes(q));
+  dd.innerHTML = m.map(c =>
+    `<div class="dd-item" onclick="pick('${c.name}','${c.num}')">
+      <div class="dd-icon">${c.l}</div>
+      <div><div class="dd-name">${c.name}</div><div class="dd-num">${c.num}</div></div>
+    </div>`
+  ).join('');
+  dd.classList.toggle('open', m.length > 0);
+}
+
+function pick(name, num) {
+  document.getElementById('c-input').value = name;
+  document.getElementById('c-dd').classList.remove('open');
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', t.textContent.toLowerCase().replace(' ','') === id.replace(' ','')));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  // Fix tab highlighting
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(t => t.classList.remove('active'));
+  if (id === 'new') tabs[0].classList.add('active');
+  if (id === 'saved') tabs[1].classList.add('active');
+  if (id === 'history') tabs[2].classList.add('active');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.combo')) document.getElementById('c-dd').classList.remove('open');
+});
+</script>
+</body>
+</html>

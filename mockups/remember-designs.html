@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remember Previous Selections - Design Options</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f0f5; color: #1a1a2e; padding: 40px 20px; }
+
+  h1 { text-align: center; margin-bottom: 12px; font-size: 28px; }
+  .subtitle { text-align: center; color: #666; margin-bottom: 60px; font-size: 15px; }
+
+  .design-section { max-width: 520px; margin: 0 auto 80px; }
+  .design-label {
+    font-size: 13px; font-weight: 600; color: #7c3aed; text-transform: uppercase;
+    letter-spacing: 1.5px; margin-bottom: 12px;
+  }
+  .design-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .design-desc { color: #666; font-size: 14px; margin-bottom: 24px; line-height: 1.5; }
+
+  /* Shared wizard card styles */
+  .wizard-card {
+    background: #fff; border-radius: 16px; padding: 32px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 24px rgba(0,0,0,0.04);
+  }
+  .wizard-card h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .wizard-card .helper { color: #888; font-size: 14px; margin-bottom: 20px; }
+
+  .phone-input {
+    width: 100%; padding: 16px 20px; border: 2px solid #e0e0e0; border-radius: 12px;
+    font-size: 18px; outline: none; transition: border-color 0.2s;
+  }
+  .phone-input:focus { border-color: #7c3aed; }
+  .phone-input.prefilled { border-color: #d4d0ff; background: #faf9ff; }
+
+  .btn-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+  .btn {
+    padding: 12px 28px; border-radius: 12px; font-size: 15px; font-weight: 600;
+    border: none; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-back { background: #f0f0f0; color: #333; }
+  .btn-primary { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
+
+  /* ========== OPTION A: Inline banner ========== */
+  .remembered-banner {
+    display: flex; align-items: center; gap: 10px;
+    background: #f3f0ff; border: 1px solid #e0d4ff; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: #6d28d9;
+  }
+  .remembered-banner svg { flex-shrink: 0; }
+  .remembered-banner .change-link {
+    margin-left: auto; color: #7c3aed; text-decoration: underline; cursor: pointer;
+    font-weight: 500; white-space: nowrap;
+  }
+
+  /* ========== OPTION B: Chip/tag style ========== */
+  .recent-section { margin-bottom: 20px; }
+  .recent-label { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; font-weight: 600; }
+  .recent-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .recent-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: #f8f7ff; border: 1.5px solid #e0d4ff; border-radius: 100px;
+    padding: 8px 16px; font-size: 14px; color: #4c1d95; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .recent-chip:hover { background: #ede9fe; border-color: #c4b5fd; }
+  .recent-chip.selected { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+  .recent-chip .chip-icon { font-size: 16px; }
+  .recent-chip .chip-x {
+    margin-left: 2px; opacity: 0.5; font-size: 12px;
+  }
+  .recent-chip.selected .chip-x { opacity: 0.7; }
+
+  .or-divider {
+    display: flex; align-items: center; gap: 12px; margin: 16px 0; color: #bbb; font-size: 13px;
+  }
+  .or-divider::before, .or-divider::after { content: ''; flex: 1; height: 1px; background: #e8e8e8; }
+
+  /* ========== OPTION C: Recent calls quick-fill ========== */
+  .recent-calls-list { margin-bottom: 20px; }
+  .recent-call-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 12px; cursor: pointer;
+    transition: background 0.15s; border: 1.5px solid transparent;
+  }
+  .recent-call-item:hover { background: #f8f7ff; border-color: #e0d4ff; }
+  .recent-call-item.selected { background: #f3f0ff; border-color: #c4b5fd; }
+  .recent-call-avatar {
+    width: 40px; height: 40px; border-radius: 10px; background: #ede9fe;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    color: #7c3aed; font-weight: 700; flex-shrink: 0;
+  }
+  .recent-call-info { flex: 1; min-width: 0; }
+  .recent-call-company { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .recent-call-meta { font-size: 12px; color: #999; margin-top: 2px; }
+  .recent-call-check {
+    width: 22px; height: 22px; border-radius: 50%; border: 2px solid #d4d0ff;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .recent-call-item.selected .recent-call-check {
+    background: #7c3aed; border-color: #7c3aed;
+  }
+  .recent-call-item.selected .recent-call-check::after {
+    content: '✓'; color: #fff; font-size: 12px; font-weight: 700;
+  }
+  .new-call-divider {
+    display: flex; align-items: center; gap: 12px; margin: 12px 0; color: #ccc; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .new-call-divider::before, .new-call-divider::after { content: ''; flex: 1; height: 1px; background: #e8e8e8; }
+
+  /* Pros/cons */
+  .pros-cons {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-top: 16px; font-size: 13px;
+  }
+  .pros, .cons { padding: 12px; border-radius: 10px; }
+  .pros { background: #f0fdf4; }
+  .cons { background: #fef2f2; }
+  .pros strong { color: #16a34a; }
+  .cons strong { color: #dc2626; }
+  .pros li, .cons li { margin-top: 4px; margin-left: 16px; line-height: 1.4; }
+
+  /* Step dots */
+  .step-dots { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+  .step-dot {
+    width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 13px; font-weight: 600; position: relative;
+  }
+  .step-dot.completed { background: #7c3aed; color: #fff; }
+  .step-dot.active { background: #7c3aed; color: #fff; box-shadow: 0 0 0 3px rgba(124,58,237,0.2); }
+  .step-dot.upcoming { background: #f0f0f0; color: #999; }
+  .step-connector { width: 40px; height: 2px; background: #e0e0e0; }
+  .step-connector.done { background: #7c3aed; }
+</style>
+</head>
+<body>
+
+<h1>Remembering Previous Selections</h1>
+<p class="subtitle">3 design approaches for persisting phone number + previous wizard choices</p>
+
+<!-- ============ OPTION A ============ -->
+<div class="design-section">
+  <div class="design-label">Option A</div>
+  <div class="design-title">Auto-fill with banner</div>
+  <div class="design-desc">
+    Phone number and selections are silently restored from localStorage.
+    A subtle banner confirms what was remembered, with a link to clear it.
+  </div>
+
+  <div class="wizard-card">
+    <div class="step-dots">
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot active">3</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">4</div>
+    </div>
+
+    <h2>Your phone number</h2>
+    <p class="helper">When we reach a human agent, we'll connect them to this number.</p>
+
+    <div class="remembered-banner">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#7c3aed" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="#7c3aed" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Remembered from your last call
+      <span class="change-link">Clear</span>
+    </div>
+
+    <input class="phone-input prefilled" type="tel" value="+1 (943) 846-3384" />
+
+    <div class="btn-row">
+      <button class="btn btn-back">Back</button>
+      <button class="btn btn-primary">Review</button>
+    </div>
+  </div>
+
+  <div class="pros-cons">
+    <div class="pros">
+      <strong>Pros</strong>
+      <ul>
+        <li>Zero friction — just click Review</li>
+        <li>Clear what happened</li>
+        <li>Easy to clear/change</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <strong>Cons</strong>
+      <ul>
+        <li>Could miss the banner</li>
+        <li>Only shows on phone step</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ OPTION B ============ -->
+<div class="design-section">
+  <div class="design-label">Option B</div>
+  <div class="design-title">Recent chips on each step</div>
+  <div class="design-desc">
+    Each step shows clickable chips of recently used values. Tap a chip to fill it,
+    or type a new value. Phone number auto-selects the last used one.
+  </div>
+
+  <!-- Step 1 example -->
+  <div class="wizard-card" style="margin-bottom: 16px;">
+    <div class="step-dots">
+      <div class="step-dot active">1</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">2</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">3</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">4</div>
+    </div>
+
+    <h2>Who do you want to call?</h2>
+    <p class="helper">Search for a company or enter a phone number directly.</p>
+
+    <div class="recent-section">
+      <div class="recent-label">Recent</div>
+      <div class="recent-chips">
+        <div class="recent-chip selected">
+          <span class="chip-icon">📞</span> Comcast
+        </div>
+        <div class="recent-chip">
+          <span class="chip-icon">📞</span> AT&T
+        </div>
+        <div class="recent-chip">
+          <span class="chip-icon">📞</span> Delta Airlines
+        </div>
+      </div>
+    </div>
+
+    <div class="or-divider">or search</div>
+
+    <input class="phone-input" type="text" placeholder="Company name or phone number..." />
+
+    <div class="btn-row">
+      <button class="btn btn-primary">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 2 example -->
+  <div class="wizard-card" style="margin-bottom: 16px;">
+    <div class="step-dots">
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot active">2</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">3</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">4</div>
+    </div>
+
+    <h2>What's the reason for your call?</h2>
+    <p class="helper">This helps our AI navigate the phone menu.</p>
+
+    <div class="recent-section">
+      <div class="recent-label">Used before with Comcast</div>
+      <div class="recent-chips">
+        <div class="recent-chip selected">
+          <span class="chip-icon">🔄</span> Cancel service
+        </div>
+        <div class="recent-chip">
+          <span class="chip-icon">💰</span> Billing dispute
+        </div>
+      </div>
+    </div>
+
+    <div class="or-divider">or choose</div>
+
+    <div class="recent-chips">
+      <div class="recent-chip">Speak with a representative</div>
+      <div class="recent-chip">Technical support</div>
+      <div class="recent-chip">Account changes</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back">Back</button>
+      <button class="btn btn-primary">Next</button>
+    </div>
+  </div>
+
+  <!-- Step 3 phone (auto-filled, skippable) -->
+  <div class="wizard-card">
+    <div class="step-dots">
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot active">3</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">4</div>
+    </div>
+
+    <h2>Your phone number</h2>
+    <p class="helper">When we reach a human agent, we'll connect them to this number.</p>
+
+    <div class="recent-section">
+      <div class="recent-label">Your numbers</div>
+      <div class="recent-chips">
+        <div class="recent-chip selected">
+          <span class="chip-icon">📱</span> +1 (943) 846-3384
+        </div>
+        <div class="recent-chip">
+          <span class="chip-icon">🏠</span> +1 (555) 123-4567
+        </div>
+      </div>
+    </div>
+
+    <div class="or-divider">or enter new</div>
+
+    <input class="phone-input" type="tel" placeholder="+1 (___) ___-____" />
+
+    <div class="btn-row">
+      <button class="btn btn-back">Back</button>
+      <button class="btn btn-primary">Review</button>
+    </div>
+  </div>
+
+  <div class="pros-cons">
+    <div class="pros">
+      <strong>Pros</strong>
+      <ul>
+        <li>Rich history on every step</li>
+        <li>Per-company memory</li>
+        <li>Multiple numbers supported</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <strong>Cons</strong>
+      <ul>
+        <li>More visual clutter</li>
+        <li>More complex to build</li>
+        <li>Still requires stepping through</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ OPTION C ============ -->
+<div class="design-section">
+  <div class="design-label">Option C</div>
+  <div class="design-title">Quick-repeat from recent calls</div>
+  <div class="design-desc">
+    Step 1 shows recent calls at the top. Selecting one pre-fills ALL steps and jumps
+    straight to Review. Phone number is always remembered separately.
+    This is the fastest repeat-call flow.
+  </div>
+
+  <div class="wizard-card">
+    <div class="step-dots">
+      <div class="step-dot active">1</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">2</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">3</div>
+      <div class="step-connector"></div>
+      <div class="step-dot upcoming">4</div>
+    </div>
+
+    <h2>Who do you want to call?</h2>
+    <p class="helper">Pick up where you left off, or start a new call.</p>
+
+    <div class="recent-calls-list">
+      <div class="recent-label" style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; font-weight: 600;">
+        Repeat a recent call
+      </div>
+
+      <div class="recent-call-item selected">
+        <div class="recent-call-avatar">C</div>
+        <div class="recent-call-info">
+          <div class="recent-call-company">Comcast — Cancel service</div>
+          <div class="recent-call-meta">2 days ago &middot; +1 (943) 846-3384</div>
+        </div>
+        <div class="recent-call-check"></div>
+      </div>
+
+      <div class="recent-call-item">
+        <div class="recent-call-avatar">A</div>
+        <div class="recent-call-info">
+          <div class="recent-call-company">AT&T — Billing dispute</div>
+          <div class="recent-call-meta">1 week ago &middot; +1 (943) 846-3384</div>
+        </div>
+        <div class="recent-call-check"></div>
+      </div>
+
+      <div class="recent-call-item">
+        <div class="recent-call-avatar">D</div>
+        <div class="recent-call-info">
+          <div class="recent-call-company">Delta Airlines — Flight change</div>
+          <div class="recent-call-meta">2 weeks ago &middot; +1 (943) 846-3384</div>
+        </div>
+        <div class="recent-call-check"></div>
+      </div>
+    </div>
+
+    <div class="new-call-divider">or start new</div>
+
+    <input class="phone-input" type="text" placeholder="Search company or enter phone number..." />
+
+    <div class="btn-row">
+      <button class="btn btn-back" style="visibility: hidden;">Back</button>
+      <button class="btn btn-primary">Skip to Review →</button>
+    </div>
+  </div>
+
+  <!-- Show what Review looks like after selecting -->
+  <div style="text-align: center; margin: 16px 0; color: #999; font-size: 13px;">↓ Jumps directly to Review (Step 4) ↓</div>
+
+  <div class="wizard-card">
+    <div class="step-dots">
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot completed">✓</div>
+      <div class="step-connector done"></div>
+      <div class="step-dot active">4</div>
+    </div>
+
+    <h2>Review your call</h2>
+    <p class="helper">Everything look right? Hit Start Call to begin.</p>
+
+    <div style="background: #faf9ff; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+          <div style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Calling</div>
+          <div style="font-weight: 600; margin-top: 2px;">Comcast</div>
+        </div>
+        <span style="cursor: pointer; color: #7c3aed; font-size: 18px;">✏️</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+          <div style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Reason</div>
+          <div style="font-weight: 600; margin-top: 2px;">Cancel service</div>
+        </div>
+        <span style="cursor: pointer; color: #7c3aed; font-size: 18px;">✏️</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px;">Transfer to</div>
+          <div style="font-weight: 600; margin-top: 2px;">+1 (943) 846-3384</div>
+        </div>
+        <span style="cursor: pointer; color: #7c3aed; font-size: 18px;">✏️</span>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-back">Back</button>
+      <button class="btn btn-primary" style="background: linear-gradient(135deg, #16a34a, #22c55e);">
+        🚀 Start Call
+      </button>
+    </div>
+  </div>
+
+  <div class="pros-cons">
+    <div class="pros">
+      <strong>Pros</strong>
+      <ul>
+        <li>2 clicks to repeat a call</li>
+        <li>Shows full context upfront</li>
+        <li>Builds on existing saved calls</li>
+      </ul>
+    </div>
+    <div class="cons">
+      <strong>Cons</strong>
+      <ul>
+        <li>Step 1 gets busier</li>
+        <li>New users see empty state</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Recommendation -->
+<div class="design-section" style="margin-bottom: 40px;">
+  <div style="background: linear-gradient(135deg, #f3f0ff, #ede9fe); border-radius: 16px; padding: 28px;">
+    <div class="design-label">Recommendation</div>
+    <div class="design-title" style="font-size: 18px;">Combine A + C</div>
+    <p style="color: #555; font-size: 14px; line-height: 1.6; margin-top: 8px;">
+      <strong>Always auto-fill the phone number</strong> (Option A — simplest, covers the core ask).
+      Plus <strong>show recent calls on Step 1</strong> (Option C — enables fast repeat calls).
+      This covers both needs without overcomplicating every step like Option B would.
+    </p>
+    <ul style="margin-top: 12px; font-size: 14px; color: #555; line-height: 1.8; padding-left: 20px;">
+      <li>Phone number saved to <code>localStorage</code> after each call — restored on Step 3</li>
+      <li>Recent calls already exist in the API — surface them on Step 1 with "skip to review"</li>
+      <li>Minimal new state management needed</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>

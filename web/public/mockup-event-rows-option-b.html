@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option B — Chat Bubble Style</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #f9fafb;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #374151;
+    padding: 32px;
+  }
+  .label-bar {
+    background: #1a1d2e;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border-radius: 6px 6px 0 0;
+    display: inline-block;
+  }
+  .demo-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 8px 8px 8px;
+    padding: 16px 16px 20px;
+    max-width: 620px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 14px;
+  }
+
+  /* ── Shared ── */
+  .chat-row {
+    margin-bottom: 6px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* USER — right aligned */
+  .chat-row.side-user {
+    align-items: flex-end;
+  }
+  .chat-row.side-user .bubble {
+    background: #e3f2fd;
+    color: #1a3a5c;
+    border-radius: 14px 14px 3px 14px;
+    max-width: 78%;
+    padding: 7px 11px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    position: relative;
+  }
+  .chat-row.side-user .chat-meta {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-direction: row-reverse;
+  }
+
+  /* AI — left aligned */
+  .chat-row.side-ai {
+    align-items: flex-start;
+  }
+  .chat-row.side-ai .bubble {
+    background: #f3e5f5;
+    color: #3d1a4e;
+    border-radius: 14px 14px 14px 3px;
+    max-width: 78%;
+    padding: 7px 11px;
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+  .chat-row.side-ai .chat-meta {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  /* System / centered events */
+  .chat-row.side-center {
+    align-items: center;
+  }
+  .chat-row.side-center .system-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 3px 10px 3px 7px;
+    font-size: 11px;
+    color: #6b7280;
+    max-width: 88%;
+  }
+  .chat-row.side-center .system-time {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+
+  /* Badges inside meta */
+  .badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .type-user     { background: #bbdefb; color: #1565c0; }
+  .type-ai       { background: #e1bee7; color: #7b1fa2; }
+  .type-dtmf     { background: #d1c4e9; color: #4527a0; }
+  .type-ivr      { background: #ffe0b2; color: #e65100; }
+  .type-transfer { background: #c8e6c9; color: #2e7d32; }
+  .type-hold     { background: #fff9c4; color: #f57f17; }
+  .type-termination { background: #ffcdd2; color: #c62828; }
+  .type-system   { background: #f3f4f6; color: #374151; }
+  .type-info     { background: #b2ebf2; color: #006064; }
+
+  /* Dot icons for center pills */
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-dtmf       { background: #667eea; }
+  .dot-ivr        { background: #ff9800; }
+  .dot-transfer   { background: #28a745; }
+  .dot-hold       { background: #ffc107; }
+  .dot-termination { background: #dc3545; }
+  .dot-system     { background: #9ca3af; }
+  .dot-info       { background: #17a2b8; }
+
+  .description {
+    margin-top: 20px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.6;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 14px;
+  }
+  .description strong { color: #374151; }
+</style>
+</head>
+<body>
+
+<div class="label-bar">Option B — Chat Bubble Style</div>
+<div class="demo-panel">
+  <div class="panel-title">Call Events — 14 events</div>
+
+  <!-- 1. IVR (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-ivr"></span>
+      <span><strong>IVR:</strong> Thank you for calling Acme Support. Press 1 for billing, 2 for technical support, or 3 for account changes.</span>
+      <span class="system-time">0:00.0</span>
+    </div>
+  </div>
+
+  <!-- 2. SYSTEM (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-system"></span>
+      <span>Speech recognition started — Deepgram Nova-2 active</span>
+      <span class="system-time">0:01.2</span>
+    </div>
+  </div>
+
+  <!-- 3. USER (right) -->
+  <div class="chat-row side-user">
+    <div class="bubble">I need help with my bill from last month, there's a charge I don't recognize</div>
+    <div class="chat-meta">
+      <span class="badge type-user">USER</span>
+      <span>0:04.8</span>
+    </div>
+  </div>
+
+  <!-- 4. AI (left) -->
+  <div class="chat-row side-ai">
+    <div class="bubble">Detected intent: billing inquiry. Pressing 1 to navigate to billing menu.</div>
+    <div class="chat-meta">
+      <span class="badge type-ai">AI</span>
+      <span>0:05.1</span>
+    </div>
+  </div>
+
+  <!-- 5. DTMF (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-dtmf"></span>
+      <span>DTMF key pressed: <strong>1</strong></span>
+      <span class="system-time">0:05.3</span>
+    </div>
+  </div>
+
+  <!-- 6. IVR (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-ivr"></span>
+      <span><strong>IVR:</strong> Billing department. To review recent charges press 1. To dispute a charge, press 2. To speak with an agent, press 0.</span>
+      <span class="system-time">0:06.0</span>
+    </div>
+  </div>
+
+  <!-- 7. DTMF (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-dtmf"></span>
+      <span>DTMF key pressed: <strong>2</strong></span>
+      <span class="system-time">0:09.7</span>
+    </div>
+  </div>
+
+  <!-- 8. IVR (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-ivr"></span>
+      <span><strong>IVR:</strong> Please hold while we transfer you to a billing specialist.</span>
+      <span class="system-time">0:10.1</span>
+    </div>
+  </div>
+
+  <!-- 9. HOLD (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-hold"></span>
+      <span>Hold music detected — 18 seconds</span>
+      <span class="system-time">0:10.5</span>
+    </div>
+  </div>
+
+  <!-- 10. USER (right) -->
+  <div class="chat-row side-user">
+    <div class="bubble">Yes, my account number is 48821 and the charge was on March 3rd for $47.99</div>
+    <div class="chat-meta">
+      <span class="badge type-user">USER</span>
+      <span>0:28.3</span>
+    </div>
+  </div>
+
+  <!-- 11. INFO (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-info"></span>
+      <span>Objective matched: account number collected, charge date provided</span>
+      <span class="system-time">0:29.0</span>
+    </div>
+  </div>
+
+  <!-- 12. TRANSFER (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-transfer"></span>
+      <span>Call transferred to live agent queue — estimated wait 4 minutes</span>
+      <span class="system-time">0:31.4</span>
+    </div>
+  </div>
+
+  <!-- 13. AI (left) -->
+  <div class="chat-row side-ai">
+    <div class="bubble">Transfer successful — all objectives completed. Ending monitoring.</div>
+    <div class="chat-meta">
+      <span class="badge type-ai">AI</span>
+      <span>0:31.9</span>
+    </div>
+  </div>
+
+  <!-- 14. TERMINATION (center) -->
+  <div class="chat-row side-center">
+    <div class="system-pill">
+      <span class="dot dot-termination"></span>
+      <span>Call ended — total duration 32.1s, result: success</span>
+      <span class="system-time">0:32.1</span>
+    </div>
+  </div>
+
+  <div class="description">
+    <strong>Design notes:</strong> USER speech bubbles align right (blue tint), AI decision bubbles align left (purple tint), matching iMessage/Messenger conventions. System events (DTMF, IVR, HOLD, TRANSFER, END) appear as centered pills with a color dot — visually unobtrusive but scannable. Creates clear conversational rhythm.
+  </div>
+</div>
+
+</body>
+</html>

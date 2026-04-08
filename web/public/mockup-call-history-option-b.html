@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call History — Option B: Expandable Rows (Full-Width Table)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1d2e;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: #1a1d2e;
+      color: #c9cdd6;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .brand-text { font-size: 16px; font-weight: 600; color: #fff; }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 14px 10px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      color: #8a8ea0;
+      cursor: pointer;
+    }
+
+    .nav-item.active { background: rgba(102,126,234,0.18); color: #fff; }
+    .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+
+    /* ── Main ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .top-bar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 18px 24px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .top-bar h2 { font-size: 17px; font-weight: 700; color: #1a1d2e; }
+    .top-bar-sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+    .top-bar-actions { display: flex; gap: 10px; align-items: center; }
+
+    .btn-sm {
+      padding: 7px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      background: #fff;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-sm:hover { background: #f9fafb; }
+
+    /* ── Summary strip ── */
+    .summary-strip {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px 24px;
+      display: flex;
+      gap: 32px;
+    }
+
+    .strip-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .strip-value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .strip-value.total { color: #1a1d2e; }
+    .strip-value.completed { color: #28a745; }
+    .strip-value.failed { color: #dc3545; }
+    .strip-value.rate { color: #667eea; }
+
+    .strip-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9ca3af;
+    }
+
+    /* ── Calls table ── */
+    .content {
+      flex: 1;
+      padding: 20px 24px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+    }
+
+    /* Each call card — like a test-case row */
+    .call-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 9px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .call-card.status-completed { border-left: 3px solid #28a745; }
+    .call-card.status-failed { border-left: 3px solid #dc3545; }
+    .call-card.status-terminated { border-left: 3px solid #d4a017; }
+    .call-card.status-in-progress { border-left: 3px solid #007bff; }
+
+    .call-row {
+      display: flex;
+      align-items: center;
+      padding: 11px 16px;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .call-row:hover { background: #fafafa; }
+
+    .call-card.expanded > .call-row { background: #f0f4ff; }
+
+    .call-status-icon {
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .call-number-col {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a1d2e;
+      width: 160px;
+      flex-shrink: 0;
+    }
+
+    .call-purpose-col {
+      flex: 1;
+      font-size: 12px;
+      color: #6b7280;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .call-date-col {
+      font-size: 11px;
+      color: #9ca3af;
+      width: 140px;
+      flex-shrink: 0;
+    }
+
+    .call-duration-col {
+      font-size: 11px;
+      color: #9ca3af;
+      width: 60px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .call-stats-col {
+      display: flex;
+      gap: 8px;
+      width: 120px;
+      flex-shrink: 0;
+      justify-content: flex-end;
+    }
+
+    .stat-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: #f3f4f6;
+      color: #6b7280;
+    }
+
+    .stat-badge.dtmf { background: #ede7f6; color: #4527a0; }
+    .stat-badge.msg { background: #e3f2fd; color: #1565c0; }
+
+    .btn-view {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 5px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .btn-view:hover { background: #f9fafb; }
+
+    /* ── Expanded detail ── */
+    .call-expanded-detail {
+      padding: 16px 16px 16px 48px;
+      border-top: 1px solid #e9ecef;
+      background: #fafbff;
+    }
+
+    .expanded-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .meta-chip {
+      background: #f0f3ff;
+      color: #667eea;
+      border: 1px solid #c5cdf5;
+      padding: 3px 10px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .meta-chip.neutral {
+      background: #f8f9fa;
+      color: #555;
+      border-color: #e9ecef;
+    }
+
+    /* progress bar -->  transfer/outcome indicator */
+    .outcome-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: #f3f4f6;
+      position: relative;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+
+    .outcome-fill {
+      height: 100%;
+      border-radius: 3px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .inline-events {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .inline-event {
+      display: grid;
+      grid-template-columns: 130px 70px 1fr;
+      gap: 10px;
+      padding: 8px 10px;
+      background: #fff;
+      border-radius: 6px;
+      border-left: 2px solid #e5e7eb;
+      font-size: 12px;
+    }
+
+    .inline-event.ev-user { border-left-color: #2196f3; }
+    .inline-event.ev-ai { border-left-color: #9c27b0; }
+    .inline-event.ev-dtmf { border-left-color: #667eea; }
+    .inline-event.ev-transfer { border-left-color: #28a745; }
+    .inline-event.ev-ivr { border-left-color: #ff9800; }
+    .inline-event.ev-hold { border-left-color: #ffc107; }
+    .inline-event.ev-term { border-left-color: #dc3545; }
+
+    .ev-time { color: #9ca3af; font-weight: 500; font-size: 11px; }
+
+    .ev-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .ev-label.lbl-user { color: #1565c0; }
+    .ev-label.lbl-ai { color: #7b1fa2; }
+    .ev-label.lbl-dtmf { color: #4527a0; }
+    .ev-label.lbl-transfer { color: #2e7d32; }
+    .ev-label.lbl-ivr { color: #e65100; }
+    .ev-label.lbl-hold { color: #f57f17; }
+    .ev-label.lbl-term { color: #c62828; }
+
+    .ev-text { color: #374151; }
+    .ev-text strong { color: #1a1d2e; }
+
+    /* ── Option badge ── */
+    .option-badge {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+<div class="option-badge">OPTION B — Expandable Rows</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">AI</div>
+    <span class="brand-text">LLM Calls</span>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item"><span class="nav-icon">+</span> New Call</div>
+    <div class="nav-item"><span class="nav-icon">⊞</span> Dashboard</div>
+    <div class="nav-item active"><span class="nav-icon">☎</span> Call History</div>
+    <div class="nav-item"><span class="nav-icon">▶</span> Test Runs</div>
+    <div class="nav-item"><span class="nav-icon">✦</span> Evaluations</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="top-bar">
+    <div>
+      <h2>Call History</h2>
+      <div class="top-bar-sub">Live IVR call recordings and transcripts</div>
+    </div>
+    <div class="top-bar-actions">
+      <button class="btn-sm">Refresh</button>
+    </div>
+  </div>
+
+  <!-- Summary strip -->
+  <div class="summary-strip">
+    <div class="strip-item">
+      <span class="strip-value total">12</span>
+      <span class="strip-label">Total Calls</span>
+    </div>
+    <div class="strip-item">
+      <span class="strip-value completed">9</span>
+      <span class="strip-label">Completed</span>
+    </div>
+    <div class="strip-item">
+      <span class="strip-value failed">2</span>
+      <span class="strip-label">Failed</span>
+    </div>
+    <div class="strip-item">
+      <span class="strip-value total">1</span>
+      <span class="strip-label">Terminated</span>
+    </div>
+    <div class="strip-item">
+      <span class="strip-value rate">75%</span>
+      <span class="strip-label">Transfer Rate</span>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-header">
+      <span class="section-label">Recent Calls (12)</span>
+    </div>
+
+    <!-- Call 1 — expanded to show detail -->
+    <div class="call-card status-completed expanded">
+      <div class="call-row">
+        <span class="call-status-icon">✅</span>
+        <span class="call-number-col">+1 (415) 555-0192</span>
+        <span class="call-purpose-col">Schedule appointment · Transferred to billing agent</span>
+        <span class="call-date-col">Apr 7, 2026 · 2:14 PM</span>
+        <span class="call-duration-col">3m 42s</span>
+        <div class="call-stats-col">
+          <span class="stat-badge msg">18 msg</span>
+          <span class="stat-badge dtmf">4 DTMF</span>
+        </div>
+        <button class="btn-view">Hide</button>
+      </div>
+
+      <!-- Expanded detail -->
+      <div class="call-expanded-detail">
+        <div class="expanded-meta">
+          <span class="meta-chip">SID: CA7f3a1e2b...</span>
+          <span class="meta-chip">To: +1 (415) 555-0192</span>
+          <span class="meta-chip">From: +1 (303) 396-2866</span>
+          <span class="meta-chip neutral">Transfer: +1 (415) 555-0999</span>
+          <span class="meta-chip neutral">Est. cost: $0.12</span>
+        </div>
+
+        <div class="outcome-bar">
+          <div class="outcome-fill" style="width:100%;background:#28a745;"></div>
+        </div>
+
+        <div class="inline-events">
+          <div class="inline-event ev-ai">
+            <span class="ev-time">2:14:03 PM</span>
+            <span class="ev-label lbl-ai">AI</span>
+            <span class="ev-text">Thank you for calling, please hold while I connect you.</span>
+          </div>
+          <div class="inline-event ev-ivr">
+            <span class="ev-time">2:14:08 PM</span>
+            <span class="ev-label lbl-ivr">IVR Menu</span>
+            <span class="ev-text">1=Appointments, 2=Billing, 3=General, 0=Operator</span>
+          </div>
+          <div class="inline-event ev-dtmf">
+            <span class="ev-time">2:14:12 PM</span>
+            <span class="ev-label lbl-dtmf">DTMF</span>
+            <span class="ev-text"><strong>Press 1</strong> — Appointments option selected</span>
+          </div>
+          <div class="inline-event ev-user">
+            <span class="ev-time">2:14:19 PM</span>
+            <span class="ev-label lbl-user">User</span>
+            <span class="ev-text">I'd like to schedule an appointment for next Tuesday.</span>
+          </div>
+          <div class="inline-event ev-ai">
+            <span class="ev-time">2:14:24 PM</span>
+            <span class="ev-label lbl-ai">AI</span>
+            <span class="ev-text">Sure, I can help you. Can I have your name and date of birth?</span>
+          </div>
+          <div class="inline-event ev-hold">
+            <span class="ev-time">2:16:02 PM</span>
+            <span class="ev-label lbl-hold">Hold</span>
+            <span class="ev-text">Hold queue detected — waiting for agent</span>
+          </div>
+          <div class="inline-event ev-transfer">
+            <span class="ev-time">2:17:38 PM</span>
+            <span class="ev-label lbl-transfer">Transfer</span>
+            <span class="ev-text"><strong>Transfer Successful</strong> to +1 (415) 555-0999</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Call 2 -->
+    <div class="call-card status-failed">
+      <div class="call-row">
+        <span class="call-status-icon">❌</span>
+        <span class="call-number-col">+1 (212) 555-0847</span>
+        <span class="call-purpose-col">Check account status · Call terminated — no transfer</span>
+        <span class="call-date-col">Apr 7, 2026 · 1:09 PM</span>
+        <span class="call-duration-col">0m 58s</span>
+        <div class="call-stats-col">
+          <span class="stat-badge msg">5 msg</span>
+          <span class="stat-badge dtmf">1 DTMF</span>
+        </div>
+        <button class="btn-view">View Call</button>
+      </div>
+    </div>
+
+    <!-- Call 3 -->
+    <div class="call-card status-completed">
+      <div class="call-row">
+        <span class="call-status-icon">✅</span>
+        <span class="call-number-col">+1 (650) 555-0334</span>
+        <span class="call-purpose-col">File insurance claim · Transferred to claims dept</span>
+        <span class="call-date-col">Apr 7, 2026 · 11:52 AM</span>
+        <span class="call-duration-col">5m 11s</span>
+        <div class="call-stats-col">
+          <span class="stat-badge msg">31 msg</span>
+          <span class="stat-badge dtmf">7 DTMF</span>
+        </div>
+        <button class="btn-view">View Call</button>
+      </div>
+    </div>
+
+    <!-- Call 4 -->
+    <div class="call-card status-terminated">
+      <div class="call-row">
+        <span class="call-status-icon">🕐</span>
+        <span class="call-number-col">+1 (303) 555-0621</span>
+        <span class="call-purpose-col">Cancel service · Abandoned on hold after 2 loops</span>
+        <span class="call-date-col">Apr 6, 2026 · 4:33 PM</span>
+        <span class="call-duration-col">2m 05s</span>
+        <div class="call-stats-col">
+          <span class="stat-badge msg">12 msg</span>
+          <span class="stat-badge dtmf">2 DTMF</span>
+        </div>
+        <button class="btn-view">View Call</button>
+      </div>
+    </div>
+
+    <!-- Call 5 -->
+    <div class="call-card status-completed">
+      <div class="call-row">
+        <span class="call-status-icon">✅</span>
+        <span class="call-number-col">+1 (415) 555-0192</span>
+        <span class="call-purpose-col">Reschedule appointment · Transferred to scheduling</span>
+        <span class="call-date-col">Apr 6, 2026 · 2:01 PM</span>
+        <span class="call-duration-col">4m 27s</span>
+        <div class="call-stats-col">
+          <span class="stat-badge msg">24 msg</span>
+          <span class="stat-badge dtmf">5 DTMF</span>
+        </div>
+        <button class="btn-view">View Call</button>
+      </div>
+    </div>
+
+    <!-- Call 6 -->
+    <div class="call-card status-failed">
+      <div class="call-row">
+        <span class="call-status-icon">❌</span>
+        <span class="call-number-col">+1 (800) 555-1234</span>
+        <span class="call-purpose-col">Speak to billing · IVR loop — max retries exceeded</span>
+        <span class="call-date-col">Apr 5, 2026 · 10:17 AM</span>
+        <span class="call-duration-col">1m 12s</span>
+        <div class="call-stats-col">
+          <span class="stat-badge msg">7 msg</span>
+          <span class="stat-badge dtmf">2 DTMF</span>
+        </div>
+        <button class="btn-view">View Call</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

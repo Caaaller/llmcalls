@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option A — Icon Rail Sidebar + Sticky Mini-Header</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0d0f14;
+    color: #e1e4e8;
+    min-height: 100vh;
+  }
+
+  /* ===================== LABEL BANNER ===================== */
+  .demo-banner {
+    background: #1a1d26;
+    border-bottom: 1px solid #2d333b;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: #8b949e;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  .demo-banner strong { color: #58a6ff; font-size: 13px; }
+  .demo-badge {
+    background: #21262d;
+    border: 1px solid #2d333b;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #8b949e;
+  }
+  .demo-badge.active { color: #58a6ff; border-color: #58a6ff33; background: #58a6ff11; }
+
+  /* ===================== SPLIT DEMO CONTAINER ===================== */
+  .split-demo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    min-height: calc(100vh - 44px);
+  }
+  .split-panel {
+    border-right: 2px solid #58a6ff33;
+    position: relative;
+    overflow: hidden;
+  }
+  .split-panel:last-child { border-right: none; }
+  .split-label {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #21262d;
+    border: 1px solid #2d333b;
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 11px;
+    color: #8b949e;
+    z-index: 50;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  /* ===================== APP SHELL ===================== */
+  .app {
+    display: flex;
+    height: calc(100vh - 44px);
+    overflow: hidden;
+    background: #0f1117;
+  }
+
+  /* ===================== SIDEBAR ===================== */
+  .sidebar {
+    width: 220px;
+    background: #1e2130;
+    border-right: 1px solid #2d333b;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .sidebar.collapsed { width: 44px; }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    height: 52px;
+    border-bottom: 1px solid #2d333b;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .brand-icon {
+    width: 28px;
+    height: 28px;
+    background: #58a6ff;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f1117;
+    flex-shrink: 0;
+  }
+  .brand-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e1e4e8;
+    white-space: nowrap;
+    opacity: 1;
+    transition: opacity 0.15s;
+  }
+  .sidebar.collapsed .brand-text { opacity: 0; pointer-events: none; }
+
+  .collapse-btn {
+    margin-left: auto;
+    width: 24px;
+    height: 24px;
+    background: #2d333b;
+    border: none;
+    border-radius: 5px;
+    color: #8b949e;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, transform 0.25s;
+  }
+  .collapse-btn:hover { background: #373e47; color: #e1e4e8; }
+  .sidebar.collapsed .collapse-btn { transform: rotate(180deg); }
+
+  /* New Call button */
+  .new-call-btn {
+    margin: 10px 8px 6px;
+    height: 34px;
+    background: #58a6ff;
+    border: none;
+    border-radius: 7px;
+    color: #0f1117;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .new-call-btn:hover { background: #79b8ff; }
+  .new-call-btn .btn-text {
+    opacity: 1;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .sidebar.collapsed .new-call-btn .btn-text { opacity: 0; width: 0; overflow: hidden; }
+
+  /* Nav items */
+  .nav-section {
+    padding: 4px 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px;
+    height: 36px;
+    border-radius: 6px;
+    margin: 1px 6px;
+    cursor: pointer;
+    color: #8b949e;
+    font-size: 13px;
+    text-decoration: none;
+    transition: background 0.12s, color 0.12s;
+    position: relative;
+    white-space: nowrap;
+  }
+  .nav-item:hover { background: #2d333b; color: #e1e4e8; }
+  .nav-item.active { background: #21262d; color: #58a6ff; }
+  .nav-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .nav-label {
+    opacity: 1;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .sidebar.collapsed .nav-label { opacity: 0; pointer-events: none; }
+
+  /* Tooltip */
+  .nav-item .tooltip {
+    position: absolute;
+    left: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #21262d;
+    border: 1px solid #2d333b;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #e1e4e8;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .sidebar.collapsed .nav-item:hover .tooltip { opacity: 1; }
+
+  /* ===================== MAIN AREA ===================== */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0f1117;
+  }
+
+  /* Mini top bar */
+  .topbar {
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 12px;
+    background: #161b22;
+    border-bottom: 1px solid #2d333b;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .topbar-full {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 20px;
+    background: #161b22;
+    border-bottom: 1px solid #2d333b;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .user-name-full { font-size: 13px; color: #8b949e; }
+  .logout-btn-full {
+    background: #3d1b1b;
+    border: 1px solid #6e2020;
+    color: #f87171;
+    border-radius: 5px;
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .avatar-circle {
+    width: 22px;
+    height: 22px;
+    background: #374151;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: #e1e4e8;
+    flex-shrink: 0;
+  }
+  .logout-icon-btn {
+    width: 22px;
+    height: 22px;
+    background: #3d1b1b;
+    border: 1px solid #6e2020;
+    border-radius: 4px;
+    color: #f87171;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  /* Content area */
+  .content-area {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Page header inline */
+  .page-header-inline {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #2d333b;
+    flex-shrink: 0;
+  }
+  .page-title-inline {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e1e4e8;
+  }
+  .refresh-btn {
+    margin-left: auto;
+    background: #21262d;
+    border: 1px solid #2d333b;
+    color: #8b949e;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .refresh-btn:hover { color: #e1e4e8; border-color: #373e47; }
+
+  /* ===================== RUNS LIST PANEL ===================== */
+  .runs-panel {
+    width: 360px;
+    min-width: 360px;
+    background: #0f1117;
+    border-right: 1px solid #2d333b;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s;
+    flex-shrink: 0;
+  }
+  .runs-panel.collapsed { width: 18px; min-width: 18px; }
+
+  /* Collapse tab on the right edge of runs panel */
+  .panel-collapse-tab {
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 44px;
+    background: #21262d;
+    border: 1px solid #2d333b;
+    border-radius: 0 5px 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #8b949e;
+    font-size: 10px;
+    z-index: 10;
+    transition: background 0.12s, color 0.12s;
+  }
+  .panel-collapse-tab:hover { background: #2d333b; color: #e1e4e8; }
+
+  /* Vertical label when panel is collapsed */
+  .panel-vertical-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    font-size: 10px;
+    color: #58a6ff;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.15s;
+    cursor: pointer;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+  .runs-panel.collapsed .panel-vertical-label { opacity: 1; }
+  .runs-panel.collapsed .panel-collapse-tab { right: -1px; }
+
+  .runs-list-scroll {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .runs-list-scroll::-webkit-scrollbar { width: 4px; }
+  .runs-list-scroll::-webkit-scrollbar-track { background: transparent; }
+  .runs-list-scroll::-webkit-scrollbar-thumb { background: #2d333b; border-radius: 2px; }
+
+  .run-item {
+    padding: 11px 14px;
+    border-bottom: 1px solid #1c2028;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .run-item:hover { background: #161b22; }
+  .run-item.selected { background: #161b22; border-left: 3px solid #58a6ff; }
+  .run-row1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+  .run-name { font-size: 12px; font-weight: 600; color: #e1e4e8; }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+  .badge-pass { background: #0d3321; color: #22c55e; }
+  .badge-fail { background: #3d1b1b; color: #ef4444; }
+  .badge-partial { background: #2a2000; color: #f59e0b; }
+  .run-date { font-size: 10px; color: #8b949e; margin-bottom: 5px; }
+  .progress-bar-wrap {
+    height: 3px;
+    background: #21262d;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+  .progress-pass { background: #22c55e; }
+  .progress-fail { background: #ef4444; }
+  .progress-partial { background: #f59e0b; }
+  .run-stats { font-size: 10px; color: #8b949e; margin-top: 4px; }
+
+  /* ===================== DETAIL PANEL ===================== */
+  .detail-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #0f1117;
+  }
+  .detail-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #2d333b;
+    flex-shrink: 0;
+  }
+  .detail-title { font-size: 14px; font-weight: 600; color: #e1e4e8; }
+  .detail-meta { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .detail-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .test-cases-panel {
+    width: 200px;
+    border-right: 1px solid #2d333b;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .test-cases-panel::-webkit-scrollbar { width: 4px; }
+  .test-cases-panel::-webkit-scrollbar-thumb { background: #2d333b; }
+  .tc-header {
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #2d333b;
+  }
+  .tc-item {
+    padding: 8px 12px;
+    border-bottom: 1px solid #1c2028;
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  .tc-item:hover { background: #161b22; }
+  .tc-item.selected { background: #161b22; }
+  .tc-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  .tc-dot-pass { background: #22c55e; }
+  .tc-dot-fail { background: #ef4444; }
+  .tc-name { font-size: 11px; color: #c9d1d9; line-height: 1.4; }
+  .tc-time { font-size: 10px; color: #8b949e; margin-top: 1px; }
+
+  /* Transcript */
+  .transcript-panel {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 16px;
+  }
+  .transcript-panel::-webkit-scrollbar { width: 4px; }
+  .transcript-panel::-webkit-scrollbar-thumb { background: #2d333b; }
+  .transcript-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .transcript-turn {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+  }
+  .turn-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .turn-avatar-bot { background: #1a2d4a; color: #58a6ff; }
+  .turn-avatar-user { background: #1a2d1a; color: #22c55e; }
+  .turn-content { flex: 1; }
+  .turn-speaker { font-size: 10px; font-weight: 600; color: #8b949e; margin-bottom: 3px; }
+  .turn-text {
+    font-size: 12px;
+    color: #c9d1d9;
+    line-height: 1.5;
+    background: #161b22;
+    padding: 7px 10px;
+    border-radius: 6px;
+    border: 1px solid #21262d;
+  }
+  .turn-text.fail-highlight { border-color: #6e2020; background: #1a0f0f; }
+
+  /* ===================== ANNOTATIONS ===================== */
+  .annotation {
+    position: absolute;
+    background: #58a6ff;
+    color: #0f1117;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    z-index: 20;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo-banner">
+  <strong>Option A</strong>
+  <span>Icon Rail Sidebar + Sticky Mini-Header</span>
+  <span class="demo-badge active">Left: Expanded state</span>
+  <span class="demo-badge">Right: Collapsed state</span>
+  <span style="margin-left:auto; color:#58b6ff44">CallBot Test Runs</span>
+</div>
+
+<div class="split-demo">
+
+  <!-- ==================== LEFT HALF: EXPANDED ==================== -->
+  <div class="split-panel">
+    <div class="split-label">Expanded (default)</div>
+    <div class="app">
+      <!-- SIDEBAR expanded -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="brand-icon">CB</div>
+          <span class="brand-text">CallBot</span>
+          <button class="collapse-btn" title="Collapse sidebar">&#8249;</button>
+        </div>
+        <button class="new-call-btn">
+          <span style="font-size:16px; line-height:1;">+</span>
+          <span class="btn-text">New Call</span>
+        </button>
+        <div class="nav-section">
+          <a class="nav-item">
+            <div class="nav-icon">📞</div>
+            <span class="nav-label">New Call</span>
+          </a>
+          <a class="nav-item">
+            <div class="nav-icon">📋</div>
+            <span class="nav-label">Call History</span>
+          </a>
+          <a class="nav-item">
+            <div class="nav-icon">📊</div>
+            <span class="nav-label">Evaluations</span>
+          </a>
+          <a class="nav-item active">
+            <div class="nav-icon">🧪</div>
+            <span class="nav-label">Test Runs</span>
+          </a>
+        </div>
+      </div>
+      <!-- MAIN -->
+      <div class="main">
+        <!-- Full top bar -->
+        <div class="topbar-full">
+          <span class="user-name-full">Oliver Ullman</span>
+          <button class="logout-btn-full">Logout</button>
+        </div>
+        <div class="content-area">
+          <div class="runs-panel">
+            <div class="page-header-inline">
+              <span class="page-title-inline">Test Runs</span>
+              <button class="refresh-btn">Refresh</button>
+            </div>
+            <div class="runs-list-scroll">
+              <div class="run-item selected">
+                <div class="run-row1">
+                  <span class="run-name">Billing IVR Suite</span>
+                  <span class="badge badge-pass">PASSED</span>
+                </div>
+                <div class="run-date">Mar 30, 2026 · 14:22</div>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill progress-pass" style="width:100%"></div>
+                </div>
+                <div class="run-stats">12 / 12 passed</div>
+              </div>
+              <div class="run-item">
+                <div class="run-row1">
+                  <span class="run-name">Support Menu Flow</span>
+                  <span class="badge badge-fail">FAILED</span>
+                </div>
+                <div class="run-date">Mar 30, 2026 · 11:05</div>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill progress-fail" style="width:67%"></div>
+                </div>
+                <div class="run-stats">8 / 12 passed · 4 failed</div>
+              </div>
+              <div class="run-item">
+                <div class="run-row1">
+                  <span class="run-name">Account Auth Paths</span>
+                  <span class="badge badge-partial">PARTIAL</span>
+                </div>
+                <div class="run-date">Mar 29, 2026 · 16:44</div>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill progress-partial" style="width:83%"></div>
+                </div>
+                <div class="run-stats">10 / 12 passed · 2 failed</div>
+              </div>
+              <div class="run-item">
+                <div class="run-row1">
+                  <span class="run-name">Payment Processing</span>
+                  <span class="badge badge-pass">PASSED</span>
+                </div>
+                <div class="run-date">Mar 29, 2026 · 09:30</div>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill progress-pass" style="width:100%"></div>
+                </div>
+                <div class="run-stats">6 / 6 passed</div>
+              </div>
+              <div class="run-item">
+                <div class="run-row1">
+                  <span class="run-name">Cancellation Flow</span>
+                  <span class="badge badge-fail">FAILED</span>
+                </div>
+                <div class="run-date">Mar 28, 2026 · 20:15</div>
+                <div class="progress-bar-wrap">
+                  <div class="progress-bar-fill progress-fail" style="width:40%"></div>
+                </div>
+                <div class="run-stats">4 / 10 passed · 6 failed</div>
+              </div>
+            </div>
+            <div class="panel-collapse-tab">&#8249;</div>
+          </div>
+          <!-- Detail panel -->
+          <div class="detail-panel">
+            <div class="detail-header">
+              <div class="detail-title">Billing IVR Suite</div>
+              <div class="detail-meta">Mar 30, 2026 · 14:22 · 12 tests · 4m 18s</div>
+            </div>
+            <div class="detail-body">
+              <div class="test-cases-panel">
+                <div class="tc-header">Test Cases</div>
+                <div class="tc-item selected">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Navigate to billing</div>
+                    <div class="tc-time">0:22s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Request balance info</div>
+                    <div class="tc-time">0:18s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Pay overdue invoice</div>
+                    <div class="tc-time">0:45s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Update card on file</div>
+                    <div class="tc-time">0:31s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Download statement</div>
+                    <div class="tc-time">0:14s</div>
+                  </div>
+                </div>
+              </div>
+              <div class="transcript-panel">
+                <div class="transcript-section-title">Call Transcript — Navigate to billing</div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-bot">IVR</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">IVR System · 0:00</div>
+                    <div class="turn-text">Thank you for calling Acme Corp. For billing, press 1. For technical support, press 2. To speak with an agent, press 0.</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-user">BOT</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">CallBot · 0:08</div>
+                    <div class="turn-text">1</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-bot">IVR</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">IVR System · 0:09</div>
+                    <div class="turn-text">Billing department. For your current balance, press 1. For payment history, press 2. To make a payment, press 3.</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-user">BOT</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">CallBot · 0:15</div>
+                    <div class="turn-text">1</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-bot">IVR</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">IVR System · 0:16</div>
+                    <div class="turn-text">Your current balance is $124.50, due April 15th. Would you like to make a payment? Press 1 for yes, 2 to return to the main menu.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== RIGHT HALF: COLLAPSED ==================== -->
+  <div class="split-panel">
+    <div class="split-label">Collapsed (icon rail + mini bar + no runs panel)</div>
+    <div class="app">
+      <!-- SIDEBAR collapsed -->
+      <div class="sidebar collapsed">
+        <div class="sidebar-header">
+          <div class="brand-icon">CB</div>
+          <span class="brand-text">CallBot</span>
+          <button class="collapse-btn" title="Expand sidebar">&#8249;</button>
+        </div>
+        <button class="new-call-btn">
+          <span style="font-size:16px; line-height:1;">+</span>
+          <span class="btn-text">New Call</span>
+        </button>
+        <div class="nav-section">
+          <a class="nav-item" style="position:relative;">
+            <div class="nav-icon">📞</div>
+            <span class="nav-label">New Call</span>
+            <span class="tooltip">New Call</span>
+          </a>
+          <a class="nav-item" style="position:relative;">
+            <div class="nav-icon">📋</div>
+            <span class="nav-label">Call History</span>
+            <span class="tooltip">Call History</span>
+          </a>
+          <a class="nav-item" style="position:relative;">
+            <div class="nav-icon">📊</div>
+            <span class="nav-label">Evaluations</span>
+            <span class="tooltip">Evaluations</span>
+          </a>
+          <a class="nav-item active" style="position:relative;">
+            <div class="nav-icon">🧪</div>
+            <span class="nav-label">Test Runs</span>
+            <span class="tooltip" style="opacity:1;">Test Runs</span>
+          </a>
+        </div>
+      </div>
+      <!-- MAIN -->
+      <div class="main">
+        <!-- Mini top bar -->
+        <div class="topbar">
+          <div class="avatar-circle">OL</div>
+          <div class="logout-icon-btn" title="Logout">↪</div>
+        </div>
+        <div class="content-area">
+          <!-- Runs panel collapsed -->
+          <div class="runs-panel collapsed">
+            <span class="panel-vertical-label">Test Runs</span>
+            <div class="panel-collapse-tab" style="right:-1px;">&#8250;</div>
+          </div>
+          <!-- Detail panel full width -->
+          <div class="detail-panel">
+            <div class="page-header-inline" style="padding: 10px 14px 8px;">
+              <span class="page-title-inline">Test Runs</span>
+              <span style="font-size:11px;color:#8b949e;margin-left:6px;">/ Billing IVR Suite</span>
+              <button class="refresh-btn">Refresh</button>
+            </div>
+            <div class="detail-header" style="padding:8px 14px;">
+              <div class="detail-title">Billing IVR Suite</div>
+              <div class="detail-meta">Mar 30, 2026 · 14:22 · 12 tests · 4m 18s</div>
+            </div>
+            <div class="detail-body">
+              <div class="test-cases-panel">
+                <div class="tc-header">Test Cases</div>
+                <div class="tc-item selected">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Navigate to billing</div>
+                    <div class="tc-time">0:22s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Request balance info</div>
+                    <div class="tc-time">0:18s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Pay overdue invoice</div>
+                    <div class="tc-time">0:45s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Update card on file</div>
+                    <div class="tc-time">0:31s</div>
+                  </div>
+                </div>
+                <div class="tc-item">
+                  <div class="tc-dot tc-dot-pass"></div>
+                  <div>
+                    <div class="tc-name">Download statement</div>
+                    <div class="tc-time">0:14s</div>
+                  </div>
+                </div>
+              </div>
+              <div class="transcript-panel">
+                <div class="transcript-section-title">Call Transcript — Navigate to billing</div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-bot">IVR</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">IVR System · 0:00</div>
+                    <div class="turn-text">Thank you for calling Acme Corp. For billing, press 1. For technical support, press 2. To speak with an agent, press 0.</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-user">BOT</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">CallBot · 0:08</div>
+                    <div class="turn-text">1</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-bot">IVR</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">IVR System · 0:09</div>
+                    <div class="turn-text">Billing department. For your current balance, press 1. For payment history, press 2. To make a payment, press 3.</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-user">BOT</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">CallBot · 0:15</div>
+                    <div class="turn-text">1</div>
+                  </div>
+                </div>
+                <div class="transcript-turn">
+                  <div class="turn-avatar turn-avatar-bot">IVR</div>
+                  <div class="turn-content">
+                    <div class="turn-speaker">IVR System · 0:16</div>
+                    <div class="turn-text">Your current balance is $124.50, due April 15th. Would you like to make a payment?</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

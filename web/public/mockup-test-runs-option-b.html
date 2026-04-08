@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Runs — Option B: Dense Compact</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1d2e;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      font-size: 13px;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 56px;
+      min-width: 56px;
+      background: #1a1d2e;
+      color: #c9cdd6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      flex-shrink: 0;
+      padding: 12px 0;
+      gap: 4px;
+    }
+
+    .sidebar-brand {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+
+    .nav-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .nav-icon-btn:hover { background: rgba(255,255,255,0.08); color: #c9cdd6; }
+    .nav-icon-btn.active { background: rgba(102,126,234,0.22); color: #667eea; }
+
+    .sidebar-spacer { flex: 1; }
+
+    /* ── Main ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .option-banner {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      text-align: center;
+      padding: 5px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+
+    .page-header {
+      padding: 11px 20px 10px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .page-title { font-size: 15px; font-weight: 700; color: #1a1d2e; }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .header-stat strong { font-weight: 700; }
+    .header-stat.pass strong { color: #28a745; }
+    .header-stat.fail strong { color: #dc3545; }
+
+    .btn-sm {
+      padding: 5px 11px;
+      border-radius: 6px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #374151;
+    }
+
+    /* ── Split ── */
+    .split-layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Runs list ── */
+    .runs-panel {
+      width: 260px;
+      min-width: 260px;
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+    }
+
+    .panel-count {
+      font-size: 10px;
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+
+    .runs-list {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    /* Compact run item */
+    .run-item {
+      padding: 9px 12px;
+      border-bottom: 1px solid #f5f5f5;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .run-item:hover { background: #fafafa; }
+
+    .run-item.active {
+      background: rgba(102, 126, 234, 0.05);
+      border-left: 3px solid #667eea;
+      padding-left: 9px;
+    }
+
+    .run-item-line1 {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    .run-date {
+      font-size: 11px;
+      font-weight: 600;
+      color: #1a1d2e;
+    }
+
+    .run-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-passed { background: #d4edda; color: #28a745; }
+    .badge-failed { background: #f8d7da; color: #dc3545; }
+
+    .run-item-line2 {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+
+    .count-pill {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .pill-pass { background: #d4edda; color: #28a745; }
+    .pill-fail { background: #f8d7da; color: #dc3545; }
+    .pill-closed { background: #fff3cd; color: #d4a017; }
+    .pill-skip { background: #f3f4f6; color: #6c757d; }
+
+    .run-dur {
+      font-size: 10px;
+      color: #9ca3af;
+      margin-left: auto;
+    }
+
+    .run-progress {
+      height: 3px;
+      border-radius: 2px;
+      background: #f3f4f6;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .seg { height: 100%; position: absolute; top: 0; }
+
+    /* ── Detail panel ── */
+    .detail-panel {
+      flex: 1;
+      overflow-y: auto;
+      background: #f0f2f5;
+    }
+
+    .detail-inner {
+      padding: 16px 20px;
+    }
+
+    /* Inline detail header */
+    .detail-run-header {
+      background: #fff;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .detail-run-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1d2e;
+      flex: 1;
+    }
+
+    .detail-run-meta { font-size: 11px; color: #9ca3af; }
+
+    .btn-delete {
+      padding: 5px 10px;
+      border: 1px solid #f8d7da;
+      border-radius: 5px;
+      background: #fff;
+      color: #dc3545;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    /* Compact summary row */
+    .summary-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .summary-card {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .summary-val {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .val-total { color: #1a1d2e; }
+    .val-pass { color: #28a745; }
+    .val-fail { color: #dc3545; }
+    .val-closed { color: #d4a017; }
+    .val-skip { color: #6c757d; }
+    .val-dur { color: #667eea; font-size: 16px; }
+
+    .summary-lbl {
+      font-size: 10px;
+      color: #9ca3af;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-top: 2px;
+    }
+
+    /* Progress bar in detail */
+    .detail-progress {
+      height: 6px;
+      border-radius: 3px;
+      background: #e5e7eb;
+      overflow: hidden;
+      margin-bottom: 12px;
+      position: relative;
+    }
+
+    /* Test cases table */
+    .test-cases-table {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .tc-table-header {
+      display: grid;
+      grid-template-columns: 18px 1fr 140px 60px 80px 70px;
+      gap: 8px;
+      padding: 7px 12px;
+      background: #f9fafb;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 10px;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      align-items: center;
+    }
+
+    .tc-row {
+      display: grid;
+      grid-template-columns: 18px 1fr 140px 60px 80px 70px;
+      gap: 8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #f5f5f5;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .tc-row:hover { background: #fafafa; }
+    .tc-row:last-child { border-bottom: none; }
+
+    .tc-row.fail-row { background: #fff8f8; }
+    .tc-row.fail-row:hover { background: #fff0f0; }
+    .tc-row.closed-row { background: #fffdf5; }
+    .tc-row.skipped-row { opacity: 0.65; }
+
+    .tc-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-pass { background: #28a745; }
+    .dot-fail { background: #dc3545; }
+    .dot-closed { background: #d4a017; }
+    .dot-skip { background: #adb5bd; }
+
+    .tc-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: #1a1d2e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tc-name .skip-tag {
+      font-size: 10px;
+      color: #6c757d;
+      font-weight: 400;
+      margin-left: 5px;
+    }
+
+    .tc-error {
+      font-size: 10px;
+      color: #dc3545;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tc-dur {
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: right;
+    }
+
+    .tc-actions {
+      display: flex;
+      gap: 4px;
+      justify-content: flex-end;
+    }
+
+    .tc-btn {
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 4px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #374151;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .tc-btn.why {
+      border-color: #fde68a;
+      background: #fffbeb;
+      color: #b45309;
+    }
+
+    .tc-result {
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .result-pass { color: #28a745; }
+    .result-fail { color: #dc3545; }
+    .result-closed { color: #d4a017; }
+    .result-skip { color: #6c757d; }
+
+    .detail-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: #9ca3af;
+      gap: 8px;
+    }
+
+    .detail-empty-title { font-size: 13px; font-weight: 600; color: #6b7280; }
+  </style>
+</head>
+<body>
+
+  <!-- Slim icon sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">CB</div>
+
+    <button class="nav-icon-btn" title="New Call">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.01L6.6 10.8z"/></svg>
+    </button>
+    <button class="nav-icon-btn" title="Call History">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+    </button>
+    <button class="nav-icon-btn" title="Evaluations">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+    </button>
+    <button class="nav-icon-btn active" title="Test Runs">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.49.66-.02 1.6.8 1.6h14c.82 0 1.29-.94.8-1.6z"/></svg>
+    </button>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="option-banner">Option B — Dense / Compact (icon sidebar, table layout)</div>
+
+    <div class="page-header">
+      <div class="page-title">Test Runs</div>
+      <div class="header-right">
+        <div class="header-stats">
+          <span class="header-stat pass"><strong>87%</strong> pass rate (7d)</span>
+          <span class="header-stat fail"><strong>2</strong> failing tests</span>
+          <span class="header-stat"><strong>8</strong> total runs</span>
+        </div>
+        <button class="btn-sm">Refresh</button>
+      </div>
+    </div>
+
+    <div class="split-layout">
+
+      <!-- Left: compact runs list -->
+      <div class="runs-panel">
+        <div class="panel-header">
+          <span class="panel-title">Runs</span>
+          <span class="panel-count">8</span>
+        </div>
+
+        <div class="runs-list">
+
+          <!-- Selected run -->
+          <div class="run-item active">
+            <div class="run-item-line1">
+              <span class="run-date">Apr 1 &middot; 2:14 PM</span>
+              <span class="run-badge badge-failed">Failed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">7 pass</span>
+              <span class="count-pill pill-fail">1 fail</span>
+              <span class="count-pill pill-closed">1 closed</span>
+              <span class="count-pill pill-skip">1 skip</span>
+              <span class="run-dur">4m 32s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:70%;background:#28a745;"></div>
+              <div class="seg" style="left:70%;width:10%;background:#dc3545;"></div>
+              <div class="seg" style="left:80%;width:10%;background:#d4a017;"></div>
+              <div class="seg" style="left:90%;width:10%;background:#adb5bd;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-line1">
+              <span class="run-date">Mar 31 &middot; 11:08 AM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">9 pass</span>
+              <span class="count-pill pill-closed">1 closed</span>
+              <span class="run-dur">5m 11s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:90%;background:#28a745;"></div>
+              <div class="seg" style="left:90%;width:10%;background:#d4a017;"></div>
+            </div>
+          </div>
+
+          <!-- Single test run -->
+          <div class="run-item">
+            <div class="run-item-line1">
+              <span class="run-date">Mar 30 &middot; 4:55 PM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">1 pass</span>
+              <span class="count-pill pill-skip">9 skip</span>
+              <span class="run-dur">38s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:10%;background:#28a745;"></div>
+              <div class="seg" style="left:10%;width:90%;background:#adb5bd;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-line1">
+              <span class="run-date">Mar 29 &middot; 9:22 AM</span>
+              <span class="run-badge badge-failed">Failed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">5 pass</span>
+              <span class="count-pill pill-fail">5 fail</span>
+              <span class="run-dur">6m 03s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:50%;background:#28a745;"></div>
+              <div class="seg" style="left:50%;width:50%;background:#dc3545;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-line1">
+              <span class="run-date">Mar 28 &middot; 3:40 PM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">10 pass</span>
+              <span class="run-dur">5m 48s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:100%;background:#28a745;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-line1">
+              <span class="run-date">Mar 27 &middot; 10:15 AM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">10 pass</span>
+              <span class="run-dur">5m 22s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:100%;background:#28a745;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-line1">
+              <span class="run-date">Mar 26 &middot; 2:00 PM</span>
+              <span class="run-badge badge-passed">Passed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">10 pass</span>
+              <span class="run-dur">5m 07s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:100%;background:#28a745;"></div>
+            </div>
+          </div>
+
+          <div class="run-item">
+            <div class="run-item-line1">
+              <span class="run-date">Mar 25 &middot; 9:48 AM</span>
+              <span class="run-badge badge-failed">Failed</span>
+            </div>
+            <div class="run-item-line2">
+              <span class="count-pill pill-pass">8 pass</span>
+              <span class="count-pill pill-fail">2 fail</span>
+              <span class="run-dur">5m 51s</span>
+            </div>
+            <div class="run-progress">
+              <div class="seg" style="left:0;width:80%;background:#28a745;"></div>
+              <div class="seg" style="left:80%;width:20%;background:#dc3545;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right: detail panel -->
+      <div class="detail-panel">
+        <div class="detail-inner">
+
+          <div class="detail-run-header">
+            <div>
+              <div class="detail-run-title">Apr 1, 2026 &middot; 2:14 PM</div>
+              <div class="detail-run-meta">Full suite &middot; 10 tests &middot; 4m 32s</div>
+            </div>
+            <!-- Inline progress strip -->
+            <div style="flex:1; max-width:220px; height:6px; border-radius:3px; background:#e5e7eb; overflow:hidden; position:relative; margin:0 16px;">
+              <div style="position:absolute;left:0;width:70%;height:100%;background:#28a745;"></div>
+              <div style="position:absolute;left:70%;width:10%;height:100%;background:#dc3545;"></div>
+              <div style="position:absolute;left:80%;width:10%;height:100%;background:#d4a017;"></div>
+              <div style="position:absolute;left:90%;width:10%;height:100%;background:#adb5bd;"></div>
+            </div>
+            <button class="btn-delete">Delete</button>
+          </div>
+
+          <!-- Compact summary -->
+          <div class="summary-row">
+            <div class="summary-card">
+              <div>
+                <div class="summary-val val-total">10</div>
+                <div class="summary-lbl">Total</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div>
+                <div class="summary-val val-pass">7</div>
+                <div class="summary-lbl">Passed</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div>
+                <div class="summary-val val-fail">1</div>
+                <div class="summary-lbl">Failed</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div>
+                <div class="summary-val val-closed">1</div>
+                <div class="summary-lbl">Closed</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div>
+                <div class="summary-val val-skip">1</div>
+                <div class="summary-lbl">Skipped</div>
+              </div>
+            </div>
+            <div class="summary-card">
+              <div>
+                <div class="summary-val val-dur">4m 32s</div>
+                <div class="summary-lbl">Duration</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Table of test cases -->
+          <div class="test-cases-table">
+            <div class="tc-table-header">
+              <span></span>
+              <span>Test Case</span>
+              <span>Error</span>
+              <span style="text-align:right">Result</span>
+              <span style="text-align:right">Duration</span>
+              <span></span>
+            </div>
+
+            <!-- FAILED -->
+            <div class="tc-row fail-row">
+              <div class="tc-status-dot dot-fail"></div>
+              <span class="tc-name">Transfer to billing — press 3</span>
+              <span class="tc-error">Expected transfer, got termination</span>
+              <span class="tc-result result-fail" style="text-align:right">Fail</span>
+              <span class="tc-dur">41s</span>
+              <div class="tc-actions">
+                <button class="tc-btn">Call</button>
+                <button class="tc-btn why">Why?</button>
+              </div>
+            </div>
+
+            <!-- CLOSED -->
+            <div class="tc-row closed-row">
+              <div class="tc-status-dot dot-closed"></div>
+              <span class="tc-name">Appointment scheduling</span>
+              <span class="tc-error" style="color:#d4a017;">Business closed</span>
+              <span class="tc-result result-closed" style="text-align:right">Closed</span>
+              <span class="tc-dur">28s</span>
+              <div class="tc-actions">
+                <button class="tc-btn">Call</button>
+              </div>
+            </div>
+
+            <!-- SKIPPED -->
+            <div class="tc-row skipped-row">
+              <div class="tc-status-dot dot-skip"></div>
+              <span class="tc-name">New patient registration <span class="skip-tag">skipped</span></span>
+              <span class="tc-error" style="color:#adb5bd;">Not run in this batch</span>
+              <span class="tc-result result-skip" style="text-align:right">Skip</span>
+              <span class="tc-dur">—</span>
+              <div class="tc-actions"></div>
+            </div>
+
+            <!-- PASSED x7 -->
+            <div class="tc-row">
+              <div class="tc-status-dot dot-pass"></div>
+              <span class="tc-name">Main menu navigation — press 2</span>
+              <span class="tc-error"></span>
+              <span class="tc-result result-pass" style="text-align:right">Pass</span>
+              <span class="tc-dur">32s</span>
+              <div class="tc-actions"><button class="tc-btn">Call</button></div>
+            </div>
+
+            <div class="tc-row">
+              <div class="tc-status-dot dot-pass"></div>
+              <span class="tc-name">Hold queue detection</span>
+              <span class="tc-error"></span>
+              <span class="tc-result result-pass" style="text-align:right">Pass</span>
+              <span class="tc-dur">1m 12s</span>
+              <div class="tc-actions"><button class="tc-btn">Call</button></div>
+            </div>
+
+            <div class="tc-row">
+              <div class="tc-status-dot dot-pass"></div>
+              <span class="tc-name">Prescription refill — IVR path</span>
+              <span class="tc-error"></span>
+              <span class="tc-result result-pass" style="text-align:right">Pass</span>
+              <span class="tc-dur">27s</span>
+              <div class="tc-actions"><button class="tc-btn">Call</button></div>
+            </div>
+
+            <div class="tc-row">
+              <div class="tc-status-dot dot-pass"></div>
+              <span class="tc-name">Emergency line — press 0</span>
+              <span class="tc-error"></span>
+              <span class="tc-result result-pass" style="text-align:right">Pass</span>
+              <span class="tc-dur">19s</span>
+              <div class="tc-actions"><button class="tc-btn">Call</button></div>
+            </div>
+
+            <div class="tc-row">
+              <div class="tc-status-dot dot-pass"></div>
+              <span class="tc-name">Insurance verification</span>
+              <span class="tc-error"></span>
+              <span class="tc-result result-pass" style="text-align:right">Pass</span>
+              <span class="tc-dur">44s</span>
+              <div class="tc-actions"><button class="tc-btn">Call</button></div>
+            </div>
+
+            <div class="tc-row">
+              <div class="tc-status-dot dot-pass"></div>
+              <span class="tc-name">Lab results line — press 4</span>
+              <span class="tc-error"></span>
+              <span class="tc-result result-pass" style="text-align:right">Pass</span>
+              <span class="tc-dur">23s</span>
+              <div class="tc-actions"><button class="tc-btn">Call</button></div>
+            </div>
+
+            <div class="tc-row">
+              <div class="tc-status-dot dot-pass"></div>
+              <span class="tc-name">Callback request — leaves voicemail</span>
+              <span class="tc-error"></span>
+              <span class="tc-result result-pass" style="text-align:right">Pass</span>
+              <span class="tc-dur">35s</span>
+              <div class="tc-actions"><button class="tc-btn">Call</button></div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup D - Wizard + Autocomplete + Recents Sidebar</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f7; min-height: 100vh; display: flex; }
+
+  /* Sidebar */
+  .sidebar { width: 280px; background: #fff; border-right: 1px solid #eee; padding: 20px 0; display: flex; flex-direction: column; height: 100vh; position: fixed; }
+  .sidebar-header { padding: 0 20px 16px; border-bottom: 1px solid #eee; }
+  .sidebar-header h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.8px; color: #999; }
+  .sidebar-section { padding: 12px 12px 0; }
+  .sidebar-section h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #bbb; padding: 0 8px; margin-bottom: 8px; }
+  .saved-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background 0.15s; }
+  .saved-item:hover { background: #f5f5f7; }
+  .saved-item .icon { width: 36px; height: 36px; border-radius: 10px; background: #f0f0ff; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .saved-item .info { flex: 1; min-width: 0; }
+  .saved-item .name { font-size: 13px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-item .detail { font-size: 11px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-item .item-actions { display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; flex-shrink: 0; }
+  .saved-item:hover .item-actions { opacity: 1; }
+  .item-btn { width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .play-btn { background: #667eea; color: #fff; }
+  .play-btn:hover { background: #5a6fd6; transform: scale(1.1); }
+  .edit-btn { background: #f0f0f0; color: #888; }
+  .edit-btn:hover { background: #e8e8ff; color: #667eea; }
+  .new-call-btn { margin: 12px; padding: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .new-call-btn:hover { box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+  .sidebar-footer { margin-top: auto; padding: 12px 20px; border-top: 1px solid #eee; }
+  .sidebar-footer span { font-size: 12px; color: #bbb; }
+
+  /* Main */
+  .main { margin-left: 280px; flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; }
+  .card { background: #fff; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); max-width: 480px; width: 100%; overflow: hidden; }
+  .card-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 24px 32px; color: #fff; }
+  .card-header h1 { font-size: 20px; margin-bottom: 2px; }
+  .card-header p { opacity: 0.8; font-size: 13px; }
+  .progress { display: flex; gap: 8px; padding: 16px 32px 0; }
+  .dot { width: 100%; height: 4px; border-radius: 2px; background: #e8e8e8; transition: background 0.3s; }
+  .dot.active { background: #667eea; }
+  .card-body { padding: 24px 32px 32px; }
+
+  /* Step content */
+  .step { display: none; }
+  .step.active { display: block; }
+  .step h2 { font-size: 18px; margin-bottom: 4px; }
+  .step .desc { color: #888; font-size: 13px; margin-bottom: 16px; }
+
+  /* Combo input */
+  .combo { position: relative; }
+  .combo input { width: 100%; padding: 14px 16px; border: 2px solid #e8e8e8; border-radius: 12px; font-size: 16px; outline: none; transition: border-color 0.2s; }
+  .combo input:focus { border-color: #667eea; }
+  .dropdown { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 2px solid #667eea; border-top: none; border-radius: 0 0 12px 12px; display: none; z-index: 10; max-height: 220px; overflow-y: auto; }
+  .dropdown.open { display: block; }
+  .dropdown-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: background 0.1s; }
+  .dropdown-item:hover { background: #f5f5ff; }
+  .dropdown-item .co-icon { width: 32px; height: 32px; border-radius: 8px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .dropdown-item .co-info { flex: 1; }
+  .dropdown-item .co-name { font-size: 14px; font-weight: 600; }
+  .dropdown-item .co-num { font-size: 12px; color: #999; }
+  .or-divider { text-align: center; color: #ccc; font-size: 12px; margin: 12px 0; }
+
+  .nav { display: flex; gap: 12px; margin-top: 24px; }
+  .nav button { flex: 1; padding: 14px; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .btn-back { background: #f5f5f5; border: none; color: #666; }
+  .btn-next { background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: #fff; }
+  .btn-next:hover { box-shadow: 0 4px 15px rgba(102,126,234,0.3); }
+
+  .review { background: #f9f9fb; border-radius: 12px; padding: 16px; margin-bottom: 8px; }
+  .review-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+  .review-row:last-child { border: none; }
+  .review-label { color: #888; font-size: 13px; }
+  .review-value { font-weight: 600; font-size: 14px; }
+  /* Review editable */
+  .review-editable { background: #f9f9fb; border-radius: 12px; padding: 4px 0; margin-bottom: 8px; }
+  .rev-field { padding: 12px 16px; border-bottom: 1px solid #eee; }
+  .rev-field:last-child { border: none; }
+  .rev-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #aaa; margin-bottom: 4px; }
+  .rev-row { display: flex; align-items: center; justify-content: space-between; }
+  .rev-value { font-size: 15px; font-weight: 600; color: #333; }
+  .rev-edit { width: 28px; height: 28px; border-radius: 6px; background: #fff; border: 1.5px solid #e8e8e8; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; color: #999; transition: all 0.15s; }
+  .rev-edit:hover { border-color: #667eea; color: #667eea; background: #f5f5ff; }
+
+  .save-check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; color: #666; }
+  .save-check input[type="checkbox"] { accent-color: #667eea; }
+  .save-name { margin-top: 8px; padding: 10px 12px; border: 1.5px solid #e8e8e8; border-radius: 8px; font-size: 13px; width: 100%; outline: none; }
+  .save-name:focus { border-color: #667eea; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h2>Skip the Wait</h2>
+  </div>
+
+  <button class="new-call-btn" onclick="newCall()">+ New Call</button>
+
+  <div class="sidebar-section">
+    <h3>Saved</h3>
+    <div class="saved-item">
+      <div class="icon">B</div>
+      <div class="info">
+        <div class="name">Bank - Check Balance</div>
+        <div class="detail">Wells Fargo 1-800-869-3557</div>
+      </div>
+      <div class="item-actions">
+        <button class="item-btn edit-btn" title="Edit &amp; call" onclick="prefill('Wells Fargo (1-800-869-3557)','check balance','(720) 584-6358')">&#9998;</button>
+        <button class="item-btn play-btn" title="Call now" onclick="alert('Calling Wells Fargo now...')">&#9654;</button>
+      </div>
+    </div>
+    <div class="saved-item">
+      <div class="icon">A</div>
+      <div class="info">
+        <div class="name">Amazon Returns</div>
+        <div class="detail">Amazon 1-888-280-4331</div>
+      </div>
+      <div class="item-actions">
+        <button class="item-btn edit-btn" title="Edit &amp; call" onclick="prefill('Amazon (1-888-280-4331)','return item','(720) 584-6358')">&#9998;</button>
+        <button class="item-btn play-btn" title="Call now" onclick="alert('Calling Amazon now...')">&#9654;</button>
+      </div>
+    </div>
+    <div class="saved-item">
+      <div class="icon">I</div>
+      <div class="info">
+        <div class="name">Internet Bill</div>
+        <div class="detail">Comcast 1-800-934-6489</div>
+      </div>
+      <div class="item-actions">
+        <button class="item-btn edit-btn" title="Edit &amp; call" onclick="prefill('Comcast (1-800-934-6489)','billing question','(720) 584-6358')">&#9998;</button>
+        <button class="item-btn play-btn" title="Call now" onclick="alert('Calling Comcast now...')">&#9654;</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <h3>Recent</h3>
+    <div class="saved-item">
+      <div class="icon" style="background:#f0fff0;">&#9989;</div>
+      <div class="info">
+        <div class="name">Wells Fargo</div>
+        <div class="detail">speak with a rep &middot; 2 min ago</div>
+      </div>
+      <div class="item-actions">
+        <button class="item-btn edit-btn" title="Edit &amp; call" onclick="prefill('Wells Fargo (1-800-869-3557)','speak with a representative','(720) 584-6358')">&#9998;</button>
+        <button class="item-btn play-btn" title="Call now" onclick="alert('Calling Wells Fargo now...')">&#9654;</button>
+      </div>
+    </div>
+    <div class="saved-item">
+      <div class="icon" style="background:#fff0f0;">&#10060;</div>
+      <div class="info">
+        <div class="name">Bank of America</div>
+        <div class="detail">account inquiry &middot; 1 hr ago</div>
+      </div>
+      <div class="item-actions">
+        <button class="item-btn edit-btn" title="Edit &amp; call" onclick="prefill('Bank of America (1-800-432-1000)','account inquiry','(720) 584-6358')">&#9998;</button>
+        <button class="item-btn play-btn" title="Call now" onclick="alert('Calling Bank of America now...')">&#9654;</button>
+      </div>
+    </div>
+    <div class="saved-item">
+      <div class="icon" style="background:#f0fff0;">&#9989;</div>
+      <div class="info">
+        <div class="name">Amazon</div>
+        <div class="detail">return item &middot; yesterday</div>
+      </div>
+      <div class="item-actions">
+        <button class="item-btn edit-btn" title="Edit &amp; call" onclick="prefill('Amazon (1-888-280-4331)','return item','(720) 584-6358')">&#9998;</button>
+        <button class="item-btn play-btn" title="Call now" onclick="alert('Calling Amazon now...')">&#9654;</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-footer">
+    <span>Oliver Ullman</span>
+  </div>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <h1>New Call</h1>
+      <p>AI navigates the phone menu. You talk to the human.</p>
+    </div>
+    <div class="progress">
+      <div class="dot active" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+      <div class="dot" id="d4"></div>
+    </div>
+    <div class="card-body">
+
+      <div class="step active" id="step1">
+<!-- reset header when starting fresh -->
+        <h2>Who are you calling?</h2>
+        <p class="desc">Search for a company or enter a phone number</p>
+        <div class="combo">
+          <input type="text" id="co-input" placeholder="Search companies or enter a number..." autocomplete="off" oninput="filterCompanies()" onfocus="filterCompanies()" value="">
+          <div class="dropdown" id="co-dropdown"></div>
+        </div>
+        <div class="nav">
+          <button class="btn-next" onclick="goStep(2)">Next</button>
+        </div>
+      </div>
+
+      <div class="step" id="step2">
+        <h2>What do you need?</h2>
+        <p class="desc">Tell us briefly so the AI knows what to ask for</p>
+        <div class="combo">
+          <input type="text" id="reason-input" placeholder="e.g. speak with a representative" value="speak with a representative" oninput="filterReasons()" onfocus="filterReasons()">
+          <div class="dropdown" id="reason-dropdown"></div>
+        </div>
+        <div class="nav">
+          <button class="btn-back" onclick="goStep(1)">Back</button>
+          <button class="btn-next" onclick="goStep(3)">Next</button>
+        </div>
+      </div>
+
+      <div class="step" id="step3">
+        <h2>Where should we call you?</h2>
+        <p class="desc">We'll ring you when a real person answers</p>
+        <input type="tel" id="phone-input" placeholder="(555) 123-4567" value="(720) 584-6358" style="width:100%;padding:14px 16px;border:2px solid #e8e8e8;border-radius:12px;font-size:16px;outline:none;">
+        <div class="nav">
+          <button class="btn-back" onclick="goStep(2)">Back</button>
+          <button class="btn-next" onclick="updateReview(); goStep(4)">Next</button>
+        </div>
+      </div>
+
+      <div class="step" id="step4">
+        <h2>Review & Call</h2>
+        <p class="desc">Everything look right? Edit anything or start the call.</p>
+
+        <div class="review-editable">
+          <div class="rev-field">
+            <div class="rev-label">Calling</div>
+            <div class="rev-row">
+              <span class="rev-value" id="rev-co">Wells Fargo (1-800-869-3557)</span>
+              <button class="rev-edit" onclick="goStep(1)" title="Change">&#9998;</button>
+            </div>
+          </div>
+          <div class="rev-field">
+            <div class="rev-label">Reason</div>
+            <div class="rev-row">
+              <span class="rev-value" id="rev-reason">speak with a representative</span>
+              <button class="rev-edit" onclick="goStep(2)" title="Change">&#9998;</button>
+            </div>
+          </div>
+          <div class="rev-field">
+            <div class="rev-label">Call me at</div>
+            <div class="rev-row">
+              <span class="rev-value" id="rev-phone">(720) 584-6358</span>
+              <button class="rev-edit" onclick="goStep(3)" title="Change">&#9998;</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="save-check">
+          <input type="checkbox" id="save-cb" onchange="document.getElementById('save-field').style.display=this.checked?'block':'none'">
+          <label for="save-cb">Save this call for quick re-use</label>
+        </div>
+        <input type="text" class="save-name" id="save-field" placeholder="Name it (e.g. &quot;Bank - Check Balance&quot;)" style="display:none;">
+
+        <div class="nav">
+          <button class="btn-back" onclick="goStep(3)">Back</button>
+          <button class="btn-next" onclick="alert('Call started!')">Start Call</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const companies = [
+  { name: 'Wells Fargo', num: '1-800-869-3557', letter: 'W' },
+  { name: 'Amazon', num: '1-888-280-4331', letter: 'A' },
+  { name: 'Best Buy', num: '1-888-237-8289', letter: 'B' },
+  { name: 'Target', num: '1-800-440-0680', letter: 'T' },
+  { name: 'Bank of America', num: '1-800-432-1000', letter: 'B' },
+  { name: 'AT&T', num: '1-800-331-0500', letter: 'A' },
+  { name: 'Verizon', num: '1-800-922-0204', letter: 'V' },
+  { name: 'Comcast / Xfinity', num: '1-800-934-6489', letter: 'C' },
+  { name: 'Delta Airlines', num: '1-800-221-1212', letter: 'D' },
+  { name: 'United Airlines', num: '1-800-864-8331', letter: 'U' },
+];
+
+const reasons = [
+  'speak with a representative',
+  'check order status',
+  'cancel my account',
+  'billing question',
+  'return an item',
+  'update my address',
+  'report a problem',
+  'schedule an appointment',
+];
+
+function filterCompanies() {
+  const q = document.getElementById('co-input').value.toLowerCase();
+  const dd = document.getElementById('co-dropdown');
+  if (!q) { dd.classList.remove('open'); return; }
+
+  const isNumber = /^\d|^\+|^\(|^1-/.test(q);
+  let matches = companies.filter(c => c.name.toLowerCase().includes(q) || c.num.includes(q));
+
+  if (matches.length === 0 && isNumber) {
+    dd.innerHTML = '<div class="dropdown-item" onclick="selectCompany(\'Custom\',\'' + q + '\')"><div class="co-icon" style="width:32px;height:32px;border-radius:8px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;">#</div><div class="co-info"><div class="co-name">Use this number</div><div class="co-num">' + q + '</div></div></div>';
+    dd.classList.add('open');
+    return;
+  }
+
+  dd.innerHTML = matches.map(c =>
+    '<div class="dropdown-item" onclick="selectCompany(\'' + c.name + '\',\'' + c.num + '\')"><div class="co-icon" style="width:32px;height:32px;border-radius:8px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;">' + c.letter + '</div><div class="co-info"><div class="co-name">' + c.name + '</div><div class="co-num">' + c.num + '</div></div></div>'
+  ).join('');
+  dd.classList.toggle('open', matches.length > 0);
+}
+
+function selectCompany(name, num) {
+  document.getElementById('co-input').value = name === 'Custom' ? num : name + ' (' + num + ')';
+  document.getElementById('co-dropdown').classList.remove('open');
+  document.getElementById('rev-co').textContent = name === 'Custom' ? num : name + ' (' + num + ')';
+}
+
+function filterReasons() {
+  const q = document.getElementById('reason-input').value.toLowerCase();
+  const dd = document.getElementById('reason-dropdown');
+  if (!q) { dd.classList.remove('open'); return; }
+  let matches = reasons.filter(r => r.includes(q));
+  dd.innerHTML = matches.map(r =>
+    '<div class="dropdown-item" onclick="selectReason(\'' + r + '\')"><div class="co-info"><div class="co-name">' + r + '</div></div></div>'
+  ).join('');
+  dd.classList.toggle('open', matches.length > 0 && q !== matches[0]);
+}
+
+function selectReason(r) {
+  document.getElementById('reason-input').value = r;
+  document.getElementById('reason-dropdown').classList.remove('open');
+  document.getElementById('rev-reason').textContent = r;
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+  for (let i = 1; i <= 4; i++) {
+    document.getElementById('d' + i).classList.toggle('active', i <= n);
+  }
+}
+
+function updateReview() {
+  document.getElementById('rev-co').textContent = document.getElementById('co-input').value || '—';
+  document.getElementById('rev-reason').textContent = document.getElementById('reason-input').value || '—';
+  document.getElementById('rev-phone').textContent = document.getElementById('phone-input').value || '—';
+}
+
+function newCall() {
+  document.getElementById('co-input').value = '';
+  document.getElementById('reason-input').value = '';
+  document.querySelector('.card-header h1').textContent = 'New Call';
+  document.querySelector('.card-header p').textContent = 'AI navigates the phone menu. You talk to the human.';
+  goStep(1);
+}
+
+function prefill(company, reason, phone) {
+  document.getElementById('co-input').value = company;
+  document.getElementById('reason-input').value = reason;
+  document.getElementById('phone-input').value = phone;
+  document.getElementById('rev-co').textContent = company;
+  document.getElementById('rev-reason').textContent = reason;
+  document.getElementById('rev-phone').textContent = phone;
+  document.querySelector('.card-header h1').textContent = 'Review & Call';
+  document.querySelector('.card-header p').textContent = 'Edit anything or start the call.';
+  goStep(4);
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.combo')) {
+    document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('open'));
+  }
+});
+</script>
+</body>
+</html>

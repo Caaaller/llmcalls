@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Call History — Option D: Three-Column Master-Detail</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1d2e;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: #1a1d2e;
+      color: #c9cdd6;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      flex-shrink: 0;
+    }
+
+    .sidebar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .brand-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .brand-text { font-size: 16px; font-weight: 600; color: #fff; }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 14px 10px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 7px;
+      font-size: 13px;
+      color: #8a8ea0;
+      cursor: pointer;
+    }
+
+    .nav-item.active { background: rgba(102,126,234,0.18); color: #fff; }
+    .nav-icon { font-size: 15px; width: 20px; text-align: center; }
+
+    /* ── Content area (3 columns) ── */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .top-bar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 18px 24px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .top-bar h2 { font-size: 17px; font-weight: 700; color: #1a1d2e; }
+    .top-bar-sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+    .btn-sm {
+      padding: 7px 14px;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      background: #fff;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    /* ── Three-column layout ── */
+    .three-col {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Col 1: call list ── */
+    .col-calls {
+      width: 260px;
+      min-width: 260px;
+      background: #fff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .col-header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid #f0f2f5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .col-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #6b7280;
+    }
+
+    .col-badge {
+      font-size: 11px;
+      background: #f3f4f6;
+      color: #6b7280;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .calls-scroll { overflow-y: auto; flex: 1; }
+
+    .call-item {
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0f2f5;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .call-item:hover { background: #fafafa; }
+
+    .call-item.active {
+      background: rgba(102,126,234,0.05);
+      border-left: 3px solid #667eea;
+      padding-left: 11px;
+    }
+
+    .ci-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .ci-number {
+      font-size: 12px;
+      font-weight: 600;
+      color: #1a1d2e;
+    }
+
+    .ci-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+
+    .ci-badge.ok { background: #d4edda; color: #28a745; }
+    .ci-badge.fail { background: #f8d7da; color: #dc3545; }
+    .ci-badge.term { background: #fff3cd; color: #856404; }
+
+    .ci-purpose {
+      font-size: 11px;
+      color: #6b7280;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 5px;
+    }
+
+    .ci-meta {
+      display: flex;
+      gap: 8px;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+
+    .ci-progress {
+      height: 3px;
+      border-radius: 2px;
+      background: #f3f4f6;
+      position: relative;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .ci-progress-bar {
+      height: 100%;
+      border-radius: 2px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    /* ── Col 2: call metadata ── */
+    .col-meta {
+      width: 240px;
+      min-width: 240px;
+      background: #f8f9fc;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .meta-scroll { overflow-y: auto; flex: 1; padding: 14px; }
+
+    .meta-section { margin-bottom: 18px; }
+
+    .meta-section-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 8px;
+    }
+
+    .meta-key {
+      font-size: 10px;
+      color: #9ca3af;
+      font-weight: 500;
+    }
+
+    .meta-val {
+      font-size: 12px;
+      color: #1a1d2e;
+      font-weight: 600;
+    }
+
+    .meta-val.success { color: #28a745; }
+    .meta-val.danger { color: #dc3545; }
+
+    /* Stat grid -->  */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .stat-val.dur { color: #667eea; }
+    .stat-val.msg { color: #1a1d2e; }
+    .stat-val.dtmf { color: #ff9800; }
+    .stat-val.cost { color: #28a745; }
+
+    .stat-lbl {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #9ca3af;
+      font-weight: 600;
+    }
+
+    /* DTMF list -->  */
+    .dtmf-list { display: flex; flex-direction: column; gap: 4px; }
+
+    .dtmf-row {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+      padding: 5px 8px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-left: 2px solid #667eea;
+      border-radius: 5px;
+      font-size: 11px;
+    }
+
+    .dtmf-key { font-weight: 700; color: #4527a0; width: 36px; flex-shrink: 0; }
+    .dtmf-val { color: #555; }
+
+    /* Progress bar -->  */
+    .outcome-progress {
+      height: 6px;
+      border-radius: 3px;
+      background: #e5e7eb;
+      overflow: hidden;
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    .outcome-fill {
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      border-radius: 3px;
+    }
+
+    /* ── Col 3: transcript ── */
+    .col-transcript {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .transcript-scroll { overflow-y: auto; flex: 1; padding: 16px; }
+
+    .transcript-msg {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-bottom: 10px;
+    }
+
+    .tm-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tm-sender {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .tm-sender.user { color: #1565c0; }
+    .tm-sender.ai { color: #7b1fa2; }
+    .tm-sender.system { color: #e65100; }
+
+    .tm-time { font-size: 10px; color: #9ca3af; }
+
+    .tm-bubble {
+      padding: 8px 11px;
+      border-radius: 8px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #374151;
+    }
+
+    .tm-bubble.user { background: #e3f2fd; border-radius: 2px 10px 10px 10px; }
+    .tm-bubble.ai { background: #f3e5f5; border-radius: 10px 2px 10px 10px; }
+    .tm-bubble.system { background: #fff3e0; border-radius: 6px; }
+
+    .tm-bubble.dtmf {
+      background: #ede7f6;
+      font-weight: 600;
+      font-size: 11px;
+      color: #4527a0;
+      border-radius: 6px;
+    }
+
+    .tm-bubble.transfer {
+      background: #e8f5e9;
+      font-weight: 600;
+      font-size: 11px;
+      color: #2e7d32;
+      border-radius: 6px;
+    }
+
+    .tm-bubble.hold {
+      background: #fffde7;
+      font-size: 11px;
+      color: #f57f17;
+      border-radius: 6px;
+    }
+
+    /* ── Option badge ── */
+    .option-badge {
+      position: fixed;
+      top: 12px;
+      right: 16px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+<div class="option-badge">OPTION D — Three-Column Master-Detail</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">AI</div>
+    <span class="brand-text">LLM Calls</span>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item"><span class="nav-icon">+</span> New Call</div>
+    <div class="nav-item"><span class="nav-icon">⊞</span> Dashboard</div>
+    <div class="nav-item active"><span class="nav-icon">☎</span> Call History</div>
+    <div class="nav-item"><span class="nav-icon">▶</span> Test Runs</div>
+    <div class="nav-item"><span class="nav-icon">✦</span> Evaluations</div>
+  </div>
+</div>
+
+<!-- Content area -->
+<div class="content-area">
+  <div class="top-bar">
+    <div>
+      <h2>Call History</h2>
+      <div class="top-bar-sub">Live IVR call recordings and transcripts</div>
+    </div>
+    <button class="btn-sm">Refresh</button>
+  </div>
+
+  <div class="three-col">
+
+    <!-- Column 1: Call list -->
+    <div class="col-calls">
+      <div class="col-header">
+        <span class="col-title">Recent Calls</span>
+        <span class="col-badge">12</span>
+      </div>
+      <div class="calls-scroll">
+
+        <div class="call-item active">
+          <div class="ci-top">
+            <span class="ci-number">+1 (415) 555-0192</span>
+            <span class="ci-badge ok">Done</span>
+          </div>
+          <div class="ci-purpose">Schedule appointment</div>
+          <div class="ci-meta">
+            <span>Apr 7 · 2:14 PM</span>
+            <span>3m 42s</span>
+          </div>
+          <div class="ci-progress">
+            <div class="ci-progress-bar" style="width:100%;background:#28a745;"></div>
+          </div>
+        </div>
+
+        <div class="call-item">
+          <div class="ci-top">
+            <span class="ci-number">+1 (212) 555-0847</span>
+            <span class="ci-badge fail">Failed</span>
+          </div>
+          <div class="ci-purpose">Check account status</div>
+          <div class="ci-meta">
+            <span>Apr 7 · 1:09 PM</span>
+            <span>0m 58s</span>
+          </div>
+          <div class="ci-progress">
+            <div class="ci-progress-bar" style="width:30%;background:#dc3545;"></div>
+          </div>
+        </div>
+
+        <div class="call-item">
+          <div class="ci-top">
+            <span class="ci-number">+1 (650) 555-0334</span>
+            <span class="ci-badge ok">Done</span>
+          </div>
+          <div class="ci-purpose">File insurance claim</div>
+          <div class="ci-meta">
+            <span>Apr 7 · 11:52 AM</span>
+            <span>5m 11s</span>
+          </div>
+          <div class="ci-progress">
+            <div class="ci-progress-bar" style="width:100%;background:#28a745;"></div>
+          </div>
+        </div>
+
+        <div class="call-item">
+          <div class="ci-top">
+            <span class="ci-number">+1 (303) 555-0621</span>
+            <span class="ci-badge term">Term</span>
+          </div>
+          <div class="ci-purpose">Cancel subscription</div>
+          <div class="ci-meta">
+            <span>Apr 6 · 4:33 PM</span>
+            <span>2m 05s</span>
+          </div>
+          <div class="ci-progress">
+            <div class="ci-progress-bar" style="width:60%;background:#d4a017;"></div>
+          </div>
+        </div>
+
+        <div class="call-item">
+          <div class="ci-top">
+            <span class="ci-number">+1 (415) 555-0192</span>
+            <span class="ci-badge ok">Done</span>
+          </div>
+          <div class="ci-purpose">Reschedule appointment</div>
+          <div class="ci-meta">
+            <span>Apr 6 · 2:01 PM</span>
+            <span>4m 27s</span>
+          </div>
+          <div class="ci-progress">
+            <div class="ci-progress-bar" style="width:100%;background:#28a745;"></div>
+          </div>
+        </div>
+
+        <div class="call-item">
+          <div class="ci-top">
+            <span class="ci-number">+1 (800) 555-1234</span>
+            <span class="ci-badge fail">Failed</span>
+          </div>
+          <div class="ci-purpose">Speak to billing agent</div>
+          <div class="ci-meta">
+            <span>Apr 5 · 10:17 AM</span>
+            <span>1m 12s</span>
+          </div>
+          <div class="ci-progress">
+            <div class="ci-progress-bar" style="width:25%;background:#dc3545;"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Column 2: Call metadata -->
+    <div class="col-meta">
+      <div class="col-header">
+        <span class="col-title">Call Info</span>
+      </div>
+      <div class="meta-scroll">
+
+        <div class="meta-section">
+          <div class="meta-section-title">Overview</div>
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-val dur">3m 42s</div>
+              <div class="stat-lbl">Duration</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val msg">18</div>
+              <div class="stat-lbl">Messages</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val dtmf">4</div>
+              <div class="stat-lbl">DTMF</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val cost">$0.12</div>
+              <div class="stat-lbl">Est. Cost</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="meta-section">
+          <div class="meta-section-title">Outcome</div>
+          <div class="outcome-progress">
+            <div class="outcome-fill" style="width:100%;background:#28a745;"></div>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Result</span>
+            <span class="meta-val success">Transfer Successful</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Transfer To</span>
+            <span class="meta-val">+1 (415) 555-0999</span>
+          </div>
+        </div>
+
+        <div class="meta-section">
+          <div class="meta-section-title">Call Details</div>
+          <div class="meta-row">
+            <span class="meta-key">Call SID</span>
+            <span class="meta-val">CA7f3a1e2b...</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Called Number</span>
+            <span class="meta-val">+1 (415) 555-0192</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Caller ID</span>
+            <span class="meta-val">+1 (303) 396-2866</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Purpose</span>
+            <span class="meta-val">Schedule appointment</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Started</span>
+            <span class="meta-val">Apr 7, 2:14 PM</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Ended</span>
+            <span class="meta-val">Apr 7, 2:17 PM</span>
+          </div>
+        </div>
+
+        <div class="meta-section">
+          <div class="meta-section-title">DTMF Presses (4)</div>
+          <div class="dtmf-list">
+            <div class="dtmf-row">
+              <span class="dtmf-key">Press 1</span>
+              <span class="dtmf-val">Appointments menu</span>
+            </div>
+            <div class="dtmf-row">
+              <span class="dtmf-key">Press 2</span>
+              <span class="dtmf-val">Afternoon preference</span>
+            </div>
+            <div class="dtmf-row">
+              <span class="dtmf-key">Press 1</span>
+              <span class="dtmf-val">Confirm appointment</span>
+            </div>
+            <div class="dtmf-row">
+              <span class="dtmf-key">Press 0</span>
+              <span class="dtmf-val">Speak to operator</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Column 3: Transcript / event stream -->
+    <div class="col-transcript">
+      <div class="col-header">
+        <span class="col-title">Transcript & Events</span>
+        <span class="col-badge">18 events</span>
+      </div>
+      <div class="transcript-scroll">
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender ai">AI</span>
+            <span class="tm-time">2:14:03 PM</span>
+          </div>
+          <div class="tm-bubble ai">
+            Thank you for calling Pacific Medical Center. How can I direct your call today?
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender system">IVR</span>
+            <span class="tm-time">2:14:08 PM</span>
+          </div>
+          <div class="tm-bubble system">
+            Press 1 for Appointments, Press 2 for Billing, Press 3 for General Information, Press 0 for Operator
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender" style="color:#4527a0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">DTMF</span>
+            <span class="tm-time">2:14:12 PM</span>
+          </div>
+          <div class="tm-bubble dtmf">
+            Press 1 — Appointments option selected
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender user">User</span>
+            <span class="tm-time">2:14:19 PM</span>
+          </div>
+          <div class="tm-bubble user">
+            I'd like to schedule an appointment with Dr. Chen for a routine check-up.
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender ai">AI</span>
+            <span class="tm-time">2:14:24 PM</span>
+          </div>
+          <div class="tm-bubble ai">
+            I'd be happy to help you schedule with Dr. Chen. Can I have your name and date of birth?
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender user">User</span>
+            <span class="tm-time">2:14:31 PM</span>
+          </div>
+          <div class="tm-bubble user">
+            John Smith, March 15th, 1985.
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender ai">AI</span>
+            <span class="tm-time">2:14:40 PM</span>
+          </div>
+          <div class="tm-bubble ai">
+            Thank you John. Dr. Chen has availability on April 12th at 2 PM or April 14th at 10 AM. Do you have a preference?
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender user">User</span>
+            <span class="tm-time">2:14:48 PM</span>
+          </div>
+          <div class="tm-bubble user">
+            April 12th at 2 PM works for me.
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender system">IVR</span>
+            <span class="tm-time">2:15:10 PM</span>
+          </div>
+          <div class="tm-bubble system">
+            Press 1 to confirm, Press 2 to choose a different time, Press 3 to speak to staff
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender" style="color:#4527a0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">DTMF</span>
+            <span class="tm-time">2:15:14 PM</span>
+          </div>
+          <div class="tm-bubble dtmf">
+            Press 1 — Appointment confirmed
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender" style="color:#f57f17;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Hold</span>
+            <span class="tm-time">2:16:02 PM</span>
+          </div>
+          <div class="tm-bubble hold">
+            Hold queue detected — waiting for scheduling agent to confirm
+          </div>
+        </div>
+
+        <div class="transcript-msg">
+          <div class="tm-header">
+            <span class="tm-sender" style="color:#2e7d32;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.3px;">Transfer</span>
+            <span class="tm-time">2:17:38 PM</span>
+          </div>
+          <div class="tm-bubble transfer">
+            Transfer Successful — connected to +1 (415) 555-0999
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
