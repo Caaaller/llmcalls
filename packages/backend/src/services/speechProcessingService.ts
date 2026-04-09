@@ -259,6 +259,21 @@ export async function processSpeech({
 
     // ── 4. Handle termination ────────────────────────────────────────────────
     if (action.action === 'hang_up') {
+      // Guard: reject hang_up on fresh calls unless the IVR clearly said a termination trigger.
+      // The model sometimes hallucinates "dead_end" on short/garbled fragments early in the call.
+      const terminationTriggers =
+        /voicemail|leave a message|after the beep|record your message|closed|outside business hours|unable to hear|ending the call|goodbye/i;
+      const ivrSaidTermination = terminationTriggers.test(speechResult);
+      if (actionHistory.length < 4 && !ivrSaidTermination) {
+        console.log(
+          `🛡️ Rejected early hang_up (turn ${actionHistory.length + 1}, no termination keywords in speech): "${speechResult}" — overriding to wait`
+        );
+        action.action = 'wait';
+        action.reason = `early hang_up rejected by backend guard (turn ${actionHistory.length + 1}, no termination trigger in IVR speech)`;
+      }
+    }
+
+    if (action.action === 'hang_up') {
       if (!testMode) {
         console.log(
           `🛑 Call Terminated: ${action.detected.terminationReason || action.reason}`
