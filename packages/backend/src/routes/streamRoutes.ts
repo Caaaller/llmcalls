@@ -22,8 +22,8 @@ const DEEPGRAM_URL =
   '&channels=1' +
   '&language=en-US' +
   '&smart_format=true' +
-  '&endpointing=1000' +
-  '&utterance_end_ms=1000' +
+  '&endpointing=1800' +
+  '&utterance_end_ms=1800' +
   '&interim_results=true';
 
 interface DeepgramResult {
