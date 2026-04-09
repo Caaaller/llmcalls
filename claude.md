@@ -2,6 +2,10 @@
 
 After making any fix to test infrastructure, prompts, or call handling, rerun the affected test(s) and verify the fix worked before reporting success. Don't just commit — prove it.
 
+## MANDATORY: Be Trigger-Happy About Rerunning Live Calls
+
+After ANY change to prompts, IVR navigation, speech processing, endpointing, DTMF logic, or call-handling code, immediately kick off a live test call to validate — don't wait for the user to ask. Default to rerunning. Calls are cheap; stale assumptions are expensive. Use the `/calls/initiate` endpoint as oliverullman@gmail.com and watch the backend logs.
+
 ## MANDATORY: Use oliverullman@gmail.com for All API Calls
 
 When making API calls to the backend (local or prod), always authenticate as `oliverullman@gmail.com`. Never use `test@test.com` or other test accounts — calls won't appear in the user's history.
