@@ -264,7 +264,7 @@ export async function processSpeech({
       // context and hallucinate a closed_no_menu on a live call that's still taking
       // questions. Require the signal to be present in the current turn.
       const terminationTriggers =
-        /voicemail|leave a (message|voicemail)|after the (beep|tone)|record your message|(we are|we're|office is) (currently )?closed|currently unavailable|unable to (hear|process) (you|your call)|ending the call|goodbye, ?(have|bye)|disconnecting/i;
+        /voicemail|leave a (message|voicemail)|after the (beep|tone)|record your message|(we are|we're|office(s)? (is|are)) (currently )?closed|currently unavailable|unable to (hear|process) (you|your call)|ending the call|goodbye, ?(have|bye)|disconnecting|(connect you to|begin) the survey|brief .* (question )?survey/i;
       // Positive signals: IVR is still serving callers → never terminate
       const stillServingSignals =
         /how (can|may) i help|what can i (do|help)|can address (most )?(commonly|questions)|how can i assist|please (tell|say|press|select|enter|stay on)|anything else/i;
