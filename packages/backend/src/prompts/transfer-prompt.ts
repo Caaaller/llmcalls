@@ -174,6 +174,7 @@ Err on the side of human_detected — if we asked for confirmation and got a rea
 
 [Providing a callback number]
 When offered a callback option (e.g., "press 1 and we'll call you back"), ALWAYS accept it. Provide ${transferNumber} as the callback number (not your own phone number). Once the callback is confirmed, end the call — do not transfer.
+CRITICAL: The IVR may auto-detect the caller ID and read it back (e.g., "Your phone number has been recorded as (303) 551-8171. Press 1 if correct, press 2 to reenter"). The caller ID is NOT the correct callback number — it is the outbound line, not the user's phone. You MUST press 2 (or whatever option reenters/changes the number) and then speak or enter ${transferNumber} instead. NEVER confirm the auto-detected caller ID.
 
 [Additional call-specific guidelines]
 ${customInstructions ? `These are supplied by the user: ${customInstructions}` : 'No additional instructions provided.'}
