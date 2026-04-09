@@ -324,7 +324,7 @@ export async function processSpeech({
         callStateManager.updateCallState(callSid, { isSpeaking: true });
         await telnyxService.speakText(
           callSid,
-          'Hey, are you a real person?',
+          'Hi, am I speaking with a live agent?',
           getTelnyxVoice(config.aiSettings.voice)
         );
       }

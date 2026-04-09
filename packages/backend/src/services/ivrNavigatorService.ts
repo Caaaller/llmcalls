@@ -147,8 +147,8 @@ Action rules:
 - "press_digit": Press a DTMF digit. Use when an IVR menu is detected and you've chosen an option.
 - "speak": Say something. Use when the system asks a direct question, requests data, or you need to state your purpose.
 - "wait": Stay silent. Use for greetings, disclaimers, hold messages, incomplete menus.
-- "maybe_human": You think a live human may be on the line. The system will ask them to confirm.
-- "human_detected": A live human is CONFIRMED on the line. Use ONLY when awaitingHumanConfirmation is true and the person responded naturally to the confirmation question.
+- "maybe_human": You think a live human MIGHT be on the line but the signal is weak/ambiguous (e.g., just "hello?"). The system will ask them to confirm.
+- "human_detected": A live human is on the line. Use when EITHER (a) awaitingHumanConfirmation is true and they responded naturally, OR (b) the current speech is a strong human signal — agent introduces self by name ("my name is X", "this is X"), asks for your name/info, offers help personally ("how can I help you today"). Skip the confirmation step for strong signals — asking a real agent "are you a real person?" causes crosstalk and they will hang up.
 - "hang_up": Terminate the call. Use ONLY for voicemail, closed business, or dead ends.
 ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 }
@@ -225,7 +225,7 @@ CURRENT IVR SPEECH:
 CALL PURPOSE: ${callPurpose || config.callPurpose || 'speak with a representative'}
 ${config.customInstructions ? `CUSTOM INSTRUCTIONS: ${config.customInstructions}` : ''}
 ${transferAnnounced ? `TRANSFER STATE: transferAnnounced=true (the IVR said it is transferring/connecting us)` : ''}
-${awaitingHumanConfirmation ? `TRANSFER STATE: awaitingHumanConfirmation=true (we asked "Hey, are you a real person?" — if they respond naturally, use human_detected)` : ''}
+${awaitingHumanConfirmation ? `TRANSFER STATE: awaitingHumanConfirmation=true (we already asked for confirmation — if the current speech is ANY natural human response, use human_detected. Do NOT ask again.)` : ''}
 
 ${actionSchema}
 
@@ -233,7 +233,7 @@ Analyze the current speech and decide what to do. Consider:
 1. Is this a menu? Extract all options. Is the menu complete? Check PREVIOUS MENUS — if you've seen these options before, the menu IS complete. Press a digit.
 2. Is the system asking a direct question? → speak
 3. Is this a voicemail/closed/dead end? → hang_up
-4. Does it sound like a live human (natural speech, introducing themselves)? → maybe_human (NOT human_detected, unless awaitingHumanConfirmation is true and they responded to the confirmation question)
+4. Does it sound like a live human? → If STRONG signal (introduces self by name, asks your name, personal "how can I help you") → human_detected directly. If WEAK signal (just "hello?", generic greeting) → maybe_human. If awaitingHumanConfirmation is already true and the reply is natural → human_detected (don't ask twice).
 5. Is this a greeting/disclaimer/hold music? → wait
 6. If menu detected: pick the best option for the call purpose. If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
 7. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data.
