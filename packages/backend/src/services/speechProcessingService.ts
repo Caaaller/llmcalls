@@ -259,17 +259,23 @@ export async function processSpeech({
 
     // ── 4. Handle termination ────────────────────────────────────────────────
     if (action.action === 'hang_up') {
-      // Guard: reject hang_up on fresh calls unless the IVR clearly said a termination trigger.
-      // The model sometimes hallucinates "dead_end" on short/garbled fragments early in the call.
+      // Guard: reject hang_up unless the CURRENT IVR speech contains an unambiguous
+      // termination trigger. The model will sometimes over-weight earlier "after hours"
+      // context and hallucinate a closed_no_menu on a live call that's still taking
+      // questions. Require the signal to be present in the current turn.
       const terminationTriggers =
-        /voicemail|leave a message|after the beep|record your message|closed|outside business hours|unable to hear|ending the call|goodbye/i;
+        /voicemail|leave a (message|voicemail)|after the (beep|tone)|record your message|(we are|we're|office is) (currently )?closed|currently unavailable|unable to (hear|process) (you|your call)|ending the call|goodbye, ?(have|bye)|disconnecting/i;
+      // Positive signals: IVR is still serving callers → never terminate
+      const stillServingSignals =
+        /how (can|may) i help|what can i (do|help)|can address (most )?(commonly|questions)|how can i assist|please (tell|say|press|select|enter|stay on)|anything else/i;
       const ivrSaidTermination = terminationTriggers.test(speechResult);
-      if (actionHistory.length < 4 && !ivrSaidTermination) {
+      const ivrStillServing = stillServingSignals.test(speechResult);
+      if (!ivrSaidTermination || ivrStillServing) {
         console.log(
-          `🛡️ Rejected early hang_up (turn ${actionHistory.length + 1}, no termination keywords in speech): "${speechResult}" — overriding to wait`
+          `🛡️ Rejected hang_up (no termination trigger in current speech or IVR still serving): "${speechResult}" — overriding to wait`
         );
         action.action = 'wait';
-        action.reason = `early hang_up rejected by backend guard (turn ${actionHistory.length + 1}, no termination trigger in IVR speech)`;
+        action.reason = `hang_up rejected by backend guard (current speech lacks termination trigger)`;
       }
     }
 
