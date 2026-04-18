@@ -84,6 +84,7 @@ export interface CallAction {
     | 'wait'
     | 'human_detected'
     | 'maybe_human'
+    | 'maybe_human_unclear'
     | 'hang_up'
     | 'request_info';
   digit?: string;
@@ -101,6 +102,14 @@ export interface CallAction {
     transferConfidence?: number;
     dataEntryMode?: 'dtmf' | 'speech' | 'none';
     holdDetected?: boolean;
+    /**
+     * TRUE when the speech contains a personal introduction indicating a real human
+     * agent has picked up: phrases like "My name is [Name]", "This is [Name]",
+     * "You've reached [Name]", "I'm [Name]", "[Name] speaking".
+     * Used to ensure the AI flags human pickups consistently, independent of the
+     * action it returns. If this is true, the backend enforces action=human_detected.
+     */
+    humanIntroDetected?: boolean;
   };
 }
 
@@ -112,8 +121,8 @@ interface DecideActionParams {
   previousMenus: Array<Array<MenuOption>>;
   lastPressedDTMF?: string;
   callPurpose?: string;
-  transferAnnounced?: boolean;
   awaitingHumanConfirmation?: boolean;
+  awaitingHumanClarification?: boolean;
   skipInfoRequests?: boolean;
 }
 
@@ -124,7 +133,7 @@ const REQUEST_INFO_SKIP_RULE = `- "request_info": DISABLED. Do NOT use this acti
 function buildCallActionSchema(skipInfoRequests: boolean): string {
   return `You must respond with valid JSON matching this schema:
 {
-  "action": "press_digit" | "speak" | "wait" | "human_detected" | "maybe_human" | "hang_up" | "request_info",
+  "action": "press_digit" | "speak" | "wait" | "human_detected" | "maybe_human" | "maybe_human_unclear" | "hang_up" | "request_info",
   "digit": "0"-"9" | "*" | "#" (required if action is "press_digit"),
   "speech": "what to say" (required if action is "speak"),
   "requestedInfo": "description of what info is needed" (required if action is "request_info"),
@@ -139,7 +148,8 @@ function buildCallActionSchema(skipInfoRequests: boolean): string {
     "transferRequested": true/false,
     "transferConfidence": 0.0-1.0,
     "dataEntryMode": "dtmf" | "speech" | "none",
-    "holdDetected": true/false
+    "holdDetected": true/false,
+    "humanIntroDetected": true/false
   }
 }
 
@@ -147,8 +157,9 @@ Action rules:
 - "press_digit": Press a DTMF digit. Use when an IVR menu is detected and you've chosen an option.
 - "speak": Say something. Use when the system asks a direct question, requests data, or you need to state your purpose.
 - "wait": Stay silent. Use for greetings, disclaimers, hold messages, incomplete menus.
-- "maybe_human": You think a live human MIGHT be on the line but the signal is weak/ambiguous (e.g., just "hello?"). The system will ask them to confirm.
-- "human_detected": A live human is on the line. Use when EITHER (a) awaitingHumanConfirmation is true and they responded naturally, OR (b) the current speech is a strong human signal — agent introduces self by name ("my name is X", "this is X"), asks for your name/info, offers help personally ("how can I help you today"). Skip the confirmation step for strong signals — asking a real agent "are you a real person?" causes crosstalk and they will hang up.
+- "maybe_human": You think a live human MIGHT be on the line but there's no clear personal introduction (e.g. short "Hello?" from unknown speaker, or conversational-sounding question without a name). The system will ask them to confirm.
+- "human_detected": A real human agent is confirmed on the line. Use in either case: (A) the current speech contains a CLEAR PERSONAL INTRODUCTION with a proper-noun name — "My name is Jeremy", "This is Sarah", "You've reached Kit", "I'm Laura, your plan adviser", "Mark speaking", "You're connected to Zoma"; OR (B) awaitingHumanConfirmation=true or awaitingHumanClarification=true AND the speech is a natural human response ("yes", "yeah", "hello", "I'm here", "who is this", "what?", "uh...", filler words, confused responses — err generously). Personal introductions ARE their own confirmation — transfer without asking.
+- "maybe_human_unclear": Response to our confirmation question was genuinely ambiguous (unintelligible mumble, just "mmhm", unclear noise). Use ONLY when awaitingHumanConfirmation is true and the response is truly ambiguous — not clearly human and not clearly IVR. The system will ask a more direct question.
 - "hang_up": Terminate the call. Use ONLY for voicemail, closed business, or dead ends.
 ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 }
@@ -170,8 +181,8 @@ class IVRNavigatorService {
     previousMenus,
     lastPressedDTMF,
     callPurpose,
-    transferAnnounced,
     awaitingHumanConfirmation,
+    awaitingHumanClarification,
     skipInfoRequests,
   }: DecideActionParams): Promise<CallAction> {
     const systemPrompt = transferPrompt['transfer-only'](config, '', false);
@@ -224,17 +235,18 @@ CURRENT IVR SPEECH:
 
 CALL PURPOSE: ${callPurpose || config.callPurpose || 'speak with a representative'}
 ${config.customInstructions ? `CUSTOM INSTRUCTIONS: ${config.customInstructions}` : ''}
-${transferAnnounced ? `TRANSFER STATE: transferAnnounced=true (the IVR said it is transferring/connecting us)` : ''}
-${awaitingHumanConfirmation ? `TRANSFER STATE: awaitingHumanConfirmation=true (we already asked for confirmation — if the current speech is ANY natural human response, use human_detected. Do NOT ask again.)` : ''}
+${awaitingHumanConfirmation ? `⚠️ CRITICAL — awaitingHumanConfirmation=true: We already asked "Am I speaking with a live agent?" ANY response that sounds even slightly human MUST return human_detected. "Yes", "yeah", "hello", "who is this", "what?", "uh...", "I'm here" — ALL of these are human_detected. ONLY return press_digit/wait/speak if the response is CLEARLY an IVR menu, scripted hold message, or automated system. If genuinely ambiguous (just "mmhm", unintelligible noise), use maybe_human_unclear. When in doubt, use human_detected.` : ''}
+${awaitingHumanClarification ? `⚠️ CRITICAL — awaitingHumanClarification=true: We already asked TWICE. ANY response that is not clearly an automated IVR system MUST return human_detected. Be extremely generous — if there's any chance it's a human, use human_detected.` : ''}
 
 ${actionSchema}
 
-Analyze the current speech and decide what to do. Consider:
+Analyze the current speech and decide what to do. Consider IN THIS ORDER:
 1. Is this a menu? Extract all options. Is the menu complete? Check PREVIOUS MENUS — if you've seen these options before, the menu IS complete. Press a digit.
-2. Is the system asking a direct question? → speak
-3. Is this a voicemail/closed/dead end? → hang_up
-4. Does it sound like a live human? → If STRONG signal (introduces self by name, asks your name, personal "how can I help you") → human_detected directly. If WEAK signal (just "hello?", generic greeting) → maybe_human. If awaitingHumanConfirmation is already true and the reply is natural → human_detected (don't ask twice).
-5. Is this a greeting/disclaimer/hold music? → wait
+2. Does speech contain a PERSONAL INTRODUCTION? Phrases like "My name is [Name]", "This is [Name]", "You've reached [Name]", "I'm [Name]" — these indicate a REAL HUMAN AGENT picked up. → human_detected (transfer immediately). Do NOT answer their question — the transfer itself is the answer. Even if they also ask a question ("This is Mark. How can I help?"), the introduction means TRANSFER, not SPEAK.
+3. Is the system asking a direct question WITHOUT any personal introduction? (e.g. "What can I help you with?", "Are you calling about X or Y?") → speak (respond with your call purpose). Do NOT ask confirmation on every conversational bot utterance — just answer with your purpose.
+4. Is this a voicemail/closed/dead end? → hang_up
+5. Does speech sound human but ambiguous (no clear intro, could be post-hold fresh speech)? → maybe_human (system will confirm).
+6. Is this a greeting/disclaimer/hold music? → wait
 6. If menu detected: pick the best option for the call purpose. If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
 7. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data.
 8. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.

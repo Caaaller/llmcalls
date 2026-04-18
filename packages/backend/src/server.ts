@@ -137,7 +137,7 @@ if (process.env.NODE_ENV === 'production' && frontendBuildPath) {
         api: '/api',
         voice: '/voice',
       },
-      note: 'Frontend runs separately on http://localhost:3001',
+      note: 'Frontend runs separately on http://localhost:8069',
     });
   });
 }

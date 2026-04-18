@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hold & Human Detection Flows</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px 24px; }
+  h1 { text-align: center; font-size: 26px; margin-bottom: 6px; color: #e6edf3; }
+  .subtitle { text-align: center; color: #8b949e; margin-bottom: 28px; font-size: 13px; }
+
+  .category-row { display: flex; align-items: center; gap: 12px; margin: 20px auto 8px; max-width: 960px; }
+  .category-row:first-of-type { margin-top: 0; }
+  .category-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; white-space: nowrap; padding: 4px 10px; border-radius: 4px; }
+  .category-label.human { color: #d2a8ff; background: #1f1a2e; }
+  .category-label.nothuman { color: #79c0ff; background: #0d2233; }
+  .category-label.holdtransition { color: #ffa657; background: #2a1f0d; }
+  .category-label.confirmation { color: #3fb950; background: #1a3a1a; }
+  .category-label.postconfirm { color: #f0883e; background: #2a1f0d; }
+  .category-label.clarify { color: #d29922; background: #2a1f0d; }
+  .category-line { flex: 1; height: 1px; background: #21262d; }
+
+  .tab-group { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; max-width: 960px; margin: 0 auto 6px; }
+  .tab { padding: 6px 12px; border-radius: 5px; border: 1px solid #30363d; background: #161b22; color: #8b949e; cursor: pointer; font-size: 12px; transition: all 0.15s; user-select: none; }
+  .tab:hover { border-color: #484f58; color: #c9d1d9; }
+  .tab.active { background: #1f6feb; border-color: #1f6feb; color: #fff; font-weight: 600; }
+
+  .scenario { display: none; max-width: 580px; margin: 28px auto 0; }
+  .scenario.active { display: block; }
+  .scenario-header { text-align: center; margin-bottom: 20px; }
+  .scenario-header h2 { font-size: 17px; color: #e6edf3; margin-bottom: 5px; }
+  .scenario-header p { font-size: 12px; color: #8b949e; line-height: 1.5; }
+  .badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 5px; font-weight: 600; }
+  .badge.cat { background: #2a1f0d; color: #d29922; border: 1px solid #d2992233; margin-right: 3px; }
+
+  .box { padding: 12px 16px; border-radius: 7px; border: 1px solid #30363d; background: #161b22; text-align: center; font-size: 12px; line-height: 1.6; }
+  .box.speech { background: #1c2333; border-color: #388bfd33; }
+  .box.ai { background: #1f1a2e; border-color: #8b5cf633; }
+  .box.backend { background: #1a2a1a; border-color: #3fb95033; }
+  .box.result-good { background: #1a3a1a; border-color: #3fb95055; }
+  .box.result-bad { background: #3d1f1f; border-color: #f8514955; }
+  .box.state { background: #2a1f0d; border-color: #d2992233; }
+  .box.timer { background: #0d2233; border-color: #58a6ff33; }
+  .box.note { background: #161b22; border-color: #30363d; border-style: dashed; font-size: 11px; color: #8b949e; }
+  .box.rule { background: #1a1a2e; border-color: #6e76e433; font-size: 11px; }
+  .box.system { background: #0d2233; border-color: #58a6ff33; }
+  .icon { margin-right: 5px; }
+  .arrow { text-align: center; padding: 5px 0; color: #484f58; font-size: 16px; }
+  .arrow .label { font-size: 10px; display: block; margin-top: -2px; }
+  .arrow .label.good { color: #3fb950; }
+  .arrow .label.bad { color: #f85149; }
+  .section-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #484f58; margin: 12px 0 6px; text-align: center; font-weight: 600; }
+  .highlight { color: #ffa657; font-weight: 600; }
+  .hl-red { color: #f85149; font-weight: 600; }
+  .hl-green { color: #3fb950; font-weight: 600; }
+  .hl-blue { color: #79c0ff; font-weight: 600; }
+  .hl-purple { color: #d2a8ff; font-weight: 600; }
+  .hl-orange { color: #ffa657; font-weight: 600; }
+  code { background: #1c2333; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #79c0ff; }
+  .divider { border: none; border-top: 1px dashed #21262d; margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<h1>Hold & Human Detection Flows</h1>
+<p class="subtitle">Click any tab to see the expected flow. All test scenarios across 6 categories.</p>
+
+<div id="app"></div>
+
+<script>
+const categories = [
+  {
+    name: 'Human Detection',
+    cls: 'human',
+    scenarios: [
+      {
+        id: 'h1', name: '1. Unexpected human',
+        desc: '"How can I help you?" with no prior transfer — should detect as possible human.',
+        steps: [
+          { t: 'speech', text: '"Hi, how can I help you today?"' },
+          { t: 'ai', text: 'Sounds conversational — could be a real person<br>→ returns <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span><br><code>awaitingHumanConfirmation = true</code>' },
+        ]
+      },
+      {
+        id: 'h2', name: '2. Introduces by name',
+        desc: 'Agent says their name — still goes through maybe_human.',
+        steps: [
+          { t: 'speech', text: '"Hi, my name is Sarah, how can I help?"' },
+          { t: 'ai', text: 'Sounds like a human introducing themselves<br>→ returns <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+      {
+        id: 'h3', name: '3. Short hello',
+        desc: 'Just "Hello?" after silence.',
+        steps: [
+          { t: 'speech', text: '"Hello?"' },
+          { t: 'ai', text: 'Could be human or IVR<br>→ returns <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+      {
+        id: 'h4', name: '4. Asks for account info',
+        desc: 'Someone asks for your account number.',
+        steps: [
+          { t: 'speech', text: '"Can I get your account number?"' },
+          { t: 'ai', text: 'Asking for personal info = likely human<br>→ returns <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+      {
+        id: 'h5', name: '5. Agent + department',
+        desc: 'Agent identifies with name AND department.',
+        steps: [
+          { t: 'speech', text: '"Customer service, this is Mike"' },
+          { t: 'ai', text: 'Name + department<br>→ returns <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+      {
+        id: 'h6', name: '6. Casual human speech',
+        desc: 'Natural, casual language.',
+        steps: [
+          { t: 'speech', text: '"Yeah, hi, what do you need help with?"' },
+          { t: 'ai', text: '"Yeah" + personal question<br>→ returns <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+    ]
+  },
+  {
+    name: 'NOT Human',
+    cls: 'nothuman',
+    scenarios: [
+      {
+        id: 'n7', name: '7. Speech IVR prompt',
+        desc: 'Speech-recognition IVR — sounds human-ish but scripted.',
+        steps: [
+          { t: 'speech', text: '"In a few words, tell me how I can help you"' },
+          { t: 'ai', text: '"In a few words, tell me" is a scripted directive<br>→ returns <code>speak</code>' },
+          { t: 'result-good', text: '<span class="hl-green">AI responds with call purpose</span>' },
+        ]
+      },
+      {
+        id: 'n8', name: '8. Hold message',
+        desc: 'Scripted hold message. holdDetected should fire.',
+        steps: [
+          { t: 'speech', text: '"Your call is important to us. Please continue to hold."' },
+          { t: 'ai', text: 'Scripted hold message<br>→ returns <code>wait</code> with <span class="hl-blue">holdDetected: true</span>' },
+          { t: 'state', text: 'Hold event logged to MongoDB' },
+          { t: 'result-good', text: '<span class="hl-green">System waits quietly</span>' },
+        ]
+      },
+      {
+        id: 'n9', name: '9. Menu after hold',
+        desc: 'IVR menu appears.',
+        steps: [
+          { t: 'speech', text: '"Press 1 for billing, press 2 for support"' },
+          { t: 'ai', text: 'Clear IVR menu<br>→ returns <code>press_digit</code>' },
+          { t: 'result-good', text: '<span class="hl-green">shouldPressDTMF: true</span>' },
+        ]
+      },
+      {
+        id: 'n10', name: '10. Robotic "one moment"',
+        desc: 'Automated transition message.',
+        steps: [
+          { t: 'speech', text: '"Thank you. One moment please."' },
+          { t: 'ai', text: 'Short scripted transition<br>→ returns <code>wait</code>' },
+          { t: 'result-good', text: '<span class="hl-green">System waits</span>' },
+        ]
+      },
+    ]
+  },
+  {
+    name: 'Hold → Human Transition',
+    cls: 'holdtransition',
+    scenarios: [
+      {
+        id: 't11', name: '11. Hold then human',
+        desc: 'On hold, then human picks up.',
+        steps: [
+          { t: 'speech', label: 'Turn 1', text: '"Please hold while I transfer you to the next available agent."' },
+          { t: 'ai', text: 'Hold queue<br>→ <code>wait</code> with <span class="hl-blue">holdDetected: true</span>' },
+          { t: 'state', text: 'Hold event logged' },
+          { t: 'divider' },
+          { t: 'speech', label: 'Turn 2', text: '"Hi this is Mike, how can I help you?"' },
+          { t: 'ai', text: 'Sounds human → <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+      {
+        id: 't12', name: '12. Hold then more IVR',
+        desc: 'On hold, then back to IVR.',
+        steps: [
+          { t: 'speech', label: 'Turn 1', text: '"All agents are busy. Please hold."' },
+          { t: 'ai', text: 'Hold queue<br>→ <code>wait</code> with <span class="hl-blue">holdDetected: true</span>' },
+          { t: 'state', text: 'Hold event logged' },
+          { t: 'divider' },
+          { t: 'speech', label: 'Turn 2', text: '"Press 1 for billing, press 2 for support"' },
+          { t: 'ai', text: 'IVR menu → <code>press_digit</code>' },
+          { t: 'result-good', text: '<span class="hl-green">shouldPressDTMF: true</span>' },
+        ]
+      },
+      {
+        id: 't13', name: '13. Queue then human',
+        desc: 'Queue position announced, then someone picks up.',
+        steps: [
+          { t: 'speech', label: 'Turn 1', text: '"Your estimated wait time is 5 minutes. Caller number 3 in queue."' },
+          { t: 'ai', text: 'Queue info<br>→ <code>wait</code> with <span class="hl-blue">holdDetected: true</span>' },
+          { t: 'state', text: 'Hold event logged' },
+          { t: 'divider' },
+          { t: 'speech', label: 'Turn 2', text: '"Hello, are you still there?"' },
+          { t: 'ai', text: 'Conversational → <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+      {
+        id: 't14', name: '14. Menu + hold phrase then human',
+        desc: 'IVR menu with hold phrase, then human.',
+        steps: [
+          { t: 'speech', label: 'Turn 1', text: '"Your call is important. Press 1 for sales, press 2 for support."' },
+          { t: 'ai', text: 'IVR menu → <code>press_digit</code>' },
+          { t: 'divider' },
+          { t: 'speech', label: 'Turn 2', text: '"Hi, this is customer service"' },
+          { t: 'ai', text: 'Sounds human → <span class="hl-purple">maybe_human</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-green">"Am I speaking with a live agent?"</span>' },
+        ]
+      },
+    ]
+  },
+  {
+    name: 'After Confirmation — Happy Paths',
+    cls: 'confirmation',
+    scenarios: [
+      {
+        id: 'c15', name: '15. Clear "yes"',
+        desc: 'Human clearly confirms.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Yes, you are. How can I help you?"' },
+          { t: 'ai', text: 'Clear affirmative + offer to help<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'c16', name: '16. Short "yes"',
+        desc: 'Just "yes".',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Yes"' },
+          { t: 'ai', text: 'Short but affirmative<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'c17', name: '17. "Yeah, what do you need?"',
+        desc: 'Casual affirmative.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Yeah, what do you need?"' },
+          { t: 'ai', text: 'Casual "yeah" + personal question<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'c18', name: '18. Name introduction',
+        desc: 'They introduce themselves.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"This is Sarah, yes, how can I help?"' },
+          { t: 'ai', text: 'Name + affirmative<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'c19', name: '19. "I\'m here"',
+        desc: 'Confirms presence.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"I\'m here, go ahead"' },
+          { t: 'ai', text: 'Natural confirmation<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'c20', name: '20. "Who is this?"',
+        desc: 'Suspicious but clearly human.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Who is this? What are you calling about?"' },
+          { t: 'ai', text: 'Suspicious but clearly a human asking questions<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+          { t: 'note', text: 'Any natural conversational response = human. Don\'t engage — just transfer.' },
+        ]
+      },
+      {
+        id: 'c21', name: '21. "Can you hold?"',
+        desc: 'Human confirmed but asked us to wait.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Yes, can you hold on for just a moment?"' },
+          { t: 'ai', text: '"Yes" + personal request = human<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+          { t: 'note', text: 'They confirmed. Transfer — the user handles the hold from here.' },
+        ]
+      },
+      {
+        id: 'c22', name: '22. Garbled / hesitant',
+        desc: 'Filler words and hesitation — quintessentially human.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Uh... yeah... sorry..."' },
+          { t: 'ai', text: '"Uh", "yeah", "sorry" = natural human speech<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'c23', name: '23. Repeats question back',
+        desc: 'Confused but processing our question.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"A live agent? Yes, this is customer support."' },
+          { t: 'ai', text: 'Repeats phrase + confirms + department<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+    ]
+  },
+  {
+    name: 'After Confirmation — Not Human / Unclear',
+    cls: 'postconfirm',
+    scenarios: [
+      {
+        id: 'e24', name: '24. IVR menu instead',
+        desc: 'We asked but got a menu — was IVR all along.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Press 1 for sales, press 2 for support"' },
+          { t: 'ai', text: 'Clearly an IVR menu<br>→ returns <code>press_digit</code>' },
+          { t: 'result-good', text: '<span class="hl-green">Back to IVR navigation</span><br>Confirmation state reset' },
+        ]
+      },
+      {
+        id: 'e25', name: '25. Hold music / message',
+        desc: 'Got put back on hold after our question.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"Please continue to hold. Your call is important to us."' },
+          { t: 'ai', text: 'Scripted hold message<br>→ returns <code>wait</code> with <span class="hl-blue">holdDetected: true</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Back to waiting on hold</span><br>Confirmation state reset' },
+        ]
+      },
+      {
+        id: 'e26', name: '26. Virtual assistant bot',
+        desc: 'An AI bot responds conversationally.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"I\'m a virtual assistant. I can help you with many things."' },
+          { t: 'ai', text: 'Explicitly says "virtual assistant" — NOT human<br>→ returns <code>speak</code>' },
+          { t: 'result-good', text: '<span class="hl-green">AI says "I need to speak with a real person"</span><br>Confirmation state reset' },
+        ]
+      },
+      {
+        id: 'e27', name: '27. Unclear mumble',
+        desc: 'Can\'t tell if it\'s human or noise — genuinely ambiguous. Needs clarification.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'speech', text: '"... mmhm ..."' },
+          { t: 'ai', text: 'Genuinely can\'t tell — ambiguous<br>→ returns <span class="hl-orange">maybe_human_unclear</span>' },
+          { t: 'result-good', text: 'System asks: <span class="hl-orange">"I\'m sorry, are you a human or an automated message?"</span><br><code>awaitingHumanClarification = true</code>' },
+          { t: 'note', text: 'This is rare — most confused responses ("what?", "who is this?") are clearly human and go to human_detected. This is for the truly ambiguous case.' },
+        ]
+      },
+      {
+        id: 'e28', name: '28. Silence after question',
+        desc: 'No response at all. Might not have heard us.',
+        steps: [
+          { t: 'system', label: 'We asked', text: '🔊 "Am I speaking with a live agent?"' },
+          { t: 'note', text: 'No speech detected — silence continues' },
+          { t: 'ai', text: 'Nothing to evaluate<br>Keep <code>awaitingHumanConfirmation = true</code><br>Wait for next speech' },
+          { t: 'result-good', text: '<span class="hl-green">Keep waiting</span><br>3-turn reset will clear state if nothing comes' },
+        ]
+      },
+    ]
+  },
+  {
+    name: 'After Clarification (2nd question)',
+    cls: 'clarify',
+    scenarios: [
+      {
+        id: 'cl29', name: '29. Clear yes after clarification',
+        desc: 'Second question worked — they confirm they\'re human.',
+        steps: [
+          { t: 'system', label: 'We asked (2nd time)', text: '🔊 "I\'m sorry, are you a human or an automated message?"' },
+          { t: 'speech', text: '"I\'m a real person, yes"' },
+          { t: 'ai', text: 'Clear confirmation<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'cl30', name: '30. Frustrated but human',
+        desc: 'They\'re annoyed we asked twice — but that proves they\'re human.',
+        steps: [
+          { t: 'system', label: 'We asked (2nd time)', text: '🔊 "I\'m sorry, are you a human or an automated message?"' },
+          { t: 'speech', text: '"Yes! I already told you, how can I help?"' },
+          { t: 'ai', text: 'Frustrated + affirmative = definitely human<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'cl31', name: '31. "I\'m human, what do you need?"',
+        desc: 'Direct answer to our direct question.',
+        steps: [
+          { t: 'system', label: 'We asked (2nd time)', text: '🔊 "I\'m sorry, are you a human or an automated message?"' },
+          { t: 'speech', text: '"I\'m human, what do you need help with?"' },
+          { t: 'ai', text: 'Explicitly says "I\'m human"<br>→ <span class="hl-green">human_detected</span>' },
+          { t: 'result-good', text: '<span class="hl-green">Transfer to user</span>' },
+        ]
+      },
+      {
+        id: 'cl32', name: '32. Bot identifies itself',
+        desc: 'After second question, bot confirms it\'s automated.',
+        steps: [
+          { t: 'system', label: 'We asked (2nd time)', text: '🔊 "I\'m sorry, are you a human or an automated message?"' },
+          { t: 'speech', text: '"I am an automated system. For billing press 1, for support press 2."' },
+          { t: 'ai', text: 'Explicitly says "automated system" + IVR menu<br>→ returns <code>press_digit</code>' },
+          { t: 'result-good', text: '<span class="hl-green">Back to IVR navigation</span><br>All confirmation state cleared' },
+        ]
+      },
+      {
+        id: 'cl33', name: '33. Still unclear — give up',
+        desc: 'Two questions asked, still can\'t tell. Cancel and go back to IVR.',
+        steps: [
+          { t: 'system', label: 'We asked (2nd time)', text: '🔊 "I\'m sorry, are you a human or an automated message?"' },
+          { t: 'speech', text: '"... please hold ..."' },
+          { t: 'ai', text: 'Scripted hold message, not a human response<br>→ returns <code>wait</code>' },
+          { t: 'result-good', text: '<span class="hl-green">All confirmation state cleared</span><br>Back to normal IVR / hold' },
+          { t: 'note', text: 'After 2 attempts, any non-human response cancels the flow entirely. We don\'t ask a third time.' },
+        ]
+      },
+      {
+        id: 'cl34', name: '34. Silence after 2nd question',
+        desc: 'No response to our clarification either. Give up.',
+        steps: [
+          { t: 'system', label: 'We asked (2nd time)', text: '🔊 "I\'m sorry, are you a human or an automated message?"' },
+          { t: 'note', text: 'No speech detected — silence' },
+          { t: 'ai', text: 'No response to evaluate after second question' },
+          { t: 'result-good', text: '<span class="hl-green">All confirmation state cleared</span><br>Back to normal — 30s timer handles hold' },
+          { t: 'note', text: 'We gave two chances. If nobody responds, go back to waiting. Don\'t keep asking.' },
+        ]
+      },
+    ]
+  },
+];
+
+const app = document.getElementById('app');
+let activeId = categories[0].scenarios[0].id;
+
+function render() {
+  let html = '';
+  categories.forEach(cat => {
+    html += `<div class="category-row"><span class="category-label ${cat.cls}">${cat.name}</span><span class="category-line"></span></div>`;
+    html += '<div class="tab-group">';
+    cat.scenarios.forEach(s => {
+      html += `<div class="tab${s.id === activeId ? ' active' : ''}" data-id="${s.id}">${s.name}</div>`;
+    });
+    html += '</div>';
+  });
+
+  let active = null;
+  categories.forEach(cat => cat.scenarios.forEach(s => { if (s.id === activeId) active = { ...s, catName: cat.name }; }));
+
+  if (active) {
+    html += '<div class="scenario active">';
+    html += `<div class="scenario-header"><h2>${active.name}</h2><p>${active.desc}</p><span class="badge cat">${active.catName}</span></div>`;
+    active.steps.forEach((step, i) => {
+      if (step.t === 'divider') { html += '<hr class="divider">'; return; }
+      if (step.label) html += `<div class="section-label">${step.label}</div>`;
+      const icons = { speech:'🎙️', ai:'🤖', backend:'⚙️', state:'📋', 'result-good':'✅', 'result-bad':'💥', timer:'⏱️', note:'💡', rule:'📐', system:'🔊' };
+      const noArrowTypes = new Set(['state','note','rule']);
+      if (i > 0 && !noArrowTypes.has(step.t)) html += '<div class="arrow">↓</div>';
+      html += `<div class="box ${step.t}"><span class="icon">${icons[step.t]||''}</span>${step.text}</div>`;
+    });
+    html += '</div>';
+  }
+
+  app.innerHTML = html;
+  app.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => { activeId = tab.dataset.id; render(); });
+  });
+}
+render();
+</script>
+
+</body>
+</html>

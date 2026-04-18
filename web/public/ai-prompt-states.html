@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Prompt States — Human Detection</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px 24px; }
+  h1 { text-align: center; font-size: 26px; margin-bottom: 6px; color: #e6edf3; }
+  .subtitle { text-align: center; color: #8b949e; margin-bottom: 32px; font-size: 13px; max-width: 700px; margin-left: auto; margin-right: auto; }
+
+  .tabs { display: flex; gap: 6px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
+  .tab { padding: 8px 18px; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #8b949e; cursor: pointer; font-size: 13px; transition: all 0.15s; user-select: none; }
+  .tab:hover { border-color: #484f58; color: #c9d1d9; }
+  .tab.active { font-weight: 600; }
+  .tab[data-id="normal"].active { background: #1c2333; border-color: #388bfd; color: #79c0ff; }
+  .tab[data-id="hold"].active { background: #0d2233; border-color: #58a6ff; color: #58a6ff; }
+  .tab[data-id="confirm"].active { background: #1f1a2e; border-color: #d2a8ff; color: #d2a8ff; }
+  .tab[data-id="clarify"].active { background: #2a1f0d; border-color: #ffa657; color: #ffa657; }
+  .tab[data-id="detected"].active { background: #1a3a1a; border-color: #3fb950; color: #3fb950; }
+  .tab[data-id="overview"].active { background: #161b22; border-color: #8b949e; color: #e6edf3; }
+
+  .panel { display: none; max-width: 720px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  .state-card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+  .state-card h2 { font-size: 16px; margin-bottom: 4px; }
+  .state-card .state-desc { font-size: 12px; color: #8b949e; margin-bottom: 16px; }
+  .state-card.normal { border-color: #388bfd44; }
+  .state-card.normal h2 { color: #79c0ff; }
+  .state-card.hold { border-color: #58a6ff44; }
+  .state-card.hold h2 { color: #58a6ff; }
+  .state-card.confirm { border-color: #d2a8ff44; }
+  .state-card.confirm h2 { color: #d2a8ff; }
+  .state-card.clarify { border-color: #ffa65744; }
+  .state-card.clarify h2 { color: #ffa657; }
+  .state-card.detected { border-color: #3fb95044; }
+  .state-card.detected h2 { color: #3fb950; }
+
+  .prompt-block { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 14px 16px; margin: 12px 0; font-size: 12px; line-height: 1.7; }
+  .prompt-block .prompt-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #484f58; font-weight: 700; margin-bottom: 8px; }
+  .prompt-block code { background: #1c2333; padding: 1px 5px; border-radius: 3px; font-size: 11px; color: #79c0ff; }
+  .prompt-block .instruction { color: #e6edf3; }
+  .prompt-block .example { color: #8b949e; font-style: italic; }
+  .prompt-block .warn { color: #ffa657; }
+  .prompt-block .critical { color: #f85149; font-weight: 600; }
+
+  .transition { background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px 16px; margin: 12px 0; }
+  .transition .trans-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #484f58; font-weight: 700; margin-bottom: 8px; }
+  .trans-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+  .trans-row:last-child { margin-bottom: 0; }
+  .trans-arrow { color: #3fb950; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .trans-condition { color: #8b949e; flex: 1; }
+  .trans-condition strong { color: #e6edf3; font-weight: 600; }
+
+  .no-regex { background: #1a1a2e; border: 1px solid #6e76e433; border-radius: 6px; padding: 10px 14px; margin: 12px 0; font-size: 11px; color: #8b949e; }
+  .no-regex strong { color: #d2a8ff; }
+
+  /* Overview diagram */
+  .diagram { position: relative; padding: 20px 0; }
+  .diagram-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 12px; }
+  .diagram-node { padding: 12px 20px; border-radius: 8px; border: 2px solid; text-align: center; font-size: 12px; font-weight: 600; min-width: 140px; }
+  .diagram-node.normal { border-color: #388bfd; color: #79c0ff; background: #1c233366; }
+  .diagram-node.hold { border-color: #58a6ff; color: #58a6ff; background: #0d223366; }
+  .diagram-node.confirm { border-color: #d2a8ff; color: #d2a8ff; background: #1f1a2e66; }
+  .diagram-node.clarify { border-color: #ffa657; color: #ffa657; background: #2a1f0d66; }
+  .diagram-node.detected { border-color: #3fb950; color: #3fb950; background: #1a3a1a66; }
+  .diagram-edge { font-size: 11px; color: #484f58; text-align: center; margin: 4px 0 8px; }
+  .diagram-edge em { color: #8b949e; font-style: normal; }
+  .diagram-cols { display: flex; gap: 40px; justify-content: center; }
+  .diagram-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .edge-label { font-size: 10px; color: #8b949e; background: #0d1117; padding: 2px 8px; border-radius: 4px; border: 1px solid #21262d; }
+  .edge-label.good { color: #3fb950; border-color: #3fb95033; }
+  .edge-label.back { color: #f85149; border-color: #f8514933; }
+  .edge-label.next { color: #ffa657; border-color: #ffa65733; }
+
+  .system-speaks { background: #0d2233; border: 1px solid #58a6ff33; border-radius: 6px; padding: 10px 14px; margin: 12px 0; font-size: 12px; }
+  .system-speaks .ss-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #58a6ff; font-weight: 700; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<h1>AI Prompt States</h1>
+<p class="subtitle">What the AI receives in each state, and how it decides transitions. No hardcoded regexes — the AI evaluates everything.</p>
+
+<div class="tabs" id="tabs"></div>
+<div id="panels"></div>
+
+<script>
+const states = [
+  {
+    id: 'overview',
+    name: 'Overview',
+    content: `
+      <div class="state-card normal">
+        <h2>State Machine</h2>
+        <p class="state-desc">5 states, all transitions decided by the AI (no regex). The backend only manages which state we're in and what the system says out loud.</p>
+
+        <div class="diagram">
+          <div class="diagram-row">
+            <div class="diagram-node normal">Normal<br><small>IVR Navigation</small></div>
+          </div>
+          <div class="diagram-edge">↓ <em>AI returns <code>maybe_human</code></em></div>
+          <div class="diagram-row">
+            <div class="diagram-node confirm">Awaiting Confirmation<br><small>System asked: "Am I speaking<br>with a live agent?"</small></div>
+          </div>
+          <div class="diagram-cols">
+            <div class="diagram-col">
+              <div class="edge-label good">AI returns human_detected</div>
+              <div class="diagram-edge">↓</div>
+              <div class="diagram-node detected">Human Detected<br><small>Transfer to user</small></div>
+            </div>
+            <div class="diagram-col">
+              <div class="edge-label next">AI returns maybe_human_unclear</div>
+              <div class="diagram-edge">↓</div>
+              <div class="diagram-node clarify">Awaiting Clarification<br><small>System asked: "Are you a human<br>or an automated message?"</small></div>
+              <div class="diagram-edge" style="margin-top:8px">↓</div>
+              <div style="display:flex; gap: 20px;">
+                <div class="diagram-col">
+                  <div class="edge-label good">human_detected</div>
+                  <div class="diagram-edge">↓</div>
+                  <div class="diagram-node detected" style="min-width:100px; font-size:11px">Transfer</div>
+                </div>
+                <div class="diagram-col">
+                  <div class="edge-label back">anything else</div>
+                  <div class="diagram-edge">↓</div>
+                  <div class="diagram-node normal" style="min-width:100px; font-size:11px">Back to IVR</div>
+                </div>
+              </div>
+            </div>
+            <div class="diagram-col">
+              <div class="edge-label back">AI returns IVR action<br>(press_digit, wait, speak)</div>
+              <div class="diagram-edge">↓</div>
+              <div class="diagram-node normal" style="min-width:100px; font-size:11px">Back to IVR</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="diagram" style="margin-top: 20px; border-top: 1px dashed #21262d; padding-top: 20px;">
+          <p style="text-align:center; font-size: 12px; color: #8b949e; margin-bottom: 12px;">Hold is orthogonal — can happen in any state</p>
+          <div class="diagram-row">
+            <div class="diagram-node hold">On Hold<br><small>holdDetected: true on any wait action<br>+ backend 30s silence timer</small></div>
+          </div>
+        </div>
+
+        <div class="no-regex">
+          <strong>No regexes anywhere.</strong> The AI evaluates every response and decides the transition. The backend only:
+          (1) tracks which state we're in, (2) speaks the confirmation/clarification questions via TTS,
+          (3) enforces that <code>human_detected</code> can only fire during confirmation/clarification states.
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'normal',
+    name: 'Normal (IVR)',
+    content: `
+      <div class="state-card normal">
+        <h2>State: Normal IVR Navigation</h2>
+        <p class="state-desc">Default state. AI navigates menus, responds to questions, waits on hold.</p>
+
+        <div class="prompt-block">
+          <div class="prompt-label">Prompt context injected</div>
+          <span class="instruction">No special state flags. AI gets the standard IVR navigation prompt with conversation history.</span>
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">AI instructions for human detection</div>
+          <span class="instruction">
+            When speech sounds like it might be a live human, return <code>maybe_human</code>.<br><br>
+            Signals that suggest a human:<br>
+          </span>
+          <span class="example">
+            • Someone introduces themselves: "Hi, my name is Sarah"<br>
+            • Personal greeting: "Hello?", "How can I help you today?"<br>
+            • Asks for your name, account info, or how they can help<br>
+            • Natural conversational speech: "Yeah, what do you need?"<br>
+            • Any speech that sounds conversational rather than scripted<br>
+          </span>
+          <br>
+          <span class="instruction">Signals that are NOT human:</span><br>
+          <span class="example">
+            • IVR menus: "Press 1 for X"<br>
+            • Scripted hold: "Your call is important to us"<br>
+            • Speech-recognition prompts: "In a few words, tell me how I can help"<br>
+            • Robotic transitions: "Thank you. One moment please."<br>
+          </span>
+          <br>
+          <span class="critical">NEVER return human_detected in this state. Only maybe_human.</span>
+        </div>
+
+        <div class="transition">
+          <div class="trans-label">Transitions out</div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>maybe_human</strong> → backend speaks confirmation question → move to <strong>Awaiting Confirmation</strong></span>
+          </div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>wait</strong> with holdDetected: true → log hold event, stay in Normal (hold is just metadata)</span>
+          </div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>press_digit / speak / wait / hang_up</strong> → handle normally, stay in Normal</span>
+          </div>
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'hold',
+    name: 'On Hold',
+    content: `
+      <div class="state-card hold">
+        <h2>State: On Hold (metadata, not a separate state)</h2>
+        <p class="state-desc">Hold is orthogonal — it's a flag on the call, not a state that changes AI behavior. The AI still evaluates every speech normally.</p>
+
+        <div class="prompt-block">
+          <div class="prompt-label">Prompt instructions for hold detection</div>
+          <span class="instruction">
+            Set <code>holdDetected: true</code> when you believe we're waiting in a hold queue.<br><br>
+          </span>
+          <span class="example">
+            Examples: "please hold", "all agents are busy", "estimated wait time is 5 minutes",
+            "caller number 3 in queue", "your call is important to us" (standalone, not inside a menu),
+            "a representative will be with you shortly"<br>
+          </span>
+          <br>
+          <span class="instruction">
+            <code>holdDetected</code> goes on <code>wait</code> actions. It means "we're in a queue" — it does NOT mean a transfer happened.<br>
+          </span>
+          <br>
+          <span class="warn">
+            If a hold-like phrase appears inside a normal IVR menu, focus on the menu options — the hold phrase is just filler.
+          </span>
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">What the backend does with holdDetected</div>
+          <span class="instruction">
+            • Logs a hold event to MongoDB (for analytics / call timeline)<br>
+            • Does <strong>NOT</strong> change any state flags<br>
+            • Does <strong>NOT</strong> set transferAnnounced (this was the old bug)<br>
+            • Does <strong>NOT</strong> change how the AI evaluates the next speech<br>
+          </span>
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">Backend silent hold timer (independent)</div>
+          <span class="instruction">
+            If 30 seconds pass with no speech at all, the backend logs a hold event automatically.<br>
+            This is a safety net — it catches hold music and long silences that the AI never sees (because there's no speech to evaluate).
+          </span>
+        </div>
+
+        <div class="no-regex">
+          <strong>No regexes.</strong> The AI decides whether speech indicates a hold queue based on the examples and its own judgment. The backend timer handles pure silence.
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'confirm',
+    name: 'Awaiting Confirmation',
+    content: `
+      <div class="state-card confirm">
+        <h2>State: Awaiting Confirmation</h2>
+        <p class="state-desc">We just asked "Am I speaking with a live agent?" — waiting for their response.</p>
+
+        <div class="system-speaks">
+          <div class="ss-label">System spoke (via TTS)</div>
+          "Hi, am I speaking with a live agent?"
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">Prompt context injected</div>
+          <code>CONFIRMATION STATE: awaitingHumanConfirmation=true</code><br>
+          <span class="instruction">(We already asked "Am I speaking with a live agent?" — evaluate their response below.)</span>
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">AI instructions</div>
+          <span class="instruction">
+            Evaluate the response to our confirmation question. Three outcomes:<br><br>
+
+            <strong>1. Clear human response</strong> → return <code>human_detected</code><br>
+          </span>
+          <span class="example">
+            Any natural reply that a human would give: "yes", "yeah", "I'm here",
+            "this is Sarah", "yes, how can I help?", "uh yeah sorry about that",
+            "who is this?", "a live agent? yes, this is customer support",
+            "yes can you hold on a moment?"<br>
+          </span>
+          <br>
+          <span class="instruction">
+            <strong>2. Clearly NOT human</strong> → return normal IVR action (<code>press_digit</code>, <code>wait</code>, <code>speak</code>)<br>
+          </span>
+          <span class="example">
+            IVR menu appeared, scripted hold message, obviously robotic response.<br>
+          </span>
+          <br>
+          <span class="instruction">
+            <strong>3. Unclear / confused</strong> → return <code>maybe_human_unclear</code><br>
+          </span>
+          <span class="example">
+            They seem confused or didn't understand: silence followed by a mumble,
+            just background noise, an ambiguous single word that could be IVR or human.<br>
+            The system will ask one more clarifying question before giving up.<br>
+          </span>
+          <br>
+          <span class="warn">
+            Err on the side of <code>human_detected</code>. If someone says "what?" or
+            "who is this?" — that's a human being confused, not an IVR.
+            Only use <code>maybe_human_unclear</code> when you genuinely can't tell.
+          </span>
+        </div>
+
+        <div class="transition">
+          <div class="trans-label">Transitions out</div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>human_detected</strong> → transfer to user → done</span>
+          </div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>maybe_human_unclear</strong> → backend speaks clarification → move to <strong>Awaiting Clarification</strong></span>
+          </div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>press_digit / wait / speak</strong> → reset confirmation, back to <strong>Normal</strong></span>
+          </div>
+        </div>
+
+        <div class="no-regex">
+          <strong>No regexes.</strong> The AI decides whether the response is a clear human, clearly IVR, or genuinely unclear. The "confused human" cases (#21 "What?", #22 "Who is this?") should go to <code>human_detected</code> — confusion IS a human signal.
+          <code>maybe_human_unclear</code> is for the rare case where you truly can't tell.
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'clarify',
+    name: 'Awaiting Clarification',
+    content: `
+      <div class="state-card clarify">
+        <h2>State: Awaiting Clarification (NEW)</h2>
+        <p class="state-desc">We already asked "Am I speaking with a live agent?" and got an unclear response. Now we're asking one more time, more directly.</p>
+
+        <div class="system-speaks">
+          <div class="ss-label">System spoke (via TTS)</div>
+          "I'm sorry, are you a real person or an automated system?"
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">Prompt context injected</div>
+          <code>CLARIFICATION STATE: awaitingHumanClarification=true</code><br>
+          <span class="instruction">(We already asked twice. This is the last attempt. Evaluate their response.)</span>
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">AI instructions</div>
+          <span class="instruction">
+            This is our second and final attempt to determine if we're speaking to a human.
+            Evaluate the response. Two outcomes only:<br><br>
+
+            <strong>1. Any human-like response</strong> → return <code>human_detected</code><br>
+          </span>
+          <span class="example">
+            "Yes I'm a real person", "I'm here", "yeah", any natural speech,
+            confusion, frustration, literally anything a human would say.<br>
+          </span>
+          <br>
+          <span class="instruction">
+            <strong>2. Clearly automated / no useful response</strong> → return normal IVR action<br>
+          </span>
+          <span class="example">
+            IVR menu, hold message, "I'm a virtual assistant", robotic script, continued silence.<br>
+          </span>
+          <br>
+          <span class="critical">
+            This is the last chance. If the response is even slightly human, go with <code>human_detected</code>.
+            Only reject if it's obviously a machine.
+          </span>
+        </div>
+
+        <div class="transition">
+          <div class="trans-label">Transitions out</div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>human_detected</strong> → transfer to user → done</span>
+          </div>
+          <div class="trans-row">
+            <span class="trans-arrow">→</span>
+            <span class="trans-condition">AI returns <strong>anything else</strong> → cancel all confirmation state, back to <strong>Normal</strong></span>
+          </div>
+        </div>
+
+        <div class="no-regex">
+          <strong>No regexes.</strong> The AI makes the final judgment. The bar is very low here — almost anything human-sounding should trigger transfer. We don't want to annoy a real agent by asking three times.
+        </div>
+      </div>
+    `
+  },
+  {
+    id: 'detected',
+    name: 'Human Detected',
+    content: `
+      <div class="state-card detected">
+        <h2>State: Human Detected → Transfer</h2>
+        <p class="state-desc">A human has been confirmed. Transfer the call to the user immediately.</p>
+
+        <div class="prompt-block">
+          <div class="prompt-label">Backend action (no AI involved)</div>
+          <span class="instruction">
+            1. Log transfer event to MongoDB<br>
+            2. Transfer call to user's phone via Telnyx API<br>
+            3. Clear call state<br><br>
+            No AI decision needed — this is a terminal action triggered by the AI returning <code>human_detected</code>
+            from either the Confirmation or Clarification state.
+          </span>
+        </div>
+
+        <div class="prompt-block">
+          <div class="prompt-label">Backend enforcement</div>
+          <span class="instruction">
+            If the AI ever returns <code>human_detected</code> when neither
+            <code>awaitingHumanConfirmation</code> nor <code>awaitingHumanClarification</code> is true:<br>
+          </span>
+          <span class="critical">
+            → Override to <code>maybe_human</code> (existing guard in speechProcessingService.ts)<br>
+          </span>
+          <span class="instruction">
+            This ensures the confirmation flow can never be skipped, even if the AI ignores the prompt.
+          </span>
+        </div>
+
+        <div class="no-regex">
+          <strong>No regexes.</strong> The backend guard is a simple boolean check on call state flags, not pattern matching on speech content.
+        </div>
+      </div>
+    `
+  },
+];
+
+const tabsEl = document.getElementById('tabs');
+const panelsEl = document.getElementById('panels');
+let activeId = 'overview';
+
+function render() {
+  let tabsHtml = '';
+  let panelsHtml = '';
+  states.forEach(s => {
+    tabsHtml += `<div class="tab${s.id === activeId ? ' active' : ''}" data-id="${s.id}">${s.name}</div>`;
+    panelsHtml += `<div class="panel${s.id === activeId ? ' active' : ''}" id="panel-${s.id}">${s.content}</div>`;
+  });
+  tabsEl.innerHTML = tabsHtml;
+  panelsEl.innerHTML = panelsHtml;
+  tabsEl.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => { activeId = tab.dataset.id; render(); });
+  });
+}
+render();
+</script>
+
+</body>
+</html>

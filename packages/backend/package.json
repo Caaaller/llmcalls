@@ -15,6 +15,7 @@
     "test:replay-or-live": "TEST_MODE=replay-or-live jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=replayCallEval",
     "test:stt": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=sttEval",
     "test:stt-compare": "jest --runInBand --forceExit --testPathPatterns=sttModelComparison",
+    "test:prompts": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=promptEvaluation",
     "eval:prompts": "ts-node src/scripts/run-all-evals.ts",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src/**/*.ts --fix",

@@ -2,7 +2,7 @@
   "version": 2,
   "id": "loop-test-720",
   "testCaseId": "loop-test-720",
-  "lastRecordedAt": "2026-04-07T23:19:34.252Z",
+  "lastRecordedAt": "2026-04-17T21:44:09.875Z",
   "config": {
     "callPurpose": "speak with a representative",
     "customInstructions": "This is a Costco warehouse. Navigate the IVR menu to reach a human (administrative staff is the best option). Use DTMF when prompted."
@@ -25,13 +25,13 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-07T23:19:34.252Z",
+        "recordedAt": "2026-04-17T21:44:09.875Z",
         "isLatestPath": true,
         "child": {
           "terminal": true,
           "finalStatus": "initiated",
-          "durationSeconds": 48,
-          "reachedHuman": true,
+          "durationSeconds": 300,
+          "reachedHuman": false,
           "dtmfDigits": ["1"]
         }
       },
@@ -57,6 +57,97 @@
           "durationSeconds": 26,
           "reachedHuman": false,
           "dtmfDigits": []
+        }
+      },
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-17T13:36:50.873Z",
+        "isLatestPath": false,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "hours, directions, and holidays observed, press 2. For information on membership or returns, press 3. To reach the pharmacy, press 4. For all other departments, press 5. To reach the administrative staff, press 1. For where",
+          "children": [
+            {
+              "aiAction": {
+                "action": "press_digit",
+                "digit": "1",
+                "reason": "AI selected: To reach the administrative staff as it's the best option for speaking with a representative.",
+                "detected": {
+                  "isIVRMenu": true,
+                  "menuOptions": [],
+                  "isMenuComplete": true,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-17T13:36:50.873Z",
+              "isLatestPath": false,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "hours, directions, and holidays observed, press 2. For information on membership or returns, press 3. To reach the pharmacy, press 4. Wait while I transfer your call.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-17T13:36:50.873Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n3",
+                      "ivrSpeech": "Costco Care.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "Hi, am I speaking with a live agent?",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-17T13:36:50.873Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 104,
+                            "reachedHuman": false,
+                            "dtmfDigits": ["1"]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         }
       }
     ]

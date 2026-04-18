@@ -70,6 +70,29 @@ function isIncompleteUtterance(text: string): boolean {
 
 const SILENT_HOLD_TIMEOUT_MS = 30_000; // Assume hold after 30s of no speech
 
+// Registry of silent-hold timer reset functions per callSid.
+// Populated by streamRoutes when a stream starts, consumed by speechProcessingService
+// so that AI speech output also resets the timer (not just IVR speech).
+const silentHoldResetters = new Map<string, () => void>();
+const silentHoldTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+export function resetSilentHoldTimer(callSid: string): void {
+  const reset = silentHoldResetters.get(callSid);
+  if (reset) reset();
+}
+
+/**
+ * Stop and remove the silent-hold timer for this call.
+ * Call this on transfer, hang_up, or any terminal state to prevent late
+ * `hold` events being written after the call is done.
+ */
+export function stopSilentHoldTimer(callSid: string): void {
+  const timer = silentHoldTimers.get(callSid);
+  if (timer) clearTimeout(timer);
+  silentHoldTimers.delete(callSid);
+  silentHoldResetters.delete(callSid);
+}
+
 interface StreamState {
   callControlId: string;
   dgWs: WS | null;
@@ -111,6 +134,20 @@ function openDeepgram(
     if (msg.type === 'Results') {
       const r = msg as DeepgramResult;
       const text = r.channel?.alternatives?.[0]?.transcript ?? '';
+
+      // Reset silent-hold timer on ANY transcription activity (interim OR final).
+      // Interim results fire every ~300ms during speech — they prove audio is being
+      // received even though the utterance isn't complete yet. Without this, a 40s
+      // IVR message (Best Buy scenario) would trip the 30s silent-hold timer.
+      // Gate: only reset if we've made at least one action (matches onUtterance gate).
+      if (text) {
+        const cs = callStateManager.getCallState(state.callControlId);
+        if ((cs.actionHistory || []).length > 0) {
+          const reset = silentHoldResetters.get(state.callControlId);
+          if (reset) reset();
+        }
+      }
+
       if (r.is_final && text) {
         console.log(
           `[DG] is_final: "${text.substring(0, 80)}" start=${r.start.toFixed(2)}s dur=${r.duration.toFixed(2)}s speech_final=${r.speech_final}`
@@ -206,20 +243,34 @@ export function attachStreamServer(httpServer: Server): void {
           if (state?.silentHoldTimer) clearTimeout(state.silentHoldTimer);
           if (!state) return;
           state.lastUtteranceAt = Date.now();
-          state.silentHoldTimer = setTimeout(() => {
+          const timer = setTimeout(() => {
             if (!state) return;
+            // Don't write a hold event if the timer's been stopped via stopSilentHoldTimer
+            // (transfer, hang_up) — silentHoldTimers won't contain this timer anymore.
+            if (silentHoldTimers.get(callControlId) !== timer) return;
             console.log(
               `⏳ Silent hold detected (${SILENT_HOLD_TIMEOUT_MS / 1000}s no speech)`
             );
             import('../services/callHistoryService').then(m =>
-              m.default.addHoldDetected(state!.callControlId).catch(() => {})
+              m.default
+                .addHoldDetected(state!.callControlId)
+                .catch(err =>
+                  console.error('[STREAM] Error writing hold event:', err)
+                )
             );
           }, SILENT_HOLD_TIMEOUT_MS);
+          state.silentHoldTimer = timer;
+          silentHoldTimers.set(callControlId, timer);
         };
-        resetSilentHoldTimer();
+        silentHoldResetters.set(callControlId, resetSilentHoldTimer);
 
         openDeepgram(state, async text => {
-          resetSilentHoldTimer();
+          // Silent-hold timer only starts AFTER we've made at least one action —
+          // before that, silence is just initial IVR greeting/intro gaps (Target scenario).
+          const cs = callStateManager.getCallState(callControlId);
+          if ((cs.actionHistory || []).length > 0) {
+            resetSilentHoldTimer();
+          }
           const callState = callStateManager.getCallState(callControlId);
           if (callState.isSpeaking) return;
 
@@ -285,6 +336,8 @@ export function attachStreamServer(httpServer: Server): void {
           }
         }
         if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
+        silentHoldResetters.delete(state.callControlId);
+        silentHoldTimers.delete(state.callControlId);
         if (state.dgWs?.readyState === WS.OPEN) {
           state.dgWs.close();
         }
@@ -298,10 +351,16 @@ export function attachStreamServer(httpServer: Server): void {
     });
 
     ws.on('close', () => {
+      if (state?.callControlId) {
+        // Unconditional cleanup (fixes memory leak on abnormal disconnect where dgWs may already be closed)
+        silentHoldResetters.delete(state.callControlId);
+        silentHoldTimers.delete(state.callControlId);
+        if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
+      }
       if (state?.dgWs?.readyState === WS.OPEN) {
         state.dgWs.close();
-        state = null;
       }
+      state = null;
     });
   });
 

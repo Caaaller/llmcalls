@@ -47,8 +47,10 @@ export interface CallState {
   transferConfig?: TransferConfig;
   customInstructions?: string;
   actionHistory: Array<ActionHistoryEntry>;
-  transferAnnounced?: boolean;
   awaitingHumanConfirmation?: boolean;
+  awaitingHumanClarification?: boolean;
+  humanConfirmationAttempts?: number;
+  transferInitiated?: boolean;
   pendingInfoRequest?: PendingInfoRequest;
   userPhone?: string;
   skipInfoRequests?: boolean;

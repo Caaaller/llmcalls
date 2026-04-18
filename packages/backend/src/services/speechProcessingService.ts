@@ -52,6 +52,28 @@ function formatDigitsForSpeech(digits: string): string {
 }
 
 /**
+ * Space out any multi-digit sequence in a sentence so TTS speaks numbers one
+ * digit at a time. IVRs with speech recognition expect digit-by-digit cadence;
+ * saying "35142679" as a single number causes "I didn't hear anything" loops.
+ *
+ * Handles common number formats:
+ *   "35142679"         → "3 5 1 4 2 6 7 9"
+ *   "720-584-6358"     → "7 2 0 5 8 4 6 3 5 8"
+ *   "ID is 12345"      → "ID is 1 2 3 4 5"
+ *   "press 1"          → "press 1"          (single digit untouched)
+ *   "March 6th 1998"   → "March 6th 1 9 9 8"
+ */
+export function spaceOutNumbers(text: string): string {
+  // Match runs of 2+ digits, allowing dashes/spaces as separators between them.
+  // (Parens intentionally excluded so "(720)" keeps its parens — we only rewrite
+  // inside the digit run.)
+  return text.replace(/\d[\d\- ]*\d/g, match => {
+    const digitsOnly = match.replace(/[^\d]/g, '');
+    return digitsOnly.split('').join(' ');
+  });
+}
+
+/**
  * Map a CallAction from the unified AI into the backward-compatible VoiceProcessingResult
  */
 function mapActionToProcessingResult(
@@ -99,8 +121,12 @@ async function speakAndLog(
     .addConversation(callSid, 'ai', text)
     .catch(err => console.error('Error adding conversation:', err));
   callStateManager.updateCallState(callSid, { isSpeaking: true });
+  // Reset silent-hold timer — AI speech counts as activity, not silence
+  const { resetSilentHoldTimer } = await import('../routes/streamRoutes');
+  resetSilentHoldTimer(callSid);
   await telnyxService.speakText(callSid, text, voice);
   callStateManager.updateCallState(callSid, { isSpeaking: false });
+  resetSilentHoldTimer(callSid);
 }
 
 /**
@@ -130,6 +156,14 @@ export async function processSpeech({
 
     // ── 1. State & config setup ──────────────────────────────────────────────
     const callState = callStateManager.getCallState(callSid);
+
+    // If we've already initiated a transfer, ignore further speech — the call is handed off.
+    if (callState.transferInitiated && !testMode) {
+      console.log(
+        `🔇 Ignoring speech after transfer initiated: "${speechResult.slice(0, 60)}"`
+      );
+      return { twiml: '', shouldSend: false };
+    }
     const existing = callState.transferConfig;
     const finalCustomInstructions =
       customInstructions ||
@@ -172,39 +206,7 @@ export async function processSpeech({
         .catch(err => console.error('Error adding conversation:', err));
     }
 
-    // ── 1b. Fast retry: if IVR says "didn't hear/get that" and we just spoke, replay immediately
-    //    BUT only if the message is short (no new info). If the IVR lists options
-    //    ("I can help with X, Y, Z"), let the AI see the list and pick from it.
     const actionHistory = callState.actionHistory || [];
-    const lastAction = actionHistory[actionHistory.length - 1];
-    const isRetryPrompt =
-      /didn't (hear|get)|did not (hear|get)|try again|please repeat|sorry.*(didn't|did not)/i.test(
-        speechResult
-      );
-    const isShortRetry = isRetryPrompt && speechResult.length < 80;
-    if (
-      isShortRetry &&
-      lastAction?.action === 'speak' &&
-      lastAction.speech &&
-      !testMode
-    ) {
-      console.log(
-        `⚡ Fast retry: replaying "${lastAction.speech}" (skipping AI call)`
-      );
-      await speakAndLog(
-        callSid,
-        lastAction.speech,
-        getTelnyxVoice(config.aiSettings.voice)
-      );
-      callStateManager.addActionToHistory(callSid, {
-        turnNumber: actionHistory.length + 1,
-        ivrSpeech: speechResult,
-        action: 'speak',
-        speech: lastAction.speech,
-        reason: 'fast retry — IVR did not hear previous response',
-      });
-      return { twiml: '', shouldSend: true, aiAction: 'speak' };
-    }
 
     // ── 2. Single AI call ────────────────────────────────────────────────────
     const conversationHistory = callState.conversationHistory || [];
@@ -221,15 +223,43 @@ export async function processSpeech({
       previousMenus: callState.previousMenus || [],
       lastPressedDTMF: callState.lastPressedDTMF,
       callPurpose: config.callPurpose,
-      transferAnnounced: callState.transferAnnounced,
       awaitingHumanConfirmation: callState.awaitingHumanConfirmation,
+      awaitingHumanClarification: callState.awaitingHumanClarification,
       skipInfoRequests: skipInfoRequests ?? callState.skipInfoRequests,
     });
 
     const aiDoneAt = Date.now();
+    // Full AI decision log — so we can diagnose why the AI chose a given action without
+    // needing to add phrase-matching overrides later.
     console.log(
-      `⏱️ AI decision: ${aiDoneAt - aiStartAt}ms → ${action.action}${action.speech ? ` "${action.speech}"` : ''}${action.digit ? ` digit=${action.digit}` : ''}`
+      `🤖 AI DECISION (${aiDoneAt - aiStartAt}ms):\n` +
+        `   IVR heard: "${speechResult.slice(0, 150)}"\n` +
+        `   Action: ${action.action}${action.digit ? ` digit=${action.digit}` : ''}${action.speech ? ` speech="${action.speech}"` : ''}\n` +
+        `   Reason: ${action.reason}\n` +
+        `   Detected: isIVRMenu=${action.detected.isIVRMenu} hold=${action.detected.holdDetected} loop=${action.detected.loopDetected} transferReq=${action.detected.transferRequested} humanIntro=${action.detected.humanIntroDetected}\n` +
+        `   State: awaitConf=${!!callState.awaitingHumanConfirmation} awaitClar=${!!callState.awaitingHumanClarification} transferred=${!!callState.transferInitiated}`
     );
+
+    // ── Backend enforcement ─────────────────────────────────────────────────
+    // No regex/phrase-matching on speech. Only enforce consistency with flags the
+    // AI ITSELF set in the response — the AI made the judgment, we just ensure its
+    // declared action matches its declared observations.
+
+    // Consistency check: if the AI set humanIntroDetected=true (its own judgment
+    // that the speech contains a personal introduction), the action must also be
+    // human_detected. gpt-4o-mini sometimes sets the flag correctly but still
+    // returns "speak" because it tries to answer the human's question.
+    if (
+      action.detected.humanIntroDetected &&
+      action.action !== 'human_detected' &&
+      action.action !== 'hang_up' &&
+      action.action !== 'press_digit'
+    ) {
+      console.log(
+        `⚠️ AI flag consistency: humanIntroDetected=true but action=${action.action} → human_detected`
+      );
+      action.action = 'human_detected';
+    }
 
     const result = mapActionToProcessingResult(
       action,
@@ -246,6 +276,13 @@ export async function processSpeech({
       reason: action.reason,
     });
 
+    // Reset silent-hold timer after any action (DTMF press, wait, speak, etc.)
+    // The IVR may take time to process DTMF input — that's expected, not hold.
+    if (!testMode) {
+      const { resetSilentHoldTimer } = await import('../routes/streamRoutes');
+      resetSilentHoldTimer(callSid);
+    }
+
     // ── 3b. Store detected menu options for loop detection ───────────────────
     const detectedMenuOptions = action.detected.menuOptions as MenuOption[];
     if (detectedMenuOptions.length > 0) {
@@ -258,27 +295,6 @@ export async function processSpeech({
     }
 
     // ── 4. Handle termination ────────────────────────────────────────────────
-    if (action.action === 'hang_up') {
-      // Guard: reject hang_up unless the CURRENT IVR speech contains an unambiguous
-      // termination trigger. The model will sometimes over-weight earlier "after hours"
-      // context and hallucinate a closed_no_menu on a live call that's still taking
-      // questions. Require the signal to be present in the current turn.
-      const terminationTriggers =
-        /voicemail|leave a (message|voicemail)|after the (beep|tone)|record your message|(we are|we're|office(s)? (is|are)) (currently )?closed|currently unavailable|unable to (hear|process) (you|your call)|ending the call|goodbye, ?(have|bye)|disconnecting|(connect you to|begin) the survey|brief .* (question )?survey/i;
-      // Positive signals: IVR is still serving callers → never terminate
-      const stillServingSignals =
-        /how (can|may) i help|what can i (do|help)|can address (most )?(commonly|questions)|how can i assist|please (tell|say|press|select|enter|stay on)|anything else/i;
-      const ivrSaidTermination = terminationTriggers.test(speechResult);
-      const ivrStillServing = stillServingSignals.test(speechResult);
-      if (!ivrSaidTermination || ivrStillServing) {
-        console.log(
-          `🛡️ Rejected hang_up (no termination trigger in current speech or IVR still serving): "${speechResult}" — overriding to wait`
-        );
-        action.action = 'wait';
-        action.reason = `hang_up rejected by backend guard (current speech lacks termination trigger)`;
-      }
-    }
-
     if (action.action === 'hang_up') {
       if (!testMode) {
         console.log(
@@ -294,12 +310,14 @@ export async function processSpeech({
           .endCall(callSid, 'terminated')
           .catch(err => console.error('Error ending call:', err));
 
-        await telnyxService.speakText(
+        await speakAndLog(
           callSid,
           'Thank you. Goodbye.',
           getTelnyxVoice(config.aiSettings.voice)
         );
         await telnyxService.terminateCall(callSid);
+        const { stopSilentHoldTimer } = await import('../routes/streamRoutes');
+        stopSilentHoldTimer(callSid);
         callStateManager.clearCallState(callSid);
       }
       return {
@@ -317,6 +335,17 @@ export async function processSpeech({
         callHistoryService
           .addTransfer(callSid, config.transferNumber, false)
           .catch(err => console.error('Error adding transfer:', err));
+
+        callStateManager.updateCallState(callSid, {
+          awaitingHumanConfirmation: false,
+          awaitingHumanClarification: false,
+          humanConfirmationAttempts: 0,
+          transferInitiated: true,
+        });
+
+        // Stop the silent-hold timer — we're handing off, no more hold events on this call
+        const { stopSilentHoldTimer } = await import('../routes/streamRoutes');
+        stopSilentHoldTimer(callSid);
 
         // Transfer immediately — no speech delay, the human agent hangs up within seconds
         await telnyxService.transfer(callSid, config.transferNumber);
@@ -342,8 +371,7 @@ export async function processSpeech({
       });
 
       if (!testMode) {
-        callStateManager.updateCallState(callSid, { isSpeaking: true });
-        await telnyxService.speakText(
+        await speakAndLog(
           callSid,
           'Hi, am I speaking with a live agent?',
           getTelnyxVoice(config.aiSettings.voice)
@@ -357,7 +385,48 @@ export async function processSpeech({
       };
     }
 
-    // ── 5c. Handle request_info → stall + notify user ───────────────────────
+    // ── 5c. Handle maybe_human_unclear → ask clarification ──────────────────
+    if (action.action === 'maybe_human_unclear') {
+      if (!testMode) {
+        console.log(
+          `❓ Unclear response to confirmation, asking clarification: ${action.reason}`
+        );
+      }
+
+      callStateManager.updateCallState(callSid, {
+        awaitingHumanConfirmation: false,
+        awaitingHumanClarification: true,
+      });
+
+      if (!testMode) {
+        await speakAndLog(
+          callSid,
+          "I'm sorry, are you a human or an automated message?",
+          getTelnyxVoice(config.aiSettings.voice)
+        );
+      }
+      return {
+        twiml: '',
+        shouldSend: !testMode,
+        processingResult: result,
+        aiAction: action.action,
+      };
+    }
+
+    // ── Reset confirmation state on non-human actions ────────────────────────
+    // Keep humanConfirmationAttempts — we track total attempts per call to prevent
+    // bots (Walmart, UMR) from triggering infinite confirmation loops.
+    if (
+      callState.awaitingHumanConfirmation ||
+      callState.awaitingHumanClarification
+    ) {
+      callStateManager.updateCallState(callSid, {
+        awaitingHumanConfirmation: false,
+        awaitingHumanClarification: false,
+      });
+    }
+
+    // ── 5d. Handle request_info → stall + notify user ───────────────────────
     // Backend guard: if skipInfoRequests is on, override request_info → speak
     if (
       action.action === 'request_info' &&
@@ -400,13 +469,11 @@ export async function processSpeech({
             );
         }
 
-        callStateManager.updateCallState(callSid, { isSpeaking: true });
-        await telnyxService.speakText(
+        await speakAndLog(
           callSid,
           'One moment, let me look that up.',
           getTelnyxVoice(config.aiSettings.voice)
         );
-        callStateManager.updateCallState(callSid, { isSpeaking: false });
 
         // Dynamically import to avoid circular dependency
         const { startStallTimer } = await import('../routes/voiceRoutes');
@@ -462,12 +529,6 @@ export async function processSpeech({
 
     // ── 7. Handle wait (incomplete menu, silence, etc.) ──────────────────────
     if (action.action === 'wait') {
-      if (action.detected.transferRequested || action.detected.holdDetected) {
-        callStateManager.updateCallState(callSid, {
-          transferAnnounced: true,
-        });
-      }
-
       if (action.detected.holdDetected && !testMode) {
         console.log(`📞 Hold queue detected: ${action.reason}`);
         callHistoryService
@@ -564,13 +625,19 @@ export async function processSpeech({
         };
       }
 
-      callStateManager.addToHistory(callSid, { type: 'ai', text: aiResponse });
+      // Space out multi-digit numbers so TTS speaks them one digit at a time
+      // (IVRs with speech recognition need digit-by-digit cadence).
+      const spokenResponse = spaceOutNumbers(aiResponse);
+      callStateManager.addToHistory(callSid, {
+        type: 'ai',
+        text: spokenResponse,
+      });
       if (!testMode) {
         const ttsStartAt = Date.now();
         console.log(`⏱️ TTS SEND at ${new Date().toISOString()}`);
         await speakAndLog(
           callSid,
-          aiResponse,
+          spokenResponse,
           getTelnyxVoice(config.aiSettings.voice)
         );
         console.log(
@@ -594,9 +661,10 @@ export async function processSpeech({
     if (!testMode) {
       console.error('❌ Error in processSpeech:', errorMessage);
       try {
-        await telnyxService.speakText(
+        await speakAndLog(
           callSid,
-          'I apologize, but an application error has occurred. Please try again later.'
+          'I apologize, but an application error has occurred. Please try again later.',
+          'AWS.Polly.Matthew-Neural'
         );
         await telnyxService.terminateCall(callSid);
       } catch {

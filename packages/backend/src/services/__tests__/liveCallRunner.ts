@@ -154,13 +154,14 @@ export async function executeCall(
           break;
         }
 
-        // Hold: wait 15s to confirm (silent timer can false-positive during slow IVR processing)
+        // Hold: wait 45s to confirm (humans often pick up 20-40s after hold starts).
+        // Previously 15s which cut off real humans before they could answer.
         if (holdEvents.length > 0) {
           const latestHold = holdEvents[holdEvents.length - 1];
           const holdAge = latestHold.timestamp
             ? Date.now() - new Date(latestHold.timestamp).getTime()
             : 0;
-          if (holdAge > 15_000) {
+          if (holdAge > 45_000) {
             console.log(
               `🏁 Early exit: hold queue confirmed (${Math.round(holdAge / 1000)}s ago) — ending call`
             );

@@ -19,6 +19,11 @@ const singleStepCases: {
   dtmf: PromptTestCase[];
   termination: PromptTestCase[];
   callPurpose: PromptTestCase[];
+  humanDetectionInitial: PromptTestCase[];
+  humanConfirmationHappy: PromptTestCase[];
+  humanConfirmationEdge: PromptTestCase[];
+  humanClarification: PromptTestCase[];
+  holdDetection: PromptTestCase[];
 } = {
   transfer: [
     {
@@ -57,19 +62,19 @@ const singleStepCases: {
     },
     {
       name: 'No Transfer - Greeting',
-      description: 'Should NOT detect transfer in greeting',
+      description: 'Should NOT detect transfer or human in IVR greeting',
       speech: 'Thank you for calling, how can I help you?',
       expectedBehavior: {
         shouldTransfer: false,
+        shouldConfirmHuman: false,
       },
     },
     {
       name: 'Maybe Human - Person introducing themselves after transfer',
       description:
-        'Should trigger maybe_human when someone introduces themselves after transfer announced',
+        'Should trigger maybe_human when someone introduces themselves',
       speech:
         'Hi, my name is Sarah from customer service, how can I help you today?',
-      transferAnnounced: true,
       expectedBehavior: {
         shouldConfirmHuman: true,
       },
@@ -87,7 +92,7 @@ const singleStepCases: {
     {
       name: 'Transfer Announced - Sets transferRequested',
       description:
-        'Should detect transfer announcement and set transferRequested (system will mark transferAnnounced)',
+        'Should detect transfer announcement and set transferRequested in the detected output',
       speech: 'Transferring you now. Please hold.',
       expectedBehavior: {
         shouldTransfer: true,
@@ -402,6 +407,278 @@ const singleStepCases: {
       },
     },
   ],
+
+  humanDetectionInitial: [
+    {
+      name: 'Human Detection - Unexpected greeting',
+      description:
+        'Conversational greeting should trigger maybe_human even without prior transfer',
+      speech: 'Hi, how can I help you today?',
+      expectedBehavior: { shouldConfirmHuman: true },
+    },
+    {
+      name: 'Human Detection - Introduces by name',
+      description:
+        'Agent introducing themselves by name should trigger maybe_human',
+      speech: 'Hi, my name is Sarah, how can I help?',
+      expectedBehavior: { shouldConfirmHuman: true },
+    },
+    {
+      name: 'Human Detection - Short hello',
+      description: 'Just "Hello?" should trigger maybe_human',
+      speech: 'Hello?',
+      expectedBehavior: { shouldConfirmHuman: true },
+    },
+    {
+      name: 'Human Detection - Asks for account info',
+      description: 'Asking for personal info signals a human',
+      speech: 'Can I get your account number?',
+      expectedBehavior: { shouldConfirmHuman: true },
+    },
+    {
+      name: 'Human Detection - Agent with department',
+      description: 'Name + department introduction signals human',
+      speech: 'Customer service, this is Mike',
+      expectedBehavior: { shouldConfirmHuman: true },
+    },
+    {
+      name: 'Human Detection - Casual speech',
+      description: 'Natural casual language signals human',
+      speech: 'Yeah, hi, what do you need help with?',
+      expectedBehavior: { shouldConfirmHuman: true },
+    },
+  ],
+
+  humanConfirmationHappy: [
+    {
+      name: 'Confirmation - Clear yes',
+      description:
+        'Clear affirmative after confirmation question → human_detected',
+      speech: 'Yes, you are. How can I help you?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Short yes',
+      description: 'Just "yes" after confirmation question → human_detected',
+      speech: 'Yes',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Casual yeah',
+      description: 'Casual "yeah" after confirmation → human_detected',
+      speech: 'Yeah, what do you need?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Name introduction',
+      description:
+        'Introduces themselves in response to confirmation → human_detected',
+      speech: 'This is Sarah, yes, how can I help?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Im here',
+      description: 'Confirms presence → human_detected',
+      speech: "I'm here, go ahead",
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Who is this',
+      description: 'Suspicious but clearly human → human_detected',
+      speech: 'Who is this? What are you calling about?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Can you hold',
+      description: 'Human confirmed but asks to wait → human_detected',
+      speech: 'Yes, can you hold on for just a moment?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Garbled hesitant',
+      description: 'Filler words and hesitation = human → human_detected',
+      speech: 'Uh... yeah... sorry...',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Repeats question back',
+      description: 'Echoes our question then confirms → human_detected',
+      speech: 'A live agent? Yes, this is customer support.',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - What huh',
+      description: 'Confused "What?" is clearly human → human_detected',
+      speech: 'What? Huh?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation - Turns question back',
+      description:
+        'Asking "Are YOU a live agent?" is clearly human → human_detected',
+      speech: 'Are you a live agent? Who is calling?',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+  ],
+
+  humanConfirmationEdge: [
+    {
+      name: 'Confirmation Edge - IVR menu instead',
+      description:
+        'Got IVR menu after confirmation question → back to navigation',
+      speech: 'Press 1 for sales, press 2 for support',
+      awaitingHumanConfirmation: true,
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: { shouldPressDTMF: true, shouldTransfer: false },
+    },
+    {
+      name: 'Confirmation Edge - Hold message',
+      description:
+        'Got hold message after confirmation question → back to waiting',
+      speech: 'Please continue to hold. Your call is important to us.',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: false, shouldConfirmHuman: false },
+    },
+    {
+      name: 'Confirmation Edge - Virtual assistant',
+      description:
+        'Bot identifies as virtual assistant — backend escalates to transfer (false positive accepted)',
+      speech: "I'm a virtual assistant. I can help you with many things.",
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation Edge - Unclear mumble',
+      description:
+        '"mmhm" in response to confirmation — backend escalates to transfer (human likely)',
+      speech: '... mmhm ...',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation Edge - No response',
+      description:
+        '"No" in response to confirmation is still a human speaking — transfer',
+      speech: 'No.',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Confirmation Edge - Scripted hold sounds human',
+      description: 'Recorded message that sounds human-ish but is scripted',
+      speech:
+        'A representative will be with you shortly. Please continue to hold.',
+      awaitingHumanConfirmation: true,
+      expectedBehavior: { shouldTransfer: false, shouldConfirmHuman: false },
+    },
+  ],
+
+  humanClarification: [
+    {
+      name: 'Clarification - Clear yes',
+      description: 'Clear confirmation after 2nd question → human_detected',
+      speech: "I'm a real person, yes",
+      awaitingHumanClarification: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Clarification - Frustrated but human',
+      description:
+        'Annoyed at being asked twice → definitely human → human_detected',
+      speech: 'Yes! I already told you, how can I help?',
+      awaitingHumanClarification: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Clarification - Im human',
+      description: 'Direct answer to direct question → human_detected',
+      speech: "I'm human, what do you need help with?",
+      awaitingHumanClarification: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+    {
+      name: 'Clarification - Bot identifies itself',
+      description: 'Bot confirms automated → back to IVR',
+      speech:
+        'I am an automated system. For billing press 1, for support press 2.',
+      awaitingHumanClarification: true,
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: { shouldPressDTMF: true, shouldTransfer: false },
+    },
+    {
+      name: 'Clarification - Still unclear give up',
+      description: 'After 2 questions still unclear → give up, back to normal',
+      speech: '... please hold ...',
+      awaitingHumanClarification: true,
+      expectedBehavior: {
+        shouldTransfer: false,
+        shouldConfirmHuman: false,
+        shouldConfirmHumanUnclear: false,
+      },
+    },
+    {
+      name: 'Clarification - What huh confused',
+      description: 'Confused response to 2nd question is clearly human',
+      speech: 'What are you talking about? I need help with my account.',
+      awaitingHumanClarification: true,
+      expectedBehavior: { shouldTransfer: true },
+    },
+  ],
+
+  holdDetection: [
+    {
+      name: 'Not Human - Speech IVR prompt',
+      description: 'Speech-recognition IVR is scripted, not human',
+      speech: 'In a few words, tell me how I can help you',
+      expectedBehavior: { shouldConfirmHuman: false, shouldPressDTMF: false },
+    },
+    {
+      name: 'Not Human - Hold message',
+      description:
+        'Scripted hold message should trigger wait, not human detection',
+      speech: 'Your call is important to us. Please continue to hold.',
+      expectedBehavior: { shouldConfirmHuman: false, shouldPressDTMF: false },
+    },
+    {
+      name: 'Not Human - IVR menu',
+      description: 'Clear IVR menu should trigger DTMF',
+      speech: 'Press 1 for billing, press 2 for support',
+      config: DEFAULT_CALL_PURPOSE,
+      expectedBehavior: { shouldConfirmHuman: false, shouldPressDTMF: true },
+    },
+    {
+      name: 'Not Human - Robotic transition',
+      description: 'Short scripted transition should wait',
+      speech: 'Thank you. One moment please.',
+      expectedBehavior: { shouldConfirmHuman: false, shouldPressDTMF: false },
+    },
+    {
+      name: 'Not Human - Quality monitoring message',
+      description:
+        'Pre-human recorded message should not trigger human detection',
+      speech:
+        'This call may be monitored or recorded for quality and training purposes.',
+      expectedBehavior: { shouldConfirmHuman: false, shouldPressDTMF: false },
+    },
+    {
+      name: 'Not Human - Representative will be with you',
+      description: 'Scripted hold message that sounds human but is recorded',
+      speech:
+        'A representative will be with you shortly. Please continue to hold.',
+      expectedBehavior: { shouldConfirmHuman: false, shouldPressDTMF: false },
+    },
+  ],
 };
 
 export const SINGLE_STEP_TEST_CASES: PromptTestCase[] = [
@@ -410,6 +687,11 @@ export const SINGLE_STEP_TEST_CASES: PromptTestCase[] = [
   ...singleStepCases.dtmf,
   ...singleStepCases.termination,
   ...singleStepCases.callPurpose,
+  ...singleStepCases.humanDetectionInitial,
+  ...singleStepCases.humanConfirmationHappy,
+  ...singleStepCases.humanConfirmationEdge,
+  ...singleStepCases.humanClarification,
+  ...singleStepCases.holdDetection,
 ];
 
 export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
@@ -601,6 +883,224 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
           shouldPressDTMF: true,
           expectedDigit: '5',
           shouldDetectLoop: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Hold Then Human Pickup',
+    description:
+      'On hold, then human picks up — should detect hold then maybe_human',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech: 'Please hold while I transfer you to the next available agent.',
+        expectedBehavior: {
+          shouldPressDTMF: false,
+          shouldConfirmHuman: false,
+        },
+      },
+      {
+        speech: 'Hi this is Mike, how can I help you?',
+        expectedBehavior: {
+          shouldConfirmHuman: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Hold Then More IVR',
+    description: 'On hold, then IVR menu appears — should navigate normally',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech: 'All agents are busy. Please hold.',
+        expectedBehavior: {
+          shouldPressDTMF: false,
+          shouldConfirmHuman: false,
+        },
+      },
+      {
+        speech: 'Press 1 for billing, press 2 for support',
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          shouldConfirmHuman: false,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Queue Position Then Human',
+    description: 'Queue position announced, then human picks up',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech:
+          'Your estimated wait time is 5 minutes. Caller number 3 in queue.',
+        expectedBehavior: {
+          shouldPressDTMF: false,
+          shouldConfirmHuman: false,
+        },
+      },
+      {
+        speech: 'Hello, are you still there?',
+        expectedBehavior: {
+          shouldConfirmHuman: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Menu With Hold Phrase Then Human',
+    description: 'IVR menu with hold phrase, then human appears',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech:
+          'Your call is important. Press 1 for sales, press 2 for support.',
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          shouldConfirmHuman: false,
+        },
+      },
+      {
+        speech: 'Hi, this is customer service',
+        expectedBehavior: {
+          shouldConfirmHuman: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Walmart Bot Self-Identifies During Confirmation',
+    description:
+      'Walmart AI bot keeps talking conversationally during confirmation. Should NOT transfer — should go to clarification, then back to IVR if still uncertain.',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech:
+          "I see you wanna speak with a representative. I'll do my best to help you out right now. What can I help you with?",
+        expectedBehavior: {
+          shouldConfirmHuman: true,
+        },
+      },
+      {
+        speech:
+          "You're speaking with Walmart's AI powered customer care agent. I can help with most things you'd need from customer care.",
+        expectedBehavior: {
+          shouldConfirmHumanUnclear: true,
+          shouldTransfer: false,
+        },
+      },
+      {
+        speech:
+          "I'm a virtual assistant. I can help you with returns, order tracking, and more.",
+        expectedBehavior: {
+          shouldTransfer: false,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Human Intro Mid-Call — "My name is Jeremy" after hold',
+    description:
+      'After hold queue, a real agent picks up and introduces themselves. Should transfer immediately — do NOT answer their question about our name. Previously AI returned speak with "failed package pickup" instead of human_detected.',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech:
+          'Please stay on the line while I check the availability of our agents.',
+        expectedBehavior: {
+          shouldTransfer: false,
+        },
+      },
+      {
+        speech:
+          'Thank you for calling. My name is Jeremy. May I have your name, please?',
+        expectedBehavior: {
+          shouldTransfer: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Human Intro Mid-Call — "You\'re through to Bendulo" (STT garbled)',
+    description:
+      'Agent introduces with variation "You\'re through to [Name]". STT may garble the name. AI should still detect the intro pattern and transfer.',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech: 'please hold for the next available agent.',
+        expectedBehavior: {
+          shouldTransfer: false,
+        },
+      },
+      {
+        speech:
+          "Pest Pie. You're through to Bendulo. How may I assist you today?",
+        expectedBehavior: {
+          shouldTransfer: true,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Phone Number Echo-Back Confirmation (IVR confirms our number)',
+    description:
+      'We provided our phone number in a previous turn. IVR echoes it back asking yes/no. Should say "yes" because the number matches what we just provided. Previously the AI wrongly said "no" confusing this with the "auto-detected caller ID" case.',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech:
+          "Please tell me the number you'd like me to use. Or use your telephone keypad to enter it beginning with the area code.",
+        expectedBehavior: {
+          // AI should speak the phone number
+          shouldTransfer: false,
+        },
+      },
+      {
+        speech:
+          'That was (720) 584-6358. If this is correct, say yes. Otherwise, say no.',
+        expectedBehavior: {
+          // AI should say "yes" because it just provided 720-584-6358
+          shouldTransfer: false,
+        },
+      },
+    ],
+  },
+  {
+    name: 'Phone Number Auto-Detection (unprompted caller ID read-back)',
+    description:
+      'IVR reads back a phone number WITHOUT us having provided one. This is auto-detected caller ID from our outbound line — wrong number. Should say "no" or pick the reenter option.',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech:
+          'Welcome to Acme Support. Your phone number has been recorded as (303) 551-8171. Press 1 if correct, press 2 to reenter.',
+        expectedBehavior: {
+          shouldPressDTMF: true,
+          expectedDigit: '2',
+        },
+      },
+    ],
+  },
+  {
+    name: 'Best Buy Virtual Assistant Self-Identifies',
+    description:
+      'Best Buy virtual assistant responds during confirmation — should not transfer since it says "virtual assistant".',
+    config: DEFAULT_CALL_PURPOSE,
+    steps: [
+      {
+        speech: 'Now what can I help you with?',
+        expectedBehavior: {
+          shouldConfirmHuman: true,
+        },
+      },
+      {
+        speech:
+          "I'm a virtual assistant, and I can help route your call to the right place. What can I help you with?",
+        expectedBehavior: {
+          shouldTransfer: false,
         },
       },
     ],

@@ -51,11 +51,18 @@ describe('Prompt evaluation – single-step', () => {
       const config = configFor(testCase);
       const testCallSid = `jest-single-${testCase.name}`;
 
-      if (testCase.transferAnnounced || testCase.awaitingHumanConfirmation) {
+      if (
+        testCase.awaitingHumanConfirmation ||
+        testCase.awaitingHumanClarification
+      ) {
         callStateManager.updateCallState(testCallSid, {
-          transferAnnounced:
-            testCase.transferAnnounced || testCase.awaitingHumanConfirmation,
-          awaitingHumanConfirmation: testCase.awaitingHumanConfirmation,
+          ...(testCase.awaitingHumanConfirmation && {
+            awaitingHumanConfirmation: true,
+          }),
+          ...(testCase.awaitingHumanClarification && {
+            awaitingHumanClarification: true,
+            awaitingHumanConfirmation: true,
+          }),
         });
       }
 
@@ -113,13 +120,13 @@ describe('Prompt evaluation – multi-step', () => {
     (isSkipped ? it.skip : it)(testCase.name, async () => {
       await delay(API_DELAY_MS);
       const config = { ...defaultConfig, ...testCase.config } as TransferConfig;
+      const testCallSid = `jest-${testCase.name}`;
       let previousMenus: MenuOption[][] = [];
       let lastPressedDTMF: string | undefined;
 
       for (let i = 0; i < testCase.steps.length; i++) {
         if (i > 0) await delay(API_DELAY_MS);
         const step = testCase.steps[i];
-        const testCallSid = `jest-${testCase.name}-${i}`;
         callStateManager.updateCallState(testCallSid, {
           previousMenus,
           lastPressedDTMF,
@@ -180,9 +187,7 @@ describe('Prompt evaluation – multi-step', () => {
         lastPressedDTMF = updatedState.lastPressedDTMF;
       }
 
-      for (let i = 0; i < testCase.steps.length; i++) {
-        callStateManager.clearCallState(`jest-${testCase.name}-${i}`);
-      }
+      callStateManager.clearCallState(testCallSid);
     });
   });
 });
@@ -193,7 +198,6 @@ describe('Prompt evaluation – hold detection', () => {
     speech: string;
     expectedHoldDetected: boolean;
     expectedAction?: string;
-    transferAnnounced?: boolean;
   }> = [
     {
       name: 'Hold - Please hold message',
@@ -232,6 +236,29 @@ describe('Prompt evaluation – hold detection', () => {
       expectedHoldDetected: false,
       expectedAction: 'speak',
     },
+    {
+      name: 'No Hold - Welcome message with name',
+      speech: 'Welcome to Verizon.',
+      expectedHoldDetected: false,
+    },
+    {
+      name: 'No Hold - Data entry prompt',
+      speech: 'To better serve you, please enter your five digit ZIP code.',
+      expectedHoldDetected: false,
+    },
+    {
+      name: 'No Hold - IVR menu mentions "hold" as an option',
+      speech: 'To place your call on hold, press 1. To continue, press 2.',
+      expectedHoldDetected: false,
+      expectedAction: 'press_digit',
+    },
+    {
+      name: 'No Hold - Short transition after hold ended',
+      speech:
+        'To track the status of a package, report a package delivery issue, or inquire about a service request, press 1.',
+      expectedHoldDetected: false,
+      expectedAction: 'press_digit',
+    },
   ];
 
   holdCases.forEach(testCase => {
@@ -245,7 +272,6 @@ describe('Prompt evaluation – hold detection', () => {
         currentSpeech: testCase.speech,
         previousMenus: [],
         callPurpose: 'speak with a representative',
-        transferAnnounced: testCase.transferAnnounced,
       });
 
       if (testCase.expectedAction) {
@@ -259,9 +285,9 @@ describe('Prompt evaluation – hold detection', () => {
     });
   });
 
-  it('Hold detection sets transferAnnounced in call state', async () => {
+  it('Hold detection returns wait action', async () => {
     await delay(API_DELAY_MS);
-    const testCallSid = 'jest-hold-transfer-announced';
+    const testCallSid = 'jest-hold-wait-action';
 
     const result = await processSpeech({
       callSid: testCallSid,
@@ -277,8 +303,6 @@ describe('Prompt evaluation – hold detection', () => {
     });
 
     expect(result.aiAction).toBe('wait');
-    const state = callStateManager.getCallState(testCallSid);
-    expect(state.transferAnnounced).toBe(true);
     callStateManager.clearCallState(testCallSid);
   });
 
@@ -286,8 +310,8 @@ describe('Prompt evaluation – hold detection', () => {
     await delay(API_DELAY_MS);
     const testCallSid = 'jest-hold-then-human';
 
-    // Step 1: Hold speech sets transferAnnounced
-    await processSpeech({
+    // Step 1: Hold speech - AI should return wait action
+    const holdResult = await processSpeech({
       callSid: testCallSid,
       speechResult:
         'Please hold while we connect you to the next available representative.',
@@ -300,9 +324,7 @@ describe('Prompt evaluation – hold detection', () => {
       testMode: true,
     });
 
-    // Verify transferAnnounced was set
-    const stateAfterHold = callStateManager.getCallState(testCallSid);
-    expect(stateAfterHold.transferAnnounced).toBe(true);
+    expect(holdResult.aiAction).toBe('wait');
 
     await delay(API_DELAY_MS);
 

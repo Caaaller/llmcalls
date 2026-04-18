@@ -4,7 +4,11 @@ After making any fix to test infrastructure, prompts, or call handling, rerun th
 
 ## MANDATORY: Be Trigger-Happy About Rerunning Live Calls
 
-After ANY change to prompts, IVR navigation, speech processing, endpointing, DTMF logic, or call-handling code, immediately kick off a live test call to validate — don't wait for the user to ask. Default to rerunning. Calls are cheap; stale assumptions are expensive. Use the `/calls/initiate` endpoint as oliverullman@gmail.com and watch the backend logs.
+After ANY change to prompts, IVR navigation, speech processing, endpointing, DTMF logic, or call-handling code, immediately kick off a live test call to validate — don't wait for the user to ask. Default to rerunning. Calls are cheap; stale assumptions are expensive. Use `pnpm --filter backend test:live:record` (NOT `/calls/initiate` — that's for user-initiated calls only).
+
+## MANDATORY: Run /verify-calls After Every Live Test
+
+After ANY live test run (test:live:record or test:replay-or-live), you MUST run `/verify-calls`. This is non-negotiable. The test framework's pass/fail is unreliable — it has repeatedly reported false passes (hold falsely detected, transfers without confirmation, calls ending after 3 turns). The `/verify-calls` skill queries MongoDB for actual transcripts and forces you to verify each call honestly. NEVER report live test results without running this skill first.
 
 ## MANDATORY: Use oliverullman@gmail.com for All API Calls
 

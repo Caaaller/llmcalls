@@ -18,6 +18,8 @@ export interface LiveCallTestCase {
     expectedDigits?: string[];
     maxDurationSeconds?: number;
     minDurationSeconds?: number;
+    /** Set to false to skip the "no application error" check (defaults to failing on errors). */
+    failOnApplicationError?: boolean;
   };
 }
 
@@ -147,7 +149,8 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
       'Member ID is 35142679. Date of birth is March 6th 1998. Provide these when asked.',
     skipInfoRequests: true,
     expectedOutcome: {
-      maxDurationSeconds: 300,
+      shouldReachHuman: true,
+      maxDurationSeconds: 600,
     },
   },
 ];

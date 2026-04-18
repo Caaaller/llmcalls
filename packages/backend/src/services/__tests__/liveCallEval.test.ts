@@ -139,12 +139,39 @@ async function assertOutcome(
       result.callSid
     );
     expect(transferred).toBe(true);
-  } else if (expectedOutcome.shouldReachHuman !== undefined) {
-    const transferred = await callHistoryService.hasSuccessfulTransfer(
+    // Stronger check: the transfer must have been preceded by a real human introduction
+    const reachedHuman = await callHistoryService.hasHumanIntroduction(
       result.callSid
     );
-    const onHold = await callHistoryService.hasReachedHoldQueue(result.callSid);
-    expect(transferred || onHold).toBe(expectedOutcome.shouldReachHuman);
+    expect(reachedHuman).toBe(true);
+  } else if (expectedOutcome.shouldReachHuman !== undefined) {
+    if (expectedOutcome.shouldReachHuman) {
+      // Require either (a) a real human intro in transcript, or (b) a legitimate hold queue
+      const reachedHuman = await callHistoryService.hasHumanIntroduction(
+        result.callSid
+      );
+      const onHold = await callHistoryService.hasReachedHoldQueue(
+        result.callSid
+      );
+      expect(reachedHuman || onHold).toBe(true);
+    } else {
+      const transferred = await callHistoryService.hasSuccessfulTransfer(
+        result.callSid
+      );
+      const onHold = await callHistoryService.hasReachedHoldQueue(
+        result.callSid
+      );
+      expect(transferred || onHold).toBe(false);
+    }
+  }
+
+  // Fail on application errors (caused by Telnyx 422 "call already ended" — indicates
+  // a bug where we tried to speak/act on a terminated call)
+  if (expectedOutcome.failOnApplicationError !== false) {
+    const hadError = await callHistoryService.hasApplicationError(
+      result.callSid
+    );
+    expect(hadError).toBe(false);
   }
 
   if (expectedOutcome.maxDurationSeconds !== undefined) {
@@ -161,8 +188,11 @@ async function assertOutcome(
 }
 
 const ALL_CASES = [...DEFAULT_TEST_CASES, ...TEST_IVR_CASES];
-const testCases = process.env.LIVE_EVAL_CASE
-  ? ALL_CASES.filter(tc => tc.id === process.env.LIVE_EVAL_CASE)
+const caseFilter = process.env.LIVE_EVAL_CASE
+  ? new Set(process.env.LIVE_EVAL_CASE.split(',').map(s => s.trim()))
+  : null;
+const testCases = caseFilter
+  ? ALL_CASES.filter(tc => caseFilter.has(tc.id))
   : process.env.LIVE_EVAL_IVR
     ? TEST_IVR_CASES
     : process.env.LIVE_EVAL_LONG

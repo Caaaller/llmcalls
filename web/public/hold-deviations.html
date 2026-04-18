@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hold Queue Deviations — USPS & Best Buy</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", monospace;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 22px; margin-bottom: 6px; }
+  h2 {
+    font-size: 18px;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+  .flow-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .flow {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .flow-title {
+    font-weight: 600;
+    margin-bottom: 14px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .flow-title.expected { color: var(--green); }
+  .flow-title.actual { color: var(--red); }
+  .step {
+    display: flex;
+    gap: 10px;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    background: var(--panel2);
+    border-left: 3px solid var(--border);
+  }
+  .step.ivr { border-left-color: var(--blue); }
+  .step.ai { border-left-color: var(--purple); }
+  .step.decision { border-left-color: var(--yellow); }
+  .step.deviation { border-left-color: var(--red); background: rgba(248,81,73,0.08); }
+  .step.resolved { border-left-color: var(--green); background: rgba(63,185,80,0.08); }
+  .step-time {
+    color: var(--muted);
+    font-size: 11px;
+    min-width: 45px;
+    font-family: monospace;
+  }
+  .step-actor {
+    font-weight: 600;
+    font-size: 11px;
+    min-width: 42px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    height: fit-content;
+    text-transform: uppercase;
+  }
+  .step-actor.ivr { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .step-actor.ai { background: rgba(188,140,255,0.15); color: var(--purple); }
+  .step-actor.sys { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .step-text { flex: 1; }
+  .arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 16px;
+    padding: 4px 0;
+  }
+  .deviation-point {
+    background: rgba(248,81,73,0.15);
+    border: 1px dashed var(--red);
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .deviation-point b { color: var(--red); }
+  .analysis {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  .analysis h3 { font-size: 14px; margin-bottom: 10px; color: var(--yellow); }
+  .analysis p { color: var(--muted); margin-bottom: 8px; }
+  .analysis code { background: var(--panel2); padding: 2px 6px; border-radius: 3px; color: var(--blue); }
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .tag.bug { background: rgba(248,81,73,0.2); color: var(--red); }
+  .tag.ok { background: rgba(63,185,80,0.2); color: var(--green); }
+</style>
+</head>
+<body>
+
+<h1>Why USPS & Best Buy Entered Hold Queue Incorrectly</h1>
+<p class="subtitle">Comparing expected AI flow vs what actually happened, and the root cause of each deviation.</p>
+
+<!-- ═════════════════════ USPS ═════════════════════ -->
+<h2>1. USPS — "Please stay on the line" misinterpreted as hold <span class="tag bug">AI error</span></h2>
+
+<div class="flow-grid">
+  <!-- EXPECTED -->
+  <div class="flow">
+    <div class="flow-title expected">✓ EXPECTED FLOW</div>
+
+    <div class="step ivr">
+      <span class="step-time">+0s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Thank you for calling USPS customer care center."</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+6s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"To hear our privacy policy, press 2."</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ai">
+      <span class="step-time">+9s</span>
+      <span class="step-actor ai">AI</span>
+      <span class="step-text">Says "failed package pickup" (purpose)</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+16s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Please stay on the line at the end for a survey. How can I help you?"</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step decision">
+      <span class="step-time">+17s</span>
+      <span class="step-actor sys">AI</span>
+      <span class="step-text"><b>action: speak</b> → respond with "failed package pickup" again<br>
+      <code>holdDetected: false</code> (survey mention ≠ hold)</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step resolved">
+      <span class="step-time">+20s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">Continues with "What's the tracking number?" (actual routing)</span>
+    </div>
+  </div>
+
+  <!-- ACTUAL -->
+  <div class="flow">
+    <div class="flow-title actual">✗ ACTUAL FLOW</div>
+
+    <div class="step ivr">
+      <span class="step-time">+0s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Thank you for calling USPS customer care center."</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+6s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"To hear our privacy policy, press 2."</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ai">
+      <span class="step-time">+9s</span>
+      <span class="step-actor ai">AI</span>
+      <span class="step-text">Says "failed package pickup"</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+16s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Please stay on the line at the end for a survey. How can I help you?"</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+19s</span>
+      <span class="step-actor sys">AI</span>
+      <span class="step-text"><b>action: wait</b> + <code>holdDetected: true</code> 🚨<br>
+      AI interpreted "stay on the line" as hold queue phrasing</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+19s</span>
+      <span class="step-actor sys">DB</span>
+      <span class="step-text">Backend writes <code>hold/</code> event to MongoDB</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+21s</span>
+      <span class="step-actor ai">AI</span>
+      <span class="step-text">Asks "Hi, am I speaking with a live agent?" (on "How can I help you?")</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+34s</span>
+      <span class="step-actor sys">TEST</span>
+      <span class="step-text">Test framework: hold + 15s → terminates call</span>
+    </div>
+  </div>
+</div>
+
+<div class="analysis">
+  <h3>Root cause — USPS</h3>
+  <p><b>gpt-4o-mini misinterprets "Please stay on the line at the end of this call to take a short survey" as hold queue phrasing.</b></p>
+  <p>The prompt tells the AI to set <code>holdDetected: true</code> for phrases like "please hold" and "stay on the line." The AI sees "stay on the line" and flags it — even though the context is a survey announcement, not hold music.</p>
+  <p><b>Fix options:</b></p>
+  <p>1. Tighten the prompt: "stay on the line" alone is NOT hold — only phrases like "please hold", "all agents are busy", "estimated wait time".</p>
+  <p>2. Require a corroborating signal (no IVR menu presented after the phrase, or wait-time mention).</p>
+</div>
+
+<!-- ═════════════════════ BEST BUY ═════════════════════ -->
+<h2>2. Best Buy — 30s silent gap misread as hold queue <span class="tag bug">Silent hold timer false positive</span></h2>
+
+<div class="flow-grid">
+  <!-- EXPECTED -->
+  <div class="flow">
+    <div class="flow-title expected">✓ EXPECTED FLOW</div>
+
+    <div class="step ivr">
+      <span class="step-time">+0s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Welcome to Best Buy. Virtual assistant. Now what can I help you with?"</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ai">
+      <span class="step-time">+7s</span>
+      <span class="step-actor ai">AI</span>
+      <span class="step-text">"Hi, am I speaking with a live agent?" (confirmation)</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+25s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Okay. Briefly describe why you're calling."</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ai">
+      <span class="step-time">+28s</span>
+      <span class="step-actor ai">AI</span>
+      <span class="step-text">"I'm sorry, are you a human or an automated message?" (clarification)</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+33s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"I am Best Buy's virtual assistant and not a human."</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step decision">
+      <span class="step-time">+40s</span>
+      <span class="step-actor sys">AI</span>
+      <span class="step-text"><b>Bot self-identifies</b> → backend override → <code>action: wait</code><br>
+      Continue IVR navigation</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step resolved">
+      <span class="step-time">+45s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">Continues with menu — AI picks "recent order"</span>
+    </div>
+  </div>
+
+  <!-- ACTUAL -->
+  <div class="flow">
+    <div class="flow-title actual">✗ ACTUAL FLOW</div>
+
+    <div class="step ivr">
+      <span class="step-time">+0s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Welcome to Best Buy. Virtual assistant. Now what can I help you with?"</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ai">
+      <span class="step-time">+7s</span>
+      <span class="step-actor ai">AI</span>
+      <span class="step-text">"Hi, am I speaking with a live agent?"</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+25s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"Okay. Briefly describe why you're calling."</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ai">
+      <span class="step-time">+28s</span>
+      <span class="step-actor ai">AI</span>
+      <span class="step-text">"I'm sorry, are you a human or an automated message?"</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step ivr">
+      <span class="step-time">+33s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">"I understand you want to..." (partial fragment, then silence)</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+33-66s</span>
+      <span class="step-actor sys">DG</span>
+      <span class="step-text">🤫 <b>33s of no Deepgram transcription</b><br>
+      Best Buy IVR is thinking/buffering, no audio reaches Deepgram</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+66s</span>
+      <span class="step-actor sys">TIMER</span>
+      <span class="step-text"><b>SILENT_HOLD_TIMEOUT_MS (30s) fires</b> 🚨<br>
+      Backend writes <code>hold/</code> event — no AI involved</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+68s</span>
+      <span class="step-actor ivr">IVR</span>
+      <span class="step-text">Finally continues: "I am Best Buy's virtual assistant..." (too late)</span>
+    </div>
+    <div class="arrow">↓</div>
+    <div class="step deviation">
+      <span class="step-time">+81s</span>
+      <span class="step-actor sys">TEST</span>
+      <span class="step-text">Test framework sees hold + 15s → terminates call</span>
+    </div>
+  </div>
+</div>
+
+<div class="analysis">
+  <h3>Root cause — Best Buy</h3>
+  <p><b>A 33-second gap in Deepgram transcription (while Best Buy's IVR was processing) tripped the backend silent-hold timer.</b></p>
+  <p>The silent-hold timer is a backend safety net: if no speech is transcribed for 30s, assume we're on hold (since hold music often doesn't transcribe). It resets on every IVR utterance AND every AI action.</p>
+  <p>In Best Buy's case: after the AI asked clarification at +28s, the IVR started replying ("I understand you want to...") then went silent for 33s while buffering its next response. The timer fired during that gap.</p>
+  <p><b>Fix options:</b></p>
+  <p>1. Bump timeout to 45-60s (user previously declined this).</p>
+  <p>2. Require <b>two</b> consecutive silent windows before firing (single gap = IVR thinking, repeated = real hold).</p>
+  <p>3. Don't fire silent hold if we recently asked a confirmation question — human response may take time.</p>
+</div>
+
+<h2>Summary</h2>
+<div class="analysis">
+  <p><b>USPS:</b> AI hallucinated hold on the phrase "stay on the line" (meant for end-of-call survey, not hold queue). Pure prompt/AI issue.</p>
+  <p><b>Best Buy:</b> Backend silent-hold timer fired during a 33s Deepgram gap caused by IVR buffering. The timer resets on AI/IVR activity but can't distinguish "IVR is thinking" from "we're on hold with music."</p>
+  <p><b>Both</b> got terminated by the test framework's 15s post-hold exit — but the hold events themselves were generated by different mechanisms (AI judgment vs backend timer).</p>
+</div>
+
+</body>
+</html>

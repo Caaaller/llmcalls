@@ -9,6 +9,7 @@ import type { VoiceProcessingResult } from '../../types/voiceProcessing';
 export interface EvalExpected {
   transferRequested?: boolean;
   shouldConfirmHuman?: boolean;
+  shouldConfirmHumanUnclear?: boolean;
   shouldTerminate?: boolean;
   terminationReason?: string | null;
   isIVRMenu?: boolean;
@@ -22,6 +23,7 @@ export interface EvalExpected {
 interface SingleStepExpectedBehavior {
   shouldTransfer?: boolean;
   shouldConfirmHuman?: boolean;
+  shouldConfirmHumanUnclear?: boolean;
   shouldPressDTMF?: boolean;
   expectedDigit?: string;
   shouldTerminate?: boolean;
@@ -36,6 +38,9 @@ interface StepExpectedBehavior {
   shouldNotPressAgain?: boolean;
   shouldTerminate?: boolean;
   terminationReason?: 'voicemail' | 'closed_no_menu' | 'dead_end' | null;
+  shouldConfirmHuman?: boolean;
+  shouldTransfer?: boolean;
+  shouldConfirmHumanUnclear?: boolean;
 }
 
 export function expectedFromSingleStepBehavior(
@@ -46,6 +51,8 @@ export function expectedFromSingleStepBehavior(
     expected.transferRequested = eb.shouldTransfer;
   if (eb.shouldConfirmHuman !== undefined)
     expected.shouldConfirmHuman = eb.shouldConfirmHuman;
+  if (eb.shouldConfirmHumanUnclear !== undefined)
+    expected.shouldConfirmHumanUnclear = eb.shouldConfirmHumanUnclear;
   if (eb.shouldTerminate !== undefined)
     expected.shouldTerminate = eb.shouldTerminate;
   if (eb.terminationReason !== undefined)
@@ -67,6 +74,12 @@ export function expectedFromStepBehavior(
     expected.terminationReason = eb.terminationReason;
   if (eb.shouldDetectLoop !== undefined)
     expected.loopDetected = eb.shouldDetectLoop;
+  if (eb.shouldConfirmHuman !== undefined)
+    expected.shouldConfirmHuman = eb.shouldConfirmHuman;
+  if (eb.shouldTransfer !== undefined)
+    expected.transferRequested = eb.shouldTransfer;
+  if (eb.shouldConfirmHumanUnclear !== undefined)
+    expected.shouldConfirmHumanUnclear = eb.shouldConfirmHumanUnclear;
   if (eb.shouldNotPressAgain) {
     expected.shouldPreventDTMF = true;
     expected.shouldPress = false;
@@ -86,6 +99,7 @@ export function actualFromResult(
   return {
     transferRequested: pr.transferRequested || aiAction === 'human_detected',
     shouldConfirmHuman: aiAction === 'maybe_human',
+    shouldConfirmHumanUnclear: aiAction === 'maybe_human_unclear',
     shouldTerminate: pr.shouldTerminate,
     terminationReason: pr.terminationReason ?? undefined,
     isIVRMenu: pr.isIVRMenu,

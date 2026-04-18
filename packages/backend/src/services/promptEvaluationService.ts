@@ -19,11 +19,12 @@ export interface PromptTestCase {
   speech: string;
   previousSpeech?: string;
   config?: Partial<TransferConfig>;
-  transferAnnounced?: boolean;
   awaitingHumanConfirmation?: boolean;
+  awaitingHumanClarification?: boolean;
   expectedBehavior: {
     shouldTransfer?: boolean;
     shouldConfirmHuman?: boolean;
+    shouldConfirmHumanUnclear?: boolean;
     shouldPressDTMF?: boolean;
     expectedDigit?: string;
     shouldTerminate?: boolean;
@@ -48,6 +49,9 @@ export interface MultiStepTestCase {
       shouldNotPressAgain?: boolean; // If DTMF was already pressed, should not press again
       shouldTerminate?: boolean;
       terminationReason?: 'voicemail' | 'closed_no_menu' | 'dead_end' | null;
+      shouldConfirmHuman?: boolean;
+      shouldTransfer?: boolean;
+      shouldConfirmHumanUnclear?: boolean;
     };
   }>;
   config?: Partial<TransferConfig>;
@@ -144,11 +148,18 @@ class PromptEvaluationService {
     try {
       const testCallSid = `test-single-${testCase.name}`;
 
-      if (testCase.transferAnnounced || testCase.awaitingHumanConfirmation) {
+      if (
+        testCase.awaitingHumanConfirmation ||
+        testCase.awaitingHumanClarification
+      ) {
         callStateManager.updateCallState(testCallSid, {
-          transferAnnounced:
-            testCase.transferAnnounced || testCase.awaitingHumanConfirmation,
-          awaitingHumanConfirmation: testCase.awaitingHumanConfirmation,
+          ...(testCase.awaitingHumanConfirmation && {
+            awaitingHumanConfirmation: true,
+          }),
+          ...(testCase.awaitingHumanClarification && {
+            awaitingHumanClarification: true,
+            awaitingHumanConfirmation: true, // clarification implies confirmation was already asked
+          }),
         });
       }
 
@@ -187,6 +198,19 @@ class PromptEvaluationService {
         if (gotMaybeHuman !== testCase.expectedBehavior.shouldConfirmHuman) {
           errors.push(
             `Human confirmation mismatch: expected shouldConfirmHuman=${testCase.expectedBehavior.shouldConfirmHuman}, got aiAction=${result.aiAction}`
+          );
+        }
+      }
+
+      // Test maybe_human_unclear detection
+      if (testCase.expectedBehavior.shouldConfirmHumanUnclear !== undefined) {
+        const gotMaybeHumanUnclear = result.aiAction === 'maybe_human_unclear';
+        if (
+          gotMaybeHumanUnclear !==
+          testCase.expectedBehavior.shouldConfirmHumanUnclear
+        ) {
+          errors.push(
+            `Human unclear mismatch: expected shouldConfirmHumanUnclear=${testCase.expectedBehavior.shouldConfirmHumanUnclear}, got aiAction=${result.aiAction}`
           );
         }
       }
@@ -310,6 +334,7 @@ class PromptEvaluationService {
     const stepResults: MultiStepTestResult['stepResults'] = [];
     let previousMenus: MenuOption[][] = [];
     let lastPressedDTMF: string | undefined;
+    const testCallSid = `test-${testCase.name}`;
 
     for (let i = 0; i < testCase.steps.length; i++) {
       const step = testCase.steps[i];
@@ -320,7 +345,6 @@ class PromptEvaluationService {
 
       try {
         // Sync eval service state to callStateManager (so processSpeech uses the same state)
-        const testCallSid = `test-${testCase.name}-${i}`;
         callStateManager.updateCallState(testCallSid, {
           previousMenus,
           lastPressedDTMF,
@@ -409,6 +433,36 @@ class PromptEvaluationService {
                 `Termination reason mismatch at step ${i + 1}: expected ${step.expectedBehavior.terminationReason}, got ${processingResult.terminationReason}`
               );
             }
+          }
+        }
+
+        // Validate human detection
+        if (step.expectedBehavior.shouldConfirmHuman !== undefined) {
+          const gotMaybeHuman = result.aiAction === 'maybe_human';
+          if (gotMaybeHuman !== step.expectedBehavior.shouldConfirmHuman) {
+            stepErrors.push(
+              `Human confirmation mismatch at step ${i + 1}: expected shouldConfirmHuman=${step.expectedBehavior.shouldConfirmHuman}, got aiAction=${result.aiAction}`
+            );
+          }
+        }
+
+        if (step.expectedBehavior.shouldTransfer !== undefined) {
+          const gotTransfer =
+            result.aiAction === 'human_detected' ||
+            processingResult.transferRequested;
+          if (gotTransfer !== step.expectedBehavior.shouldTransfer) {
+            stepErrors.push(
+              `Transfer mismatch at step ${i + 1}: expected shouldTransfer=${step.expectedBehavior.shouldTransfer}, got aiAction=${result.aiAction}`
+            );
+          }
+        }
+
+        if (step.expectedBehavior.shouldConfirmHumanUnclear !== undefined) {
+          const gotUnclear = result.aiAction === 'maybe_human_unclear';
+          if (gotUnclear !== step.expectedBehavior.shouldConfirmHumanUnclear) {
+            stepErrors.push(
+              `Human unclear mismatch at step ${i + 1}: expected shouldConfirmHumanUnclear=${step.expectedBehavior.shouldConfirmHumanUnclear}, got aiAction=${result.aiAction}`
+            );
           }
         }
 

@@ -464,6 +464,41 @@ class CallHistoryService {
   }
 
   /**
+   * Check if a real human introduced themselves in this call's transcript.
+   * Looks for patterns like "This is [Name]", "My name is [Name]", "You've reached [Name]",
+   * "I'm [Name]", "You're speaking to [Name]", "[Name] speaking".
+   * Used to verify that a transfer actually reached a human vs. just an IVR prompt.
+   */
+  async hasHumanIntroduction(callSid: string): Promise<boolean> {
+    const call = await this.getCall(callSid);
+    if (!call?.events) return false;
+    const INTRO =
+      /\b[Tt]his is [A-Z][a-z]+[,.!?\s]|\b[Mm]y name is [A-Z][a-z]+[,.!?\s]|\b[Yy]ou('ve| have) reached [A-Z][a-z]+|\bI'm [A-Z][a-z]+[,.!?\s]|\b[Yy]ou('re| are) (now )?(connected|speaking|talking) (to|with) [A-Z][a-z]+|\b[A-Z][a-z]+ speaking[,.!?\s]/;
+    return call.events.some(
+      e =>
+        e.eventType === 'conversation' &&
+        (e as { type?: string }).type === 'user' &&
+        INTRO.test(((e as { text?: string }).text as string) || '')
+    );
+  }
+
+  /**
+   * Check if a call had an application error (TTS failure post-hangup, etc.)
+   */
+  async hasApplicationError(callSid: string): Promise<boolean> {
+    const call = await this.getCall(callSid);
+    if (!call?.events) return false;
+    return call.events.some(
+      e =>
+        e.eventType === 'conversation' &&
+        (e as { type?: string }).type === 'ai' &&
+        /application error has occurred/.test(
+          ((e as { text?: string }).text as string) || ''
+        )
+    );
+  }
+
+  /**
    * Get all calls
    */
   async getAllCalls(limit: number = 100) {

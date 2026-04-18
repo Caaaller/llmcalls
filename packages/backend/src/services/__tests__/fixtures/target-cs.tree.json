@@ -2,7 +2,7 @@
   "version": 2,
   "id": "target-cs",
   "testCaseId": "target-cs",
-  "lastRecordedAt": "2026-04-07T23:26:30.522Z",
+  "lastRecordedAt": "2026-04-17T21:44:09.075Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-06T14:08:06.888Z",
+        "recordedAt": "2026-04-16T22:16:31.297Z",
         "isLatestPath": false,
         "child": {
           "id": "n1",
@@ -465,7 +465,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-06T14:08:06.888Z",
+              "recordedAt": "2026-04-16T22:16:31.297Z",
               "isLatestPath": false,
               "child": {
                 "id": "n16",
@@ -485,14 +485,178 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-06T14:08:06.888Z",
+                    "recordedAt": "2026-04-16T22:16:31.297Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n19",
+                      "ivrSpeech": "Sorry. We didn't get that. Please try again. Target store experience, press 1.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "1",
+                            "reason": "AI selected: The menu options have repeated, and I need to select the best option for my call purpose.",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-16T21:40:42.369Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n20",
+                            "ivrSpeech": "For information about Target's privacy practices,",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "Hi, am I speaking with a live agent?",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-16T21:40:42.369Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 86,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": ["1", "1", "1"]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "*",
+                            "reason": "AI selected: rejected hallucinated press_digit 1: not present in transcript",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-16T22:16:31.297Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n21",
+                            "ivrSpeech": "For information about Target's privacy practices, including categories of personal information collected, collection and use purposes, retention information, and how to opt out of personal information being sold or shared for targeted advertising, please visit target.com/privacy Just a moment while we transfer you to a team member. For great service and target operations, your call may be monitored or recorded.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "Hi, am I speaking with a live agent?",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-16T22:16:31.297Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 120,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": ["1", "1", "*"]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "2",
+                      "reason": "AI selected: The menu is complete, and I need to select an option related to my in-store purchase question.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-16T21:20:42.279Z",
                     "isLatestPath": false,
                     "child": {
                       "terminal": true,
                       "finalStatus": "initiated",
-                      "durationSeconds": 53,
+                      "durationSeconds": 56,
                       "reachedHuman": true,
-                      "dtmfDigits": ["1", "1"]
+                      "dtmfDigits": ["1", "2"]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "aiAction": {
+                "action": "speak",
+                "speech": "in store purchase",
+                "reason": "",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-16T18:14:40.493Z",
+              "isLatestPath": false,
+              "child": {
+                "id": "n18",
+                "ivrSpeech": "Sorry. We didn't get that. Please try again. In storages, experience, or merchandise, press 1.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "1",
+                      "reason": "AI selected: The system is presenting the same menu options again, and I need to select the option for in-store purchase.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-16T18:14:40.494Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "terminal": true,
+                      "finalStatus": "initiated",
+                      "durationSeconds": 54,
+                      "reachedHuman": true,
+                      "dtmfDigits": ["1"]
                     }
                   }
                 ]
@@ -515,7 +679,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-07T23:26:30.521Z",
+        "recordedAt": "2026-04-17T21:44:09.075Z",
         "isLatestPath": true,
         "child": {
           "id": "n17",
@@ -535,14 +699,319 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-07T23:26:30.522Z",
+              "recordedAt": "2026-04-17T21:44:09.075Z",
               "isLatestPath": true,
               "child": {
-                "terminal": true,
-                "finalStatus": "initiated",
-                "durationSeconds": 54,
-                "reachedHuman": true,
-                "dtmfDigits": ["1"]
+                "id": "n22",
+                "ivrSpeech": "Sorry. We didn't get that. Please try again. In Target store experience, press 1. Price adjustments or Target Circle, press 2. Safety, property damage, injury, or illness concern with a product, press 3. Quality concern with a product, press 4. Recalls, press 5. To return to the main menu, press star.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "1",
+                      "reason": "AI selected: The menu is complete and I need to select an option for my in-store purchase question.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-17T21:44:09.075Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n23",
+                      "ivrSpeech": "Sorry. We didn't get that. Please try again. Target store experience, press 1. Price",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "1",
+                            "reason": "AI selected: The system presented the same menu options again, indicating a loop. I need to select the best option for my call purpose.",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-17T21:05:52.269Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 120,
+                            "reachedHuman": true,
+                            "dtmfDigits": ["1", "1", "1"]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "question about a recent in-store purchase",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-17T19:25:24.273Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n26",
+                            "ivrSpeech": "This is Jenny, one of the senior specialists from Target. How can I help? Hello? Can you hear me?",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "question about a recent in-store purchase",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-17T19:25:24.273Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n27",
+                                  "ivrSpeech": "Hi. It looks like",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "in store purchase",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-17T19:25:24.273Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n28",
+                                        "ivrSpeech": "hello? I'm here. Can you hear me? Looks like you directed me to a maintenance system. How can I help you?",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "question about a recent in-store purchase",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-17T19:25:24.273Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n29",
+                                              "ivrSpeech": "Hello. I haven't heard from you yet. Please let me know if you have question. Or concern to Target. If you have a or concern to Target about in store purchases, I'm happy to help you with that. Can you hear me?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "in store purchase",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-17T19:25:24.273Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n30",
+                                                    "ivrSpeech": "Hello?",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "question about a recent in-store purchase",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-17T19:25:24.273Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n31",
+                                                          "ivrSpeech": "Again, it still haven't heard from me yet. Just let me know if you have any question or concern with Target. If you have any question or concern to Target, because it is directly to automated system, I'm happy to assist you. You can",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "representative",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-17T19:25:24.274Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "terminal": true,
+                                                                "finalStatus": "initiated",
+                                                                "durationSeconds": 173,
+                                                                "reachedHuman": false,
+                                                                "dtmfDigits": [
+                                                                  "1",
+                                                                  "1"
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "*",
+                            "reason": "AI selected: rejected hallucinated press_digit 1: not present in transcript",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-17T21:44:09.075Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n32",
+                            "ivrSpeech": "For information about Target's privacy practices, including categories of personal information collected, collection and use purposes, retention information, and how to opt out of personal information being sold or shared for targeted advertising, please visit target.com/privacy Just a moment while we transfer you to a team member. For great service and target operations, your call may be monitored or recorded.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "Hi, am I speaking with a live agent?",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-17T21:44:09.075Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 120,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": ["1", "1", "*"]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "2",
+                      "reason": "AI selected: The menu is complete, and I need to select an option related to price adjustments or Target Circle.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-17T21:30:21.647Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n33",
+                      "ivrSpeech": "Sorry. We didn't get that. For information about Target's privacy practices, including categories of personal information collected, collection and use purposes, retention information, and how to opt out of personal information being sold or shared for targeted advertising, please visit target.com/privacy Just a moment while we transfer you to a team member. For great service and target operations, your call may be monitored or recorded.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "question about a recent in-store purchase",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-17T21:30:21.647Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 120,
+                            "reachedHuman": true,
+                            "dtmfDigits": ["1", "2"]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             }
           ]
