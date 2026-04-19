@@ -2,7 +2,7 @@
   "version": 2,
   "id": "bestbuy-cs",
   "testCaseId": "bestbuy-cs",
-  "lastRecordedAt": "2026-04-17T21:44:09.220Z",
+  "lastRecordedAt": "2026-04-18T20:48:59.484Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,8 +23,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-17T18:14:32.594Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-18T20:48:59.484Z",
+        "isLatestPath": true,
         "child": {
           "id": "n1",
           "ivrSpeech": "So I may not get everything right for quality assurance. Your call may be recorded by continuing you accept,",
@@ -66,8 +66,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-17T18:14:32.594Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-18T20:48:59.484Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n29",
                 "ivrSpeech": "Okay. To get you the right help, briefly describe why you're calling. Say something like, I'm checking my order status.",
@@ -86,8 +86,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-17T18:14:32.594Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-04-18T20:48:59.484Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n30",
                       "ivrSpeech": "I understand.",
@@ -246,8 +246,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-17T18:14:32.594Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-18T20:48:59.484Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n32",
                             "ivrSpeech": "To give the right support,",
@@ -266,8 +266,8 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-16T18:14:40.663Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-18T20:48:59.484Z",
+                                "isLatestPath": true,
                                 "child": {
                                   "id": "n41",
                                   "ivrSpeech": "I didn't hear that.",
@@ -627,8 +627,8 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-16T18:14:40.663Z",
-                                      "isLatestPath": false,
+                                      "recordedAt": "2026-04-18T20:48:59.484Z",
+                                      "isLatestPath": true,
                                       "child": {
                                         "id": "n67",
                                         "ivrSpeech": "what was the phone number on this order?",
@@ -647,8 +647,8 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-04-16T18:14:40.663Z",
-                                            "isLatestPath": false,
+                                            "recordedAt": "2026-04-18T20:48:59.484Z",
+                                            "isLatestPath": true,
                                             "child": {
                                               "id": "n68",
                                               "ivrSpeech": "I could find any orders associated with that phone number. Let's try again. You can also use your keypad to enter the complete 10 digit phone number. What was the phone number on this order?",
@@ -667,8 +667,8 @@
                                                       "transferRequested": false
                                                     }
                                                   },
-                                                  "recordedAt": "2026-04-16T18:14:40.663Z",
-                                                  "isLatestPath": false,
+                                                  "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                  "isLatestPath": true,
                                                   "child": {
                                                     "id": "n69",
                                                     "ivrSpeech": "Sorry. That still didn't work. To look up your full order info, go to bestbuy.com/orders. All updates are immediately displayed on that page. So connecting with an agent will not provide more information. Could we send you a one time text with a link to that page?",
@@ -687,14 +687,128 @@
                                                             "transferRequested": false
                                                           }
                                                         },
-                                                        "recordedAt": "2026-04-16T18:14:40.664Z",
-                                                        "isLatestPath": false,
+                                                        "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                        "isLatestPath": true,
                                                         "child": {
-                                                          "terminal": true,
-                                                          "finalStatus": "initiated",
-                                                          "durationSeconds": 130,
-                                                          "reachedHuman": true,
-                                                          "dtmfDigits": []
+                                                          "id": "n148",
+                                                          "ivrSpeech": "You for calling Best Buy. My name is Lisette. How can I help you today?",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "I have a question about my order.",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                              "isLatestPath": true,
+                                                              "child": {
+                                                                "id": "n149",
+                                                                "ivrSpeech": "Alright. Sure. Before we continue, may I have your full name and phone number associated with the order?",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "speak",
+                                                                      "speech": "Oliver Ullman, 7 2 0 5 8 4 6 3 5 8",
+                                                                      "reason": "",
+                                                                      "detected": {
+                                                                        "isIVRMenu": false,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": false,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                                    "isLatestPath": true,
+                                                                    "child": {
+                                                                      "id": "n150",
+                                                                      "ivrSpeech": "Okay. Could you repeat the phone number, please?",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "speak",
+                                                                            "speech": "7 2 0 5 8 4 6 3 5 8",
+                                                                            "reason": "",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                                          "isLatestPath": true,
+                                                                          "child": {
+                                                                            "id": "n151",
+                                                                            "ivrSpeech": "Okay. Just one second.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "wait",
+                                                                                  "reason": "No action before next speech",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                                                "isLatestPath": true,
+                                                                                "child": {
+                                                                                  "id": "n152",
+                                                                                  "ivrSpeech": "We are looking for the order. That phone number. May I confirm your email, please?",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "speak",
+                                                                                        "speech": "oliverullman@gmail.com",
+                                                                                        "reason": "",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": false,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": false,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                                                      "isLatestPath": true,
+                                                                                      "child": {
+                                                                                        "terminal": true,
+                                                                                        "finalStatus": "initiated",
+                                                                                        "durationSeconds": 228,
+                                                                                        "reachedHuman": true,
+                                                                                        "dtmfDigits": []
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
                                                         }
                                                       }
                                                     ]
@@ -1316,7 +1430,7 @@
           }
         },
         "recordedAt": "2026-04-17T21:44:09.220Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n17",
           "ivrSpeech": "Okay, to get you the right help. Briefly describe why you're calling say something. Like I'm checking my order status.",
@@ -1336,7 +1450,7 @@
                 }
               },
               "recordedAt": "2026-04-17T21:44:09.220Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n18",
                 "ivrSpeech": "Which are you calling about in order including a product or an appointment? Only?",
@@ -1356,7 +1470,7 @@
                       }
                     },
                     "recordedAt": "2026-04-17T21:44:09.220Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n19",
                       "ivrSpeech": "I didn't hear that. Which are you calling about an order including a product or an appointment? Only?",
@@ -1376,7 +1490,7 @@
                             }
                           },
                           "recordedAt": "2026-04-17T21:44:09.220Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n20",
                             "ivrSpeech": "I didn't get that. Could you say that again?",
@@ -1396,7 +1510,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-17T21:44:09.220Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n21",
                                   "ivrSpeech": "I,",
@@ -1415,7 +1529,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-17T21:44:09.220Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n22",
                                         "ivrSpeech": "I didn't hear that. I didn't get that. Could you say that again?",
@@ -1435,7 +1549,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-17T21:44:09.220Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n95",
                                               "ivrSpeech": "I couldn't find any order associated with that phone number.",
@@ -1455,7 +1569,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-17T21:44:09.220Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "terminal": true,
                                                     "finalStatus": "initiated",

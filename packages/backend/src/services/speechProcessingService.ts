@@ -245,20 +245,53 @@ export async function processSpeech({
     // AI ITSELF set in the response — the AI made the judgment, we just ensure its
     // declared action matches its declared observations.
 
-    // Consistency check: if the AI set humanIntroDetected=true (its own judgment
-    // that the speech contains a personal introduction), the action must also be
-    // human_detected. gpt-4o-mini sometimes sets the flag correctly but still
-    // returns "speak" because it tries to answer the human's question.
+    // Consistency check: if the AI set humanIntroDetected=true (a proper personal
+    // introduction), route through the MANDATORY confirmation flow.
+    // - No confirmation pending → maybe_human (system will ask "Am I speaking with
+    //   a live agent?"). Never fast-path to human_detected on a name alone.
+    // - Confirmation already pending → human_detected is fine.
+    const confirmationPending =
+      !!callState.awaitingHumanConfirmation ||
+      !!callState.awaitingHumanClarification;
     if (
       action.detected.humanIntroDetected &&
-      action.action !== 'human_detected' &&
+      !confirmationPending &&
+      action.action !== 'maybe_human' &&
       action.action !== 'hang_up' &&
       action.action !== 'press_digit'
     ) {
       console.log(
-        `⚠️ AI flag consistency: humanIntroDetected=true but action=${action.action} → human_detected`
+        `⚠️ AI flag consistency: humanIntroDetected=true + no confirmation pending → maybe_human (was ${action.action})`
       );
-      action.action = 'human_detected';
+      action.action = 'maybe_human';
+    }
+
+    // Consistency check: if the AI set isIVRMenu=true AND isMenuComplete=true and
+    // declared menu options with digits, it should press one. When AI returns "speak"
+    // instead, fall back to pressing the lowest digit FROM THE AI'S OWN DECLARED MENU
+    // OPTIONS. Do NOT fire this for wait actions — a wait on an IVR menu means the AI
+    // believes the menu is incomplete and we should listen for more options.
+    if (
+      action.detected.isIVRMenu &&
+      action.detected.isMenuComplete &&
+      action.action === 'speak' &&
+      action.detected.menuOptions &&
+      action.detected.menuOptions.length > 0
+    ) {
+      // Sort AI's own menuOptions by digit and pick the lowest valid one.
+      const sortedDigits = [...action.detected.menuOptions]
+        .map(o => o.digit)
+        .filter(d => typeof d === 'string' && /^\d$|^[*#]$/.test(d))
+        .sort();
+      if (sortedDigits.length > 0) {
+        console.log(
+          `⚠️ AI flag consistency: isIVRMenu=true + isMenuComplete=true but action=speak → press_digit=${sortedDigits[0]} (using AI's own declared options)`
+        );
+        action.action = 'press_digit';
+        action.digit = sortedDigits[0];
+      } else {
+        action.action = 'wait';
+      }
     }
 
     const result = mapActionToProcessingResult(

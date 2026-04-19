@@ -72,7 +72,7 @@ const singleStepCases: {
     {
       name: 'Maybe Human - Person introducing themselves after transfer',
       description:
-        'Should trigger maybe_human when someone introduces themselves',
+        'Clear personal intro ("My name is Sarah") → maybe_human to trigger mandatory confirmation question before transferring.',
       speech:
         'Hi, my name is Sarah from customer service, how can I help you today?',
       expectedBehavior: {
@@ -412,40 +412,53 @@ const singleStepCases: {
     {
       name: 'Human Detection - Unexpected greeting',
       description:
-        'Conversational greeting should trigger maybe_human even without prior transfer',
+        'Conversational greeting WITHOUT a name (could be bot or human) — answer with call purpose. If it is a human, they will introduce themselves on next turn.',
       speech: 'Hi, how can I help you today?',
-      expectedBehavior: { shouldConfirmHuman: true },
+      expectedBehavior: {
+        shouldTransfer: false,
+        shouldConfirmHuman: false,
+      },
     },
     {
       name: 'Human Detection - Introduces by name',
       description:
-        'Agent introducing themselves by name should trigger maybe_human',
+        'Agent introducing themselves by name → maybe_human to trigger mandatory confirmation question.',
       speech: 'Hi, my name is Sarah, how can I help?',
       expectedBehavior: { shouldConfirmHuman: true },
     },
     {
       name: 'Human Detection - Short hello',
-      description: 'Just "Hello?" should trigger maybe_human',
+      description:
+        'Just "Hello?" could be human or bot. Ambiguous — maybe_human to confirm.',
       speech: 'Hello?',
       expectedBehavior: { shouldConfirmHuman: true },
     },
     {
       name: 'Human Detection - Asks for account info',
-      description: 'Asking for personal info signals a human',
+      description:
+        'Asking for account info WITHOUT an introduction — could be bot (USPS IVR asks this too). Respond with call purpose.',
       speech: 'Can I get your account number?',
-      expectedBehavior: { shouldConfirmHuman: true },
+      expectedBehavior: {
+        shouldTransfer: false,
+        shouldConfirmHuman: false,
+      },
     },
     {
       name: 'Human Detection - Agent with department',
-      description: 'Name + department introduction signals human',
+      description:
+        'Name + department introduction ("this is Mike") → maybe_human to trigger confirmation question.',
       speech: 'Customer service, this is Mike',
       expectedBehavior: { shouldConfirmHuman: true },
     },
     {
       name: 'Human Detection - Casual speech',
-      description: 'Natural casual language signals human',
+      description:
+        'Casual conversational speech WITHOUT a name — could be bot. Respond with call purpose.',
       speech: 'Yeah, hi, what do you need help with?',
-      expectedBehavior: { shouldConfirmHuman: true },
+      expectedBehavior: {
+        shouldTransfer: false,
+        shouldConfirmHuman: false,
+      },
     },
   ],
 
@@ -553,18 +566,21 @@ const singleStepCases: {
     {
       name: 'Confirmation Edge - Virtual assistant',
       description:
-        'Bot identifies as virtual assistant — backend escalates to transfer (false positive accepted)',
+        'Bot self-identifies as virtual assistant during confirmation → NOT a human, do not transfer. Return wait/speak to continue IVR flow.',
       speech: "I'm a virtual assistant. I can help you with many things.",
       awaitingHumanConfirmation: true,
-      expectedBehavior: { shouldTransfer: true },
+      expectedBehavior: { shouldTransfer: false, shouldConfirmHuman: false },
     },
     {
       name: 'Confirmation Edge - Unclear mumble',
       description:
-        '"mmhm" in response to confirmation — backend escalates to transfer (human likely)',
+        'Unintelligible mumble "... mmhm ..." during confirmation → ambiguous, return maybe_human_unclear to ask more directly.',
       speech: '... mmhm ...',
       awaitingHumanConfirmation: true,
-      expectedBehavior: { shouldTransfer: true },
+      expectedBehavior: {
+        shouldConfirmHumanUnclear: true,
+        shouldTransfer: false,
+      },
     },
     {
       name: 'Confirmation Edge - No response',
@@ -890,7 +906,7 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   {
     name: 'Hold Then Human Pickup',
     description:
-      'On hold, then human picks up — should detect hold then maybe_human',
+      'On hold, then human picks up with clear introduction → maybe_human to trigger mandatory confirmation question before transferring.',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
@@ -931,7 +947,8 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   },
   {
     name: 'Queue Position Then Human',
-    description: 'Queue position announced, then human picks up',
+    description:
+      'Queue position announced, then someone picks up. "Hello, are you still there?" — no clear name — should be maybe_human to confirm.',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
@@ -952,7 +969,8 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   },
   {
     name: 'Menu With Hold Phrase Then Human',
-    description: 'IVR menu with hold phrase, then human appears',
+    description:
+      'IVR menu with hold phrase, then human says "this is customer service" (no proper name — just a department). Ambiguous — should be maybe_human.',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
@@ -974,21 +992,20 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   {
     name: 'Walmart Bot Self-Identifies During Confirmation',
     description:
-      'Walmart AI bot keeps talking conversationally during confirmation. Should NOT transfer — should go to clarification, then back to IVR if still uncertain.',
+      'Walmart AI bot keeps talking conversationally. AI should engage with its questions (not transfer) and never transfer to the bot itself. Three exchanges where AI responds with its purpose/call topic instead of transferring.',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
         speech:
           "I see you wanna speak with a representative. I'll do my best to help you out right now. What can I help you with?",
         expectedBehavior: {
-          shouldConfirmHuman: true,
+          shouldTransfer: false,
         },
       },
       {
         speech:
           "You're speaking with Walmart's AI powered customer care agent. I can help with most things you'd need from customer care.",
         expectedBehavior: {
-          shouldConfirmHumanUnclear: true,
           shouldTransfer: false,
         },
       },
@@ -1004,7 +1021,7 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   {
     name: 'Human Intro Mid-Call — "My name is Jeremy" after hold',
     description:
-      'After hold queue, a real agent picks up and introduces themselves. Should transfer immediately — do NOT answer their question about our name. Previously AI returned speak with "failed package pickup" instead of human_detected.',
+      'After hold queue, a real agent picks up and introduces themselves. Should return maybe_human to trigger the confirmation question — do NOT skip confirmation just because a name is present. Transfer happens only after confirmation.',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
@@ -1018,7 +1035,7 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
         speech:
           'Thank you for calling. My name is Jeremy. May I have your name, please?',
         expectedBehavior: {
-          shouldTransfer: true,
+          shouldConfirmHuman: true,
         },
       },
     ],
@@ -1026,7 +1043,7 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   {
     name: 'Human Intro Mid-Call — "You\'re through to Bendulo" (STT garbled)',
     description:
-      'Agent introduces with variation "You\'re through to [Name]". STT may garble the name. AI should still detect the intro pattern and transfer.',
+      'Agent introduces with variation "You\'re through to [Name]". AI should return maybe_human to trigger the mandatory confirmation question before transferring.',
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
@@ -1039,7 +1056,7 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
         speech:
           "Pest Pie. You're through to Bendulo. How may I assist you today?",
         expectedBehavior: {
-          shouldTransfer: true,
+          shouldConfirmHuman: true,
         },
       },
     ],
@@ -1087,13 +1104,13 @@ export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [
   {
     name: 'Best Buy Virtual Assistant Self-Identifies',
     description:
-      'Best Buy virtual assistant responds during confirmation — should not transfer since it says "virtual assistant".',
+      "Best Buy virtual assistant conversational flow. AI should respond with call purpose to bot's questions, never transfer to the bot itself.",
     config: DEFAULT_CALL_PURPOSE,
     steps: [
       {
         speech: 'Now what can I help you with?',
         expectedBehavior: {
-          shouldConfirmHuman: true,
+          shouldTransfer: false,
         },
       },
       {

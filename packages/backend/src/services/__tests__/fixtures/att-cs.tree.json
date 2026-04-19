@@ -2,7 +2,7 @@
   "version": 2,
   "id": "att-cs",
   "testCaseId": "att-cs",
-  "lastRecordedAt": "2026-04-17T21:44:09.597Z",
+  "lastRecordedAt": "2026-04-18T20:48:59.809Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,8 +23,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-17T18:14:32.920Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-18T20:48:59.808Z",
+        "isLatestPath": true,
         "child": {
           "id": "n1",
           "ivrSpeech": "What's the issue you're calling about?",
@@ -43,8 +43,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-17T18:14:32.920Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-18T20:48:59.808Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "So, I can help you what's the account number or phone number on the account.",
@@ -63,8 +63,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-17T18:14:32.920Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-04-18T20:48:59.808Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n3",
                       "ivrSpeech": "1 moment please, I found multiple Mobility accounts. What is the wireless number you are calling about",
@@ -83,8 +83,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-17T18:14:32.920Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-18T20:48:59.808Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n156",
                             "ivrSpeech": "I understand you want to speak to an agent. But without more information, you may reach the wrong agent increasing your time. Now how can I help with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -242,8 +242,8 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-17T18:14:32.920Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-18T20:48:59.808Z",
+                                "isLatestPath": true,
                                 "child": {
                                   "id": "n161",
                                   "ivrSpeech": "What help do you need with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -262,8 +262,8 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-17T18:14:32.920Z",
-                                      "isLatestPath": false,
+                                      "recordedAt": "2026-04-18T20:48:59.808Z",
+                                      "isLatestPath": true,
                                       "child": {
                                         "id": "n162",
                                         "ivrSpeech": "If I don't hear something from you soon, I will need to disconnect the call. What help do you need with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -282,14 +282,37 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-04-17T18:14:32.920Z",
-                                            "isLatestPath": false,
+                                            "recordedAt": "2026-04-18T20:48:59.808Z",
+                                            "isLatestPath": true,
                                             "child": {
-                                              "terminal": true,
-                                              "finalStatus": "initiated",
-                                              "durationSeconds": 115,
-                                              "reachedHuman": true,
-                                              "dtmfDigits": []
+                                              "id": "n172",
+                                              "ivrSpeech": "Sorry. I was unable to hear anything. I'll end the call for now. Visit att.com/support for 247 access to a variety of resources, including billing and payments, troubleshooting, appointment, and account support.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "pay my bill",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-18T20:48:59.809Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 107,
+                                                    "reachedHuman": false,
+                                                    "dtmfDigits": []
+                                                  }
+                                                }
+                                              ]
                                             }
                                           }
                                         ]
@@ -1733,7 +1756,7 @@
           }
         },
         "recordedAt": "2026-04-17T21:44:09.597Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n18",
           "ivrSpeech": "So, I can help you what's the account number or phone number on the account.",
@@ -1753,7 +1776,7 @@
                 }
               },
               "recordedAt": "2026-04-17T21:44:09.597Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n19",
                 "ivrSpeech": "If I don't hear something from you soon, I will need to disconnect the call.  Can you tell me the account number or phone number on the account?",
@@ -1773,7 +1796,7 @@
                       }
                     },
                     "recordedAt": "2026-04-17T21:44:09.597Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n150",
                       "ivrSpeech": "If I'd hear something from you soon, I will need to disconnect the call. Can you tell me the account number or phone number on the account?",
@@ -1793,7 +1816,7 @@
                             }
                           },
                           "recordedAt": "2026-04-17T21:44:09.597Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n167",
                             "ivrSpeech": "If I don't hear something from you soon, I will need to disconnect the call. What help do you need with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -1860,7 +1883,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-17T21:44:09.597Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n169",
                                   "ivrSpeech": "Please wait.",
@@ -1880,7 +1903,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-17T21:44:09.597Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n170",
                                         "ivrSpeech": "Let me find someone to help you. One moment while I get an agent to help you.",
@@ -1900,7 +1923,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-17T21:44:09.597Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n171",
                                               "ivrSpeech": "All of our service representatives are currently helping other customers. We are experiencing heavy call volumes, which may result in a delay of more than ten minutes before being connected to a representative.",
@@ -1920,7 +1943,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-17T21:44:09.597Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "terminal": true,
                                                     "finalStatus": "initiated",

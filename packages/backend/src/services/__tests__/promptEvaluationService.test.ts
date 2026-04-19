@@ -306,7 +306,7 @@ describe('Prompt evaluation – hold detection', () => {
     callStateManager.clearCallState(testCallSid);
   });
 
-  it('Human detected after hold triggers maybe_human', async () => {
+  it('Human speech after hold returns maybe_human to trigger mandatory confirmation', async () => {
     await delay(API_DELAY_MS);
     const testCallSid = 'jest-hold-then-human';
 
@@ -328,7 +328,8 @@ describe('Prompt evaluation – hold detection', () => {
 
     await delay(API_DELAY_MS);
 
-    // Step 2: Human speech should trigger maybe_human
+    // Step 2: Human speech with a clear personal intro → maybe_human so we ask
+    // the confirmation question before transferring.
     const result = await processSpeech({
       callSid: testCallSid,
       speechResult:

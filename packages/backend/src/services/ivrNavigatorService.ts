@@ -145,20 +145,20 @@ function buildCallActionSchema(skipInfoRequests: boolean): string {
     "loopDetected": true/false,
     "shouldTerminate": true/false,
     "terminationReason": "voicemail" | "closed_no_menu" | "dead_end" | null,
-    "transferRequested": true/false,
+    "transferRequested": true/false,  // Set TRUE only when the IVR announces it is transferring us ("I'm transferring you now", "Please hold while I connect you", "One moment while I transfer you"). Do NOT set true just because an IVR menu mentions a "representative" option or because we're in confirmation mode. An IVR menu offering choices is NOT a transfer announcement.
     "transferConfidence": 0.0-1.0,
     "dataEntryMode": "dtmf" | "speech" | "none",
     "holdDetected": true/false,
-    "humanIntroDetected": true/false
+    "humanIntroDetected": true/false  // Set TRUE whenever the speech contains a personal introduction with a REAL PERSON'S FIRST NAME. Patterns: "My name is [FirstName]", "This is [FirstName]", "You've reached [FirstName]", "I'm [FirstName]", "[FirstName] speaking", "You're connected to [FirstName]", "You're speaking with [FirstName]". The slot MUST be a proper given name (Sarah, Jeremy, Abdul, Mary, Javier, Kit, Laura, Mark, Zoma, etc.). DEPARTMENTS/ROLES DO NOT COUNT — "customer service", "billing", "the front desk", "tech support", "sales", "this department", "an agent", "a representative" are NOT names. Also not names: "correct", "about", "right". Set FALSE if the speech only has a role/department with no first name ("Hi, this is customer service" → false).
   }
 }
 
 Action rules:
-- "press_digit": Press a DTMF digit. Use when an IVR menu is detected and you've chosen an option.
-- "speak": Say something. Use when the system asks a direct question, requests data, or you need to state your purpose.
+- "press_digit": Press a DTMF digit. Use when an IVR menu is detected and you've chosen an option. MANDATORY: if you set detected.isIVRMenu=true in your response, your action MUST be either "press_digit" (with a digit) or "wait" (if menu is incomplete). Never "speak" a DTMF option out loud when you've identified a menu — press the digit.
+- "speak": Say something. Use when the system asks a direct question, requests data, or you need to state your purpose. Do NOT use speak when detected.isIVRMenu=true.
 - "wait": Stay silent. Use for greetings, disclaimers, hold messages, incomplete menus.
-- "maybe_human": You think a live human MIGHT be on the line but there's no clear personal introduction (e.g. short "Hello?" from unknown speaker, or conversational-sounding question without a name). The system will ask them to confirm.
-- "human_detected": A real human agent is confirmed on the line. Use in either case: (A) the current speech contains a CLEAR PERSONAL INTRODUCTION with a proper-noun name — "My name is Jeremy", "This is Sarah", "You've reached Kit", "I'm Laura, your plan adviser", "Mark speaking", "You're connected to Zoma"; OR (B) awaitingHumanConfirmation=true or awaitingHumanClarification=true AND the speech is a natural human response ("yes", "yeah", "hello", "I'm here", "who is this", "what?", "uh...", filler words, confused responses — err generously). Personal introductions ARE their own confirmation — transfer without asking.
+- "maybe_human": You think a live human MIGHT be on the line. Use this for ANY first-hearing human-ish speech, including CLEAR name intros ("My name is Sarah", "This is Mike"), short greetings ("Hello?"), or conversational speech. The system will ask "Am I speaking with a live agent?" — that confirmation step is MANDATORY before transfer. Do NOT skip confirmation even for clear names.
+- "human_detected": A real human is CONFIRMED on the line. Use when awaitingHumanConfirmation=true OR awaitingHumanClarification=true AND the speech is a natural human response — "yes", "yeah", "no", "hello", "hi", "who is this", "what?", "huh?", "uh yeah", "can you hold", "are you a live agent", "what are you calling about", "this is Sarah yes", "I'm here", filler words with real English words, confused/hesitant speech, or questions pushed back at us. ERR GENEROUSLY in confirmation mode — default to human_detected unless speech is clearly an IVR menu, scripted hold, or bot self-ID. ONLY pure non-word sounds ("mmhm", just "uh", just "hm") → maybe_human_unclear. NOTE: do NOT return human_detected when awaitingHumanConfirmation/Clarification are BOTH false — use maybe_human in that case even for clear name intros.
 - "maybe_human_unclear": Response to our confirmation question was genuinely ambiguous (unintelligible mumble, just "mmhm", unclear noise). Use ONLY when awaitingHumanConfirmation is true and the response is truly ambiguous — not clearly human and not clearly IVR. The system will ask a more direct question.
 - "hang_up": Terminate the call. Use ONLY for voicemail, closed business, or dead ends.
 ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
@@ -235,32 +235,72 @@ CURRENT IVR SPEECH:
 
 CALL PURPOSE: ${callPurpose || config.callPurpose || 'speak with a representative'}
 ${config.customInstructions ? `CUSTOM INSTRUCTIONS: ${config.customInstructions}` : ''}
-${awaitingHumanConfirmation ? `⚠️ CRITICAL — awaitingHumanConfirmation=true: We already asked "Am I speaking with a live agent?" ANY response that sounds even slightly human MUST return human_detected. "Yes", "yeah", "hello", "who is this", "what?", "uh...", "I'm here" — ALL of these are human_detected. ONLY return press_digit/wait/speak if the response is CLEARLY an IVR menu, scripted hold message, or automated system. If genuinely ambiguous (just "mmhm", unintelligible noise), use maybe_human_unclear. When in doubt, use human_detected.` : ''}
+${
+  awaitingHumanConfirmation
+    ? `⚠️ CRITICAL — awaitingHumanConfirmation=true: We already asked "Am I speaking with a live agent?" Default is human_detected for ANYTHING that sounds even slightly human.
+- Human-sounding responses (→ human_detected): "Yes", "Yeah", "Yep", "Sure", "No", "Hello", "Hi", "Hey", "Who is this?", "What?", "Huh?", "I'm here", "Can you hold", "Yes can you hold on", "Uh yeah sorry", "What are you calling about", "Are you a live agent", any sentence with real English words — even short, hesitant, or confused speech. ERR GENEROUSLY toward human_detected.
+- ONLY these override the human_detected bias:
+  * Clear IVR menu: "press 1 for X, press 2 for Y" → press_digit
+  * Scripted automated hold prefix: "please hold while", "your call is important to us", "a representative will be with you shortly", "estimated wait time is", "you are caller number" → wait
+  * Bot self-ID: "I'm a virtual assistant", "I am an automated system", "I'm an AI" → speak/wait (not human)
+  * Pure non-word sound with NO real words ("mmhm", "mm", "uh", "hm", "um", trailing "..." only) → maybe_human_unclear
+- When in doubt: human_detected. A caller asking "can you hold on" IS a human — transfer them.`
+    : ''
+}
 ${awaitingHumanClarification ? `⚠️ CRITICAL — awaitingHumanClarification=true: We already asked TWICE. ANY response that is not clearly an automated IVR system MUST return human_detected. Be extremely generous — if there's any chance it's a human, use human_detected.` : ''}
 
 ${actionSchema}
 
 Analyze the current speech and decide what to do. Consider IN THIS ORDER:
-1. Is this a menu? Extract all options. Is the menu complete? Check PREVIOUS MENUS — if you've seen these options before, the menu IS complete. Press a digit.
-2. Does speech contain a PERSONAL INTRODUCTION? Phrases like "My name is [Name]", "This is [Name]", "You've reached [Name]", "I'm [Name]" — these indicate a REAL HUMAN AGENT picked up. → human_detected (transfer immediately). Do NOT answer their question — the transfer itself is the answer. Even if they also ask a question ("This is Mark. How can I help?"), the introduction means TRANSFER, not SPEAK.
-3. Is the system asking a direct question WITHOUT any personal introduction? (e.g. "What can I help you with?", "Are you calling about X or Y?") → speak (respond with your call purpose). Do NOT ask confirmation on every conversational bot utterance — just answer with your purpose.
-4. Is this a voicemail/closed/dead end? → hang_up
-5. Does speech sound human but ambiguous (no clear intro, could be post-hold fresh speech)? → maybe_human (system will confirm).
-6. Is this a greeting/disclaimer/hold music? → wait
-6. If menu detected: pick the best option for the call purpose. If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
-7. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data.
-8. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.
-9. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
+1. Is awaitingHumanConfirmation=true or awaitingHumanClarification=true in the context below? → CONFIRMATION MODE. We just asked "Am I speaking with a live agent?". Classify the response:
+   a) CLEARLY AUTOMATED (→ wait / press_digit / speak, NOT human_detected):
+      - Contains an IVR menu ("For X press 1, for Y press 2") → press_digit the best option (see menu rules below)
+      - Scripted hold/queue message ("please hold", "please continue to hold", "a representative will be with you shortly", "your call is important to us", "estimated wait time", "next available agent")
+      - Self-identifying as bot ("I am an automated system", "I'm a virtual assistant", "I'm an AI")
+      - Post-hold "please hold" / "still holding" text
+      → Return the appropriate non-human action. Do NOT treat as human just because confirmation is pending.
+   b) NATURAL HUMAN RESPONSE (→ human_detected, transfer):
+      - Affirmative: "Yes", "Yes you are", "Yeah", "Yep", "Sure"
+      - Greeting: "Hello", "Hi", "Hey"
+      - Presence: "I'm here", "I'm still here"
+      - Confused/questioning: "Who is this?", "What?", "Huh?", "uh... yes..."
+      - Conversational acknowledgment: "Can you hold", "Yes, you are. How can I help you?"
+      - Any natural non-scripted speech that is NOT one of the automated signals above
+   c) GENUINELY UNINTELLIGIBLE (just "mmhm", unclear noise): maybe_human_unclear
+   Rule of thumb: automated signals WIN over the "in confirmation mode" bias. A scripted "A representative will be with you shortly" is NOT human_detected just because confirmation is active.
+2. Is this a menu? Extract all options. Is the menu complete? Check PREVIOUS MENUS — if you've seen these options before, the menu IS complete. Press a digit.
+3. Does speech contain a PERSONAL INTRODUCTION or sound even slightly human, AND awaitingHumanConfirmation/Clarification is FALSE? → maybe_human (we MUST ask the confirmation question before transfer — no fast-path). Patterns that trigger maybe_human:
+   - Proper first name intro: "My name is Sarah", "This is Mike", "You've reached Kit", "Jeremy speaking", "You're connected to Zoma" — set humanIntroDetected=true AND return maybe_human (NOT human_detected).
+   - Role-only intro without a name: "Hi, this is customer service", "Billing department, how may I help" — maybe_human.
+   - Short line-check greeting: "Hello?", "Hi?", "Are you still there?", "Hello, are you there?" — maybe_human.
+   - Casual conversational speech: "Yeah, what do you need?", "Can I get your account number?" — maybe_human.
+   CRITICAL: Do NOT return human_detected on first-hearing speech. human_detected is ONLY valid when awaitingHumanConfirmation=true (see step 1). Even a clear name like "My name is Jeremy" must route through maybe_human → confirmation → human_detected.
+   CRITICAL: If the speech contains a name AND a question ("May I have your name?", "How can I help?"), IGNORE the question — return maybe_human, do NOT answer with call purpose.
+4. Is the speech a SHORT ISOLATED GREETING with no context? Examples: "Hello?", "Hi?", "Yeah?", "Yes?", "Anyone there?", "Hello, are you there?", "Hello, are you still there?", "Are you still there?" — these are ambiguous (could be a human checking the line) → maybe_human (ask for confirmation).
+5. Is the system asking a direct question WITHOUT any personal introduction (and not during confirmation mode)? (e.g. "What can I help you with?", "Are you calling about X or Y?", "In a few words tell me how I can help") → speak (respond with your call purpose). Do NOT ask confirmation on every conversational bot utterance — just answer with your purpose.
+6. Is this a voicemail/closed/dead end? → hang_up
+7. Does speech sound human but ambiguous (no clear intro, could be post-hold fresh speech)? → maybe_human (system will confirm).
+8. Is this a greeting/disclaimer/hold music? → wait
+9. If menu detected: pick the best option for the call purpose.
+   - If the call purpose is "speak with a representative" and NO option matches a rep path (representative/agent/operator/admin/other inquiries/general inquiries/front desk/customer service/tech support/billing) → WAIT. Do NOT press a specific-category digit just to press something. "Insurance company", "attorney's office", "financial estimate", "prior authorization" are NOT rep paths.
+   - If the call purpose is a specific task and no option matches → press the numerically smallest digit (1 is smaller than 2).
+   - If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
+10. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data. EXCEPTION: If the prompt frames data entry as a single menu option ("Using your loan number, press 1", "Press 1 to enter your account number") and you DO NOT have that data → WAIT. The full menu will continue and usually include a rep option (e.g. step 2 "Press 2 to speak with a representative"). Never press the data-entry digit without the data.
+11. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.
+12. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
 
     const apiStart = Date.now();
     const response = await this.client.chat.completions.create({
-      model: config.aiSettings?.model || 'gpt-4o-mini',
+      model:
+        process.env.OPENAI_MODEL_OVERRIDE ||
+        config.aiSettings?.model ||
+        'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt.system },
         { role: 'user', content: userMessage },
       ],
       max_tokens: 400,
-      temperature: 0.3,
+      temperature: 0,
     });
     console.log(
       `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.prompt_tokens} out=${response.usage?.completion_tokens}`
@@ -286,22 +326,80 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       }));
     }
 
-    // Guard against hallucinated press_digit — the chosen digit must actually
-    // appear (digit char or spoken word) somewhere in the current IVR speech.
-    // Otherwise downgrade to "wait" and keep listening.
+    if (action.action === 'human_detected' && awaitingHumanConfirmation) {
+      const stripped = currentSpeech.toLowerCase().replace(/[^a-z]/g, '');
+      const isPureFiller =
+        /^(m+h*m*|h+m+|u+h*m*|uh+|um+|hm+|mmhm+|mhm+|mmm+)$/.test(stripped);
+      if (isPureFiller && stripped.length <= 6) {
+        console.log(
+          `[NAV] Downgrading human_detected → maybe_human_unclear: pure filler sound "${stripped}"`
+        );
+        return {
+          ...action,
+          action: 'maybe_human_unclear',
+          reason: `pure non-word filler "${stripped}" during confirmation — ambiguous, asking more directly`,
+        };
+      }
+    }
+
+    // Structural signal: short line-check greetings ("Hello, are you there?") are
+    // ambiguous — could be a human checking the line after hold. Ask for confirmation
+    // instead of answering with call purpose.
+    if (
+      action.action === 'speak' &&
+      !awaitingHumanConfirmation &&
+      !awaitingHumanClarification &&
+      currentSpeech.length <= 40
+    ) {
+      const lineCheckRe =
+        /^\s*(hello|hi|hey|anyone)\b[^a-z]*(are you (still )?(there|here)|are you there|still (there|here)|you (still )?(there|here))\??\s*$/i;
+      if (lineCheckRe.test(currentSpeech.trim())) {
+        console.log(
+          `[NAV] Downgrading speak → maybe_human: short line-check greeting "${currentSpeech}"`
+        );
+        return {
+          ...action,
+          action: 'maybe_human',
+          reason: `short line-check greeting ("${currentSpeech}") is ambiguous — asking for confirmation`,
+        };
+      }
+    }
+
     if (
       action.action === 'press_digit' &&
       action.digit &&
       !transcriptContainsDigit(currentSpeech, action.digit)
     ) {
+      const validDigits = (action.detected.menuOptions || [])
+        .filter(o => typeof o.digit === 'string' && /^\d$|^[*#]$/.test(o.digit))
+        .filter(o => transcriptContainsDigit(currentSpeech, o.digit))
+        .sort((a, b) => (a.digit < b.digit ? -1 : 1));
+
+      const REP_PATH_RE =
+        /\b(representative|agent|operator|administrative|admin|front desk|other inquiries|other departments|general inquir|tech(nical)? support|billing|customer service)\b/i;
+      const hasRepPath = validDigits.some(o => REP_PATH_RE.test(o.option));
+
+      if (validDigits.length > 0 && hasRepPath) {
+        const lowest = validDigits[0].digit;
+        console.log(
+          `[NAV] Rejected hallucinated press_digit ${action.digit}, falling back to lowest ${lowest} (has rep path)`
+        );
+        return {
+          ...action,
+          action: 'press_digit',
+          digit: lowest,
+          reason: `replaced hallucinated ${action.digit} with ${lowest} from AI's own menuOptions`,
+        };
+      }
+
       console.log(
-        `[NAV] Rejecting hallucinated press_digit ${action.digit} — not in transcript: "${currentSpeech}"`
+        `[NAV] Rejecting hallucinated press_digit ${action.digit} — no rep path in options, wait`
       );
       return {
         ...action,
         action: 'wait',
         digit: undefined,
-        reason: `rejected hallucinated press_digit ${action.digit}: not present in transcript`,
+        reason: `rejected hallucinated press_digit ${action.digit}: no valid rep-path option in transcript`,
       };
     }
 

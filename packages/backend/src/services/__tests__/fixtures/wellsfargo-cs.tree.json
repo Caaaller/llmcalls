@@ -2,7 +2,7 @@
   "version": 2,
   "id": "wellsfargo-cs",
   "testCaseId": "wellsfargo-cs",
-  "lastRecordedAt": "2026-04-17T21:44:09.460Z",
+  "lastRecordedAt": "2026-04-18T20:48:59.634Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,8 +23,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-17T18:44:40.277Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-18T20:48:59.634Z",
+        "isLatestPath": true,
         "child": {
           "id": "n1",
           "ivrSpeech": "This call may be recorded monitored, or analyzed by Wells, Fargo and its service providers.",
@@ -42,8 +42,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-17T18:14:32.776Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-18T20:48:59.634Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n58",
                 "ivrSpeech": "For Wells Fargo.",
@@ -222,6 +222,144 @@
                                             }
                                           }
                                         ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "1",
+                      "reason": "AI selected: The purpose of the call is to speak with a representative.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-18T20:35:14.572Z",
+                    "isLatestPath": false,
+                    "child": {
+                      "id": "n110",
+                      "ivrSpeech": "For account access, say your account or card number one digit at a time. Or enter it followed by pound. You can also say other options or press 1.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "1",
+                            "reason": "AI selected: The system is prompting for account information, but I want to speak with a representative.",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-18T20:35:14.572Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 74,
+                            "reachedHuman": true,
+                            "dtmfDigits": ["1", "1"]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-18T20:48:59.634Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n111",
+                      "ivrSpeech": "For account access or questions, say your account or card number or enter it followed by pound. For anything else, say other options.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "1",
+                            "reason": "AI selected: The call purpose is to speak with a representative, and this is the best response to reach one.",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-18T20:48:59.634Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n112",
+                            "ivrSpeech": "For account",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-18T20:48:59.634Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n113",
+                                  "ivrSpeech": "Alright. Other options. You can say, open a new account, find a branch or ATM, verify an account, or damaged card. Otherwise, to access your account, say or enter the account or card number you're calling about.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "press_digit",
+                                        "digit": "1",
+                                        "reason": "AI selected: The call purpose is to speak with a representative, and this option is not available in the current menu.",
+                                        "detected": {
+                                          "isIVRMenu": true,
+                                          "menuOptions": [],
+                                          "isMenuComplete": true,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-18T20:48:59.634Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 77,
+                                        "reachedHuman": true,
+                                        "dtmfDigits": ["1", "1"]
                                       }
                                     }
                                   ]
@@ -858,7 +996,7 @@
           }
         },
         "recordedAt": "2026-04-17T21:44:09.460Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n52",
           "ivrSpeech": "This call may be recorded, monitored, or analyzed by Wells Fargo and its service providers.",
@@ -1637,7 +1775,7 @@
                 }
               },
               "recordedAt": "2026-04-17T21:44:09.460Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n61",
                 "ivrSpeech": "by Wells Fargo and its service providers.",
@@ -1817,7 +1955,7 @@
                       }
                     },
                     "recordedAt": "2026-04-17T21:44:09.460Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n89",
                       "ivrSpeech": "I'll connect you to a banker. But first, please use short phrase to",
@@ -1837,7 +1975,7 @@
                             }
                           },
                           "recordedAt": "2026-04-17T21:44:09.460Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n90",
                             "ivrSpeech": "if you would like to receive written communications from Wells Fargo in an alternative format, in compliance with the Americans with Disabilities Act, please let a representative know. Or contact us at 1806424720. Alright. Please hold while I transfer you to a banker.",
@@ -1925,7 +2063,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-17T21:44:09.460Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n106",
                                   "ivrSpeech": "I'll connect you to a banker. First, please use",
@@ -1945,7 +2083,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-17T21:44:09.460Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n107",
                                         "ivrSpeech": "if you would like to receive written communications from Wells Fargo in an alternative format, in compliance with the Americans with Dibilies Act please let a representative know or contact us at 1806424720. Alright. Please hold while I transfer you to a banker.",
@@ -1964,7 +2102,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-17T21:44:09.460Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n108",
                                               "ivrSpeech": "We appreciate your business. The next available representative will take your call.",
@@ -1983,7 +2121,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-17T21:44:09.460Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n109",
                                                     "ivrSpeech": "Thank you for continuing to hold. As an important security measure, please make sure that we have your your current phone number, email, and mailing address on file so we can contact you quickly if we ever detect certain unusual account activity. Using the fart you for calling Wells Fargo. My name is Marie. This call may be recorded and monitored monitored, or analyzed by Wells Fargo and the service provider. Who do I have the pleasure of speaking",
@@ -2002,7 +2140,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-04-17T21:44:09.460Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "terminal": true,
                                                           "finalStatus": "initiated",

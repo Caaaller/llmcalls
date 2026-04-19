@@ -324,8 +324,12 @@ describe('Live call evaluations', () => {
       const allResults = [...testCaseResults, ...skippedResults];
       const skippedCount = skippedResults.length;
 
-      // Post test run results to the API for the Test Runs UI
-      const baseUrl = process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL;
+      // Post test run results to the API for the Test Runs UI.
+      // Prefer BASE_URL; fall back to TELNYX_WEBHOOK_URL with the /voice
+      // webhook path stripped so /api/test-runs resolves correctly.
+      const baseUrl =
+        process.env.BASE_URL ||
+        (process.env.TELNYX_WEBHOOK_URL || '').replace(/\/voice\/?$/, '');
       if (baseUrl) {
         try {
           const postRes = await fetch(`${baseUrl}/api/test-runs`, {
