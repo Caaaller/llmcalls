@@ -259,6 +259,18 @@ describe('Prompt evaluation – hold detection', () => {
       expectedHoldDetected: false,
       expectedAction: 'press_digit',
     },
+    {
+      name: 'No Hold - Welcome + monitoring disclaimer (Wells Fargo)',
+      speech:
+        'Welcome to Wells Fargo. This call may be recorded, monitored, or analyzed by Wells Fargo and its service providers.',
+      expectedHoldDetected: false,
+    },
+    {
+      name: 'No Hold - Monitoring disclaimer alone',
+      speech:
+        'This call may be recorded or monitored for quality assurance purposes.',
+      expectedHoldDetected: false,
+    },
   ];
 
   holdCases.forEach(testCase => {
