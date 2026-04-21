@@ -3,7 +3,7 @@
  * Stores and retrieves call history with full conversation logs using MongoDB
  */
 
-import CallHistory from '../models/CallHistory';
+import CallHistory, { EndReason } from '../models/CallHistory';
 import { MenuOption } from '../types/menu';
 import { isDbConnected } from './database';
 import { isDuplicateKeyError } from '../utils/mongoErrorCodes';
@@ -383,11 +383,17 @@ class CallHistoryService {
   }
 
   /**
-   * End a call
+   * End a call.
+   *
+   * endReason is preserved on first-write: if the record already has an
+   * endReason (e.g. the AI set 'ai_hangup_voicemail' before Telnyx's
+   * call.hangup webhook arrived), we do NOT overwrite it.
    */
   async endCall(
     callSid: string,
-    status: 'completed' | 'failed' | 'terminated' = 'completed'
+    status: 'completed' | 'failed' | 'terminated' = 'completed',
+    endReason?: EndReason,
+    endReasonDetail?: string
   ): Promise<void> {
     if (!isMongoAvailable()) return;
 
@@ -398,16 +404,20 @@ class CallHistoryService {
       const endTime = new Date();
       const duration = endTime.getTime() - call.startTime.getTime();
 
-      await CallHistory.findOneAndUpdate(
-        { callSid },
-        {
-          $set: {
-            endTime,
-            duration,
-            status,
-          },
-        }
-      );
+      const set: Record<string, unknown> = {
+        endTime,
+        duration,
+        status,
+      };
+
+      if (endReason && !call.endReason) {
+        set.endReason = endReason;
+      }
+      if (endReasonDetail && !call.endReasonDetail) {
+        set.endReasonDetail = endReasonDetail;
+      }
+
+      await CallHistory.findOneAndUpdate({ callSid }, { $set: set });
     } catch (error: unknown) {
       console.error('❌ Error ending call:', getErrorMessage(error));
     }

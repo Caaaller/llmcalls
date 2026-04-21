@@ -6,11 +6,31 @@
 
 import callStateManager from './callStateManager';
 import callHistoryService from './callHistoryService';
+import { EndReason } from '../models/CallHistory';
 import ivrNavigatorService, { CallAction } from './ivrNavigatorService';
 import telnyxService from './telnyxService';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
+
+/**
+ * Map the AI's terminationReason to a structured endReason enum value.
+ * Unknown / missing reasons fall through to 'ai_hangup_dead_end'.
+ */
+function mapTerminationReasonToEndReason(
+  terminationReason: string | undefined
+): EndReason {
+  switch (terminationReason) {
+    case 'voicemail':
+      return 'ai_hangup_voicemail';
+    case 'closed_no_menu':
+      return 'ai_hangup_closed';
+    case 'dead_end':
+      return 'ai_hangup_dead_end';
+    default:
+      return 'ai_hangup_dead_end';
+  }
+}
 
 export interface ProcessSpeechParams {
   callSid: string;
@@ -339,8 +359,16 @@ export async function processSpeech({
             action.detected.terminationReason || action.reason
           )
           .catch(err => console.error('Error adding termination:', err));
+        const endReason = mapTerminationReasonToEndReason(
+          action.detected.terminationReason
+        );
         callHistoryService
-          .endCall(callSid, 'terminated')
+          .endCall(
+            callSid,
+            'terminated',
+            endReason,
+            action.detected.terminationReason || action.reason
+          )
           .catch(err => console.error('Error ending call:', err));
 
         await speakAndLog(

@@ -33,6 +33,7 @@ export interface TelnyxWebhookPayload {
   to?: string;
   state?: TelnyxCallStatus;
   hangup_cause?: string;
+  hangup_source?: 'caller' | 'callee' | 'unknown' | string;
   recording_url?: string;
   recording_id?: string;
   duration_secs?: number;

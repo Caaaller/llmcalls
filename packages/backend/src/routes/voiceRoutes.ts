@@ -11,6 +11,7 @@ import {
 } from '../types/telnyx';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
+import { EndReason } from '../models/CallHistory';
 import telnyxService from '../services/telnyxService';
 import transferConfig from '../config/transfer-config';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
@@ -188,6 +189,34 @@ async function handleCallAnswered(
   }
 }
 
+const ERROR_HANGUP_CAUSES = new Set<string>([
+  'call_rejected',
+  'destination_out_of_order',
+  'incompatible_destination',
+  'network_out_of_order',
+  'temporary_failure',
+  'service_unavailable',
+  'recovery_on_timer_expire',
+  'protocol_error',
+  'bearer_capability_not_available',
+  'facility_not_implemented',
+]);
+
+/**
+ * Derive an endReason from the Telnyx hangup payload.
+ * Returns undefined if we cannot confidently classify — callers should only
+ * set this when no prior endReason exists on the record.
+ */
+function deriveHangupEndReason(
+  cause: string | undefined,
+  source: string | undefined
+): EndReason {
+  if (cause && ERROR_HANGUP_CAUSES.has(cause)) return 'application_error';
+  if (source === 'callee' && cause !== 'normal_clearing') return 'ivr_hangup';
+  if (cause === 'normal_clearing') return 'other';
+  return 'other';
+}
+
 /**
  * Handle call.hangup event
  */
@@ -196,6 +225,7 @@ function handleCallHangup(
   payload: TelnyxWebhookPayload | undefined
 ): void {
   const cause = payload?.hangup_cause;
+  const source = payload?.hangup_source;
   const internalStatus =
     cause === 'normal_clearing' || !cause ? 'completed' : 'failed';
 
@@ -219,8 +249,9 @@ function handleCallHangup(
     );
   }
 
+  const endReason = deriveHangupEndReason(cause, source);
   logOnError(
-    callHistoryService.endCall(callControlId, internalStatus),
+    callHistoryService.endCall(callControlId, internalStatus, endReason, cause),
     'Error ending call'
   );
 
@@ -350,7 +381,11 @@ router.post('/transfer-status', (req: Request, res: Response): void => {
         'Error updating transfer status'
       );
       logOnError(
-        callHistoryService.endCall(callControlId, 'completed'),
+        callHistoryService.endCall(
+          callControlId,
+          'completed',
+          'transfer_completed'
+        ),
         'Error ending call after transfer'
       );
     }

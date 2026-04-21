@@ -14,6 +14,29 @@ const CALL_STATUSES: CallStatus[] = [
   'terminated',
 ];
 
+export type EndReason =
+  | 'transfer_completed'
+  | 'ai_hangup_voicemail'
+  | 'ai_hangup_closed'
+  | 'ai_hangup_dead_end'
+  | 'ai_hangup_hold_timeout'
+  | 'ivr_hangup'
+  | 'user_cancelled'
+  | 'application_error'
+  | 'other';
+
+const END_REASONS: EndReason[] = [
+  'transfer_completed',
+  'ai_hangup_voicemail',
+  'ai_hangup_closed',
+  'ai_hangup_dead_end',
+  'ai_hangup_hold_timeout',
+  'ivr_hangup',
+  'user_cancelled',
+  'application_error',
+  'other',
+];
+
 export interface ConversationEntry {
   type: 'user' | 'ai' | 'system';
   text: string;
@@ -70,6 +93,8 @@ export interface ICallHistory extends Document {
   recordingUrl?: string;
   dgReconnects?: number;
   dgSilentMs?: number;
+  endReason?: EndReason;
+  endReasonDetail?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -182,6 +207,12 @@ const callHistorySchema = new Schema<ICallHistory>(
     recordingUrl: String,
     dgReconnects: { type: Number, default: 0 },
     dgSilentMs: { type: Number, default: 0 },
+    endReason: {
+      type: String,
+      enum: END_REASONS,
+      index: true,
+    },
+    endReasonDetail: { type: String },
   },
   {
     timestamps: true,
