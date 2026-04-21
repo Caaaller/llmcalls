@@ -17,6 +17,7 @@ import voiceRoutes from './routes/voiceRoutes';
 import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
 import testRunRoutes from './routes/testRunRoutes';
+import debugRoutes from './routes/debugRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import { attachStreamServer } from './routes/streamRoutes';
 
@@ -74,6 +75,8 @@ console.log('  ✅ /api routes registered');
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api/test-runs', testRunRoutes);
   console.log('  ✅ /api/test-runs routes registered (dev only)');
+  app.use('/debug', debugRoutes);
+  console.log('  ✅ /debug routes registered (dev only)');
 }
 
 // Serve static files from public directory (after routes to avoid conflicts)

@@ -414,6 +414,36 @@ class CallHistoryService {
   }
 
   /**
+   * Persist Deepgram reconnect telemetry (dgReconnects, dgSilentMs) onto the
+   * call history document. Called during call teardown so the values remain
+   * queryable after the in-memory stream state is cleared.
+   */
+  async setReconnectTelemetry(
+    callSid: string,
+    reconnects: number,
+    silentMs: number
+  ): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        {
+          $set: {
+            dgReconnects: reconnects,
+            dgSilentMs: silentMs,
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error(
+        '❌ Error setting reconnect telemetry:',
+        getErrorMessage(error)
+      );
+    }
+  }
+
+  /**
    * Store recording URL for a call (called from Twilio recording-status webhook)
    */
   async setRecordingUrl(callSid: string, recordingUrl: string): Promise<void> {
