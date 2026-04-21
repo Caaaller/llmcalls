@@ -137,16 +137,31 @@ export async function executeCall(
       const dbCall = await callHistoryService.getCall(callSid);
       if (dbCall?.status === 'completed' || dbCall?.status === 'failed') break;
 
-      // Early exit on hold or transfer detection
+      // Early exit on hold or transfer detection.
+      //
+      // Exit criteria depend on the test case's expectedOutcome:
+      //   requireConfirmedTransfer: true  -> only a 'transfer' event exits
+      //                                       (the AI must have asked "Am I
+      //                                       speaking with a live agent?"
+      //                                       and initiated transfer)
+      //   requireConfirmedTransfer: false -> 'transfer' OR 'hold' exits
+      //                                       immediately (reaching hold is
+      //                                       success enough for this case)
+      //
+      // The previous 45s-after-hold heuristic was removed: on real calls a
+      // human often picks up during that window and the AI gets cut off
+      // mid-conversation. If a case wants to validate the AI reaches a
+      // human, it should set requireConfirmedTransfer: true.
       if (dbCall) {
         const events = (dbCall.events || []) as Array<{
           eventType: string;
           timestamp?: string | Date;
         }>;
         const hasTransfer = events.some(e => e.eventType === 'transfer');
-        const holdEvents = events.filter(e => e.eventType === 'hold');
+        const hasHold = events.some(e => e.eventType === 'hold');
+        const requireTransfer =
+          testCase.expectedOutcome?.requireConfirmedTransfer === true;
 
-        // Transfers: exit immediately (AI confirmed a human)
         if (hasTransfer) {
           console.log('🏁 Early exit: transfer detected — ending call');
           durationSeconds = Math.round((Date.now() - startTime) / 1000);
@@ -154,21 +169,11 @@ export async function executeCall(
           break;
         }
 
-        // Hold: wait 45s to confirm (humans often pick up 20-40s after hold starts).
-        // Previously 15s which cut off real humans before they could answer.
-        if (holdEvents.length > 0) {
-          const latestHold = holdEvents[holdEvents.length - 1];
-          const holdAge = latestHold.timestamp
-            ? Date.now() - new Date(latestHold.timestamp).getTime()
-            : 0;
-          if (holdAge > 45_000) {
-            console.log(
-              `🏁 Early exit: hold queue confirmed (${Math.round(holdAge / 1000)}s ago) — ending call`
-            );
-            durationSeconds = Math.round((Date.now() - startTime) / 1000);
-            await telnyxService.terminateCall(callSid).catch(() => {});
-            break;
-          }
+        if (!requireTransfer && hasHold) {
+          console.log('🏁 Early exit: hold queue reached — ending call');
+          durationSeconds = Math.round((Date.now() - startTime) / 1000);
+          await telnyxService.terminateCall(callSid).catch(() => {});
+          break;
         }
       }
 
