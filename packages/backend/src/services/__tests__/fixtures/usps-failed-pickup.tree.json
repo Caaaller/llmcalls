@@ -2,7 +2,7 @@
   "version": 2,
   "id": "usps-failed-pickup",
   "testCaseId": "usps-failed-pickup",
-  "lastRecordedAt": "2026-04-21T21:14:46.435Z",
+  "lastRecordedAt": "2026-04-21T21:28:31.050Z",
   "config": {
     "callPurpose": "Failed package pickup. Pickup request EMC717292788 was marked as completed even though it didn't actually happen"
   },
@@ -231,7 +231,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T21:14:46.435Z",
+        "recordedAt": "2026-04-21T21:28:31.049Z",
         "isLatestPath": true,
         "child": {
           "id": "n7",
@@ -5812,7 +5812,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-21T21:14:46.435Z",
+              "recordedAt": "2026-04-21T21:28:31.049Z",
               "isLatestPath": true,
               "child": {
                 "id": "n231",
@@ -5832,7 +5832,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-21T21:14:46.435Z",
+                    "recordedAt": "2026-04-21T21:28:31.049Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n232",
@@ -6335,7 +6335,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-21T21:14:46.435Z",
+                          "recordedAt": "2026-04-21T21:28:31.049Z",
                           "isLatestPath": true,
                           "child": {
                             "id": "n259",
@@ -6355,7 +6355,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-21T21:14:46.435Z",
+                                "recordedAt": "2026-04-21T21:28:31.049Z",
                                 "isLatestPath": true,
                                 "child": {
                                   "id": "n260",
@@ -6375,7 +6375,7 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-21T21:14:46.435Z",
+                                      "recordedAt": "2026-04-21T21:28:31.050Z",
                                       "isLatestPath": true,
                                       "child": {
                                         "id": "n261",
@@ -6395,7 +6395,7 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-04-21T21:14:46.435Z",
+                                            "recordedAt": "2026-04-21T21:28:31.050Z",
                                             "isLatestPath": true,
                                             "child": {
                                               "id": "n262",
@@ -6415,14 +6415,37 @@
                                                       "transferRequested": false
                                                     }
                                                   },
-                                                  "recordedAt": "2026-04-21T21:14:46.435Z",
+                                                  "recordedAt": "2026-04-21T21:28:31.050Z",
                                                   "isLatestPath": true,
                                                   "child": {
-                                                    "terminal": true,
-                                                    "finalStatus": "initiated",
-                                                    "durationSeconds": 84,
-                                                    "reachedHuman": true,
-                                                    "dtmfDigits": []
+                                                    "id": "n263",
+                                                    "ivrSpeech": "to continue, we need to collect information",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "representative",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-21T21:28:31.050Z",
+                                                        "isLatestPath": true,
+                                                        "child": {
+                                                          "terminal": true,
+                                                          "finalStatus": "initiated",
+                                                          "durationSeconds": 90,
+                                                          "reachedHuman": true,
+                                                          "dtmfDigits": []
+                                                        }
+                                                      }
+                                                    ]
                                                   }
                                                 }
                                               ]
