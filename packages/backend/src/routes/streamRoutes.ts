@@ -101,19 +101,97 @@ interface StreamState {
   speechFired: boolean;
   lastUtteranceAt: number;
   silentHoldTimer: ReturnType<typeof setTimeout> | null;
+  // Reconnect/telemetry state
+  dgReconnects: number;
+  dgSilentMs: number;
+  dgDisconnectedAt: number | null;
+  reconnectAttempts: number;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+  reconnectGiveUp: boolean;
+  expectedClose: boolean;
+  onUtterance: ((text: string) => Promise<void>) | null;
+}
+
+// Reconnect configuration — exponential backoff with max 3 attempts.
+// Delays chosen to balance recovery speed vs Deepgram's likely transient outage window.
+const RECONNECT_BACKOFF_MS = [250, 750, 2000] as const;
+const MAX_RECONNECT_ATTEMPTS = RECONNECT_BACKOFF_MS.length;
+// Codes that should trigger reconnection. Anything other than a clean 1000
+// (Normal Closure) or 1005 (No Status) from our own explicit .close() should
+// be treated as an abnormal disconnect while the call is still active.
+function isAbnormalCloseCode(code: number): boolean {
+  return code !== 1000;
+}
+
+// Registry of active stream states by callSid — used by the debug endpoint
+// to force-close the Deepgram WS and simulate a 1006 disconnect.
+const activeStreamStates = new Map<string, StreamState>();
+
+/**
+ * Force-close the Deepgram WS for this callSid with a simulated abnormal close.
+ * Returns true if a matching stream was found.
+ *
+ * Exposed for the /debug/kill-deepgram-ws/:callSid endpoint (non-production only).
+ */
+export function killDeepgramWsForCall(callSid: string): boolean {
+  const state = activeStreamStates.get(callSid);
+  if (!state?.dgWs) return false;
+  // terminate() emits 'close' with code 1006 (Abnormal Closure)
+  state.dgWs.terminate();
+  return true;
+}
+
+/**
+ * Read the reconnect telemetry for this callSid.
+ * Returns null if no stream is currently tracked for this call.
+ */
+export function getReconnectTelemetry(
+  callSid: string
+): { dg_reconnects: number; dg_silent_ms: number } | null {
+  const state = activeStreamStates.get(callSid);
+  if (!state) return null;
+  // If we're currently disconnected, include the in-progress silent window
+  const inProgress = state.dgDisconnectedAt
+    ? Date.now() - state.dgDisconnectedAt
+    : 0;
+  return {
+    dg_reconnects: state.dgReconnects,
+    dg_silent_ms: state.dgSilentMs + inProgress,
+  };
 }
 
 function openDeepgram(
   state: StreamState,
   onUtterance: (text: string) => Promise<void>
 ): void {
+  state.onUtterance = onUtterance;
   const key = process.env.DEEPGRAM_API_KEY || '';
-  const dgWs = new WS(DEEPGRAM_URL, {
+  const url = process.env.DEEPGRAM_WS_URL_OVERRIDE || DEEPGRAM_URL;
+  const dgWs = new WS(url, {
     headers: { Authorization: `Token ${key}` },
   });
 
   dgWs.on('open', () => {
     state.dgWs = dgWs;
+    // If we were mid-reconnect, close out the silent window and log recovery.
+    if (state.dgDisconnectedAt) {
+      const silent = Date.now() - state.dgDisconnectedAt;
+      state.dgSilentMs += silent;
+      state.dgDisconnectedAt = null;
+      console.log(
+        `[STREAM-STT] Deepgram reconnected after ${silent}ms (total dg_silent_ms=${state.dgSilentMs}, dg_reconnects=${state.dgReconnects})`
+      );
+      // Flush telemetry to call history so it's queryable post-call.
+      flushReconnectTelemetry(state).catch(err =>
+        console.error(
+          '[STREAM-STT] Error flushing reconnect telemetry:',
+          err instanceof Error ? err.message : String(err)
+        )
+      );
+    }
+    // A successful open resets the attempt counter — future disconnects
+    // get a fresh budget of MAX_RECONNECT_ATTEMPTS.
+    state.reconnectAttempts = 0;
     console.log(
       `[STREAM-STT] Deepgram open, draining ${state.audioBuffer.length} buffered frames`
     );
@@ -202,7 +280,71 @@ function openDeepgram(
 
   dgWs.on('close', (code: number) => {
     console.log(`[STREAM-STT] Deepgram WS closed (code=${code})`);
+    // Clear pointer so media frames start buffering instead of blindly sending.
+    if (state.dgWs === dgWs) state.dgWs = null;
+
+    // Expected shutdown (stop event / ws close) — no reconnect needed.
+    if (state.expectedClose) return;
+    // Clean 1000 closure is also considered intentional.
+    if (!isAbnormalCloseCode(code)) return;
+    if (state.reconnectGiveUp) return;
+
+    scheduleReconnect(state, code);
   });
+}
+
+/**
+ * Schedule a reconnect attempt with exponential backoff.
+ * Gives up after MAX_RECONNECT_ATTEMPTS and leaves the STT dead for the call.
+ */
+function scheduleReconnect(state: StreamState, reasonCode: number): void {
+  if (state.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+    state.reconnectGiveUp = true;
+    console.error(
+      `[STREAM-STT] Deepgram reconnect FAILED after ${MAX_RECONNECT_ATTEMPTS} attempts — STT is dead for call ${state.callControlId.slice(-20)} (last reason: code ${reasonCode})`
+    );
+    // Still flush whatever telemetry we have.
+    flushReconnectTelemetry(state).catch(() => {});
+    return;
+  }
+
+  // Start tracking silent window from the first disconnect, not subsequent retries.
+  if (!state.dgDisconnectedAt) {
+    state.dgDisconnectedAt = Date.now();
+  }
+
+  const attempt = state.reconnectAttempts + 1;
+  const delay = RECONNECT_BACKOFF_MS[state.reconnectAttempts];
+  state.reconnectAttempts = attempt;
+  state.dgReconnects += 1;
+
+  console.log(
+    `[STREAM-STT] Reconnect attempt ${attempt} (after ${delay}ms) — reason: code ${reasonCode}`
+  );
+
+  const timer = setTimeout(() => {
+    state.reconnectTimer = null;
+    // If the call ended while we were waiting, bail.
+    if (state.expectedClose) return;
+    if (!state.onUtterance) return;
+    openDeepgram(state, state.onUtterance);
+  }, delay);
+  state.reconnectTimer = timer;
+}
+
+/**
+ * Write reconnect telemetry into the call state manager so it's readable
+ * for the rest of the call and queryable afterwards via getReconnectTelemetry().
+ * Intentionally writes as untyped fields — the CallState interface doesn't
+ * declare dg_reconnects/dg_silent_ms but Object.assign copies them through.
+ */
+async function flushReconnectTelemetry(state: StreamState): Promise<void> {
+  const cs = callStateManager.getCallState(state.callControlId) as unknown as {
+    dg_reconnects?: number;
+    dg_silent_ms?: number;
+  };
+  cs.dg_reconnects = state.dgReconnects;
+  cs.dg_silent_ms = state.dgSilentMs;
 }
 
 export function attachStreamServer(httpServer: Server): void {
@@ -237,7 +379,16 @@ export function attachStreamServer(httpServer: Server): void {
           speechFired: false,
           lastUtteranceAt: Date.now(),
           silentHoldTimer: null,
+          dgReconnects: 0,
+          dgSilentMs: 0,
+          dgDisconnectedAt: null,
+          reconnectAttempts: 0,
+          reconnectTimer: null,
+          reconnectGiveUp: false,
+          expectedClose: false,
+          onUtterance: null,
         };
+        activeStreamStates.set(callControlId, state);
 
         const resetSilentHoldTimer = () => {
           if (state?.silentHoldTimer) clearTimeout(state.silentHoldTimer);
@@ -338,9 +489,14 @@ export function attachStreamServer(httpServer: Server): void {
         if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
         silentHoldResetters.delete(state.callControlId);
         silentHoldTimers.delete(state.callControlId);
+        state.expectedClose = true;
+        if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
         if (state.dgWs?.readyState === WS.OPEN) {
           state.dgWs.close();
         }
+        // Final telemetry flush on clean stop.
+        void flushReconnectTelemetry(state);
+        activeStreamStates.delete(state.callControlId);
         console.log(`[STREAM] Stopped for ${state.callControlId.slice(-20)}`);
         state = null;
       }
@@ -356,6 +512,10 @@ export function attachStreamServer(httpServer: Server): void {
         silentHoldResetters.delete(state.callControlId);
         silentHoldTimers.delete(state.callControlId);
         if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
+        state.expectedClose = true;
+        if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
+        void flushReconnectTelemetry(state);
+        activeStreamStates.delete(state.callControlId);
       }
       if (state?.dgWs?.readyState === WS.OPEN) {
         state.dgWs.close();
