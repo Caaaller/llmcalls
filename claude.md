@@ -1,3 +1,16 @@
+## MANDATORY: Dev Server = Backend 8068 + Frontend 8069 (Both, Always)
+
+When the user says "dev server", start BOTH backend and frontend. Never just one.
+Ports are fixed: backend=8068, frontend=8069. Before starting either, check
+`~/.claude/rules/ports.md` and `packages/frontend/.env` PORT value — they must
+match 8069. If PORT is anything else, fix it first. Do NOT trust framework
+defaults. Kill any process on the target port before starting.
+
+Commands:
+
+- Backend: `pnpm --filter backend dev` (port 8068)
+- Frontend: `pnpm --filter frontend start` (port 8069, script is `start` not `dev`)
+
 ## MANDATORY: Verify Fixes by Rerunning Tests
 
 After making any fix to test infrastructure, prompts, or call handling, rerun the affected test(s) and verify the fix worked before reporting success. Don't just commit — prove it.

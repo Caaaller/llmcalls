@@ -2,7 +2,7 @@
   "version": 2,
   "id": "usps-failed-pickup",
   "testCaseId": "usps-failed-pickup",
-  "lastRecordedAt": "2026-04-18T20:49:00.379Z",
+  "lastRecordedAt": "2026-04-21T21:14:46.435Z",
   "config": {
     "callPurpose": "Failed package pickup. Pickup request EMC717292788 was marked as completed even though it didn't actually happen"
   },
@@ -231,7 +231,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-18T20:49:00.379Z",
+        "recordedAt": "2026-04-21T21:14:46.435Z",
         "isLatestPath": true,
         "child": {
           "id": "n7",
@@ -252,7 +252,7 @@
                 }
               },
               "recordedAt": "2026-04-18T20:49:00.379Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n8",
                 "ivrSpeech": "Impact from flooding in the lakes, and severe weather in the Midwest region of The US may delay final delivery of your mail and packages. For detailed information on local impacts, please navigate to the service alerts page on usps.com. To hear this message again, say repeat.",
@@ -4573,7 +4573,7 @@
                       }
                     },
                     "recordedAt": "2026-04-18T20:49:00.379Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n134",
                       "ivrSpeech": "How can I help you?",
@@ -4593,7 +4593,7 @@
                             }
                           },
                           "recordedAt": "2026-04-18T20:49:00.379Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n135",
                             "ivrSpeech": "Sorry. I did",
@@ -4613,7 +4613,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-18T20:49:00.379Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n136",
                                   "ivrSpeech": "you're calling about a mail or package pickup. Is that correct?",
@@ -4633,7 +4633,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-18T20:49:00.379Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n137",
                                         "ivrSpeech": "Sorry. Please say yes or no. You're calling about a male",
@@ -4653,7 +4653,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-18T20:49:00.379Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n138",
                                               "ivrSpeech": "To continue, we need to collect some information to get you to",
@@ -4673,7 +4673,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n139",
                                                     "ivrSpeech": "sorry. I didn't get that. To continue, we need to collect some information to get you the right help. I can send you a tech",
@@ -4693,7 +4693,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n140",
                                                           "ivrSpeech": "okay. Pickup service issues. Please enter your five digit ZIP code.",
@@ -5058,7 +5058,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "id": "n253",
                                                                 "ivrSpeech": "pitch,",
@@ -5078,7 +5078,7 @@
                                                                       }
                                                                     },
                                                                     "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                                    "isLatestPath": true,
+                                                                    "isLatestPath": false,
                                                                     "child": {
                                                                       "id": "n254",
                                                                       "ivrSpeech": "Sure. Tracking a package. We need your tracking, redelivery, or service request number.",
@@ -5098,7 +5098,7 @@
                                                                             }
                                                                           },
                                                                           "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                                          "isLatestPath": true,
+                                                                          "isLatestPath": false,
                                                                           "child": {
                                                                             "id": "n255",
                                                                             "ivrSpeech": "Sorry. I didn't get that. Would you like to use your smartphone to enter your information? Say yes or press",
@@ -5118,7 +5118,7 @@
                                                                                   }
                                                                                 },
                                                                                 "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                                                "isLatestPath": true,
+                                                                                "isLatestPath": false,
                                                                                 "child": {
                                                                                   "id": "n256",
                                                                                   "ivrSpeech": "sorry. I didn't get that. Would you like to use your smartphone to enter your information? Say yes or press I under you would like to speak with an agent. Our agents cannot provide any package assist assistance without a valid tracking number. Are you calling about a particular package?",
@@ -5138,7 +5138,7 @@
                                                                                         }
                                                                                       },
                                                                                       "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                                                      "isLatestPath": true,
+                                                                                      "isLatestPath": false,
                                                                                       "child": {
                                                                                         "id": "n257",
                                                                                         "ivrSpeech": "Please stay on the line while I check the availability of our agents.",
@@ -5157,7 +5157,7 @@
                                                                                               }
                                                                                             },
                                                                                             "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                                                            "isLatestPath": true,
+                                                                                            "isLatestPath": false,
                                                                                             "child": {
                                                                                               "id": "n258",
                                                                                               "ivrSpeech": "At the end of your call with a customer service representative, please remain on the line to complete a brief survey to help us improve your customer experience. Your opinion matters. Your estimated wait time is five minutes.",
@@ -5177,7 +5177,7 @@
                                                                                                     }
                                                                                                   },
                                                                                                   "recordedAt": "2026-04-18T20:49:00.379Z",
-                                                                                                  "isLatestPath": true,
+                                                                                                  "isLatestPath": false,
                                                                                                   "child": {
                                                                                                     "terminal": true,
                                                                                                     "finalStatus": "initiated",
@@ -5812,8 +5812,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-18T14:35:25.530Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-21T21:14:46.435Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n231",
                 "ivrSpeech": "Please stay on the line at the end of this this call to take a short survey about your phone experience. How can I help you?",
@@ -5832,8 +5832,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-18T14:35:25.530Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-04-21T21:14:46.435Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n232",
                       "ivrSpeech": "Sorry. I didn't hear you. How can I help you?",
@@ -6308,6 +6308,121 @@
                                                         }
                                                       }
                                                     ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "wait",
+                            "reason": "No action before next speech",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-21T21:14:46.435Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n259",
+                            "ivrSpeech": "How can I help you?",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "failed package pickup",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-21T21:14:46.435Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n260",
+                                  "ivrSpeech": "Sorry. I didn't hear you. How can I help you?",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "failed package pickup",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-21T21:14:46.435Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n261",
+                                        "ivrSpeech": "You're calling about a mail or package pickup. Is",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "representative",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-21T21:14:46.435Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n262",
+                                              "ivrSpeech": "sorry. Please say yes or no. You're calling about a mail or package pick up.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "yes",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-21T21:14:46.435Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 84,
+                                                    "reachedHuman": true,
+                                                    "dtmfDigits": []
                                                   }
                                                 }
                                               ]
