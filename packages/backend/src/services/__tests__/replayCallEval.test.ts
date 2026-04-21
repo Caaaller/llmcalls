@@ -170,10 +170,11 @@ async function runLiveFallback(
     console.log(`Live fallback completed: ${result.status}\n${timeline}`);
 
     const remoteHangup = await isRemoteHangup(result.callSid, result.timedOut);
-    // Only fail on timeout; remote_hangup is a neutral outcome and does not
-    // throw (the test harness still marks the test case as remote_hangup,
-    // not passed).
-    expect(result.timedOut).toBe(false);
+    // Do NOT throw on timedOut here. Throwing rejects the parallel task
+    // runner and abandons sibling in-flight tasks mid-flight, leaving their
+    // testrun records stuck at 'running' forever. Return the flag and let
+    // the caller decide — a single timed-out case becomes status=failed
+    // without killing the whole suite.
     return {
       callSid: result.callSid,
       durationSeconds: result.durationSeconds,
@@ -282,7 +283,14 @@ async function replayFixture(
             const live = await runLiveFallback(testCase, msg, filePath, tree);
             return {
               label,
-              status: live.remoteHangup ? 'remote_hangup' : 'passed',
+              status: live.timedOut
+                ? 'failed'
+                : live.remoteHangup
+                  ? 'remote_hangup'
+                  : 'passed',
+              error: live.timedOut
+                ? `Live fallback timed out after ${live.durationSeconds}s`
+                : undefined,
               turnCount: turnNumber,
               callSid: live.callSid,
               durationSeconds: live.durationSeconds,
@@ -314,7 +322,14 @@ async function replayFixture(
         const live = await runLiveFallback(testCase, msg, filePath, tree);
         return {
           label,
-          status: 'passed',
+          status: live.timedOut
+            ? 'failed'
+            : live.remoteHangup
+              ? 'remote_hangup'
+              : 'passed',
+          error: live.timedOut
+            ? `Live fallback timed out after ${live.durationSeconds}s`
+            : undefined,
           turnCount: turnNumber,
           callSid: live.callSid,
           durationSeconds: live.durationSeconds,
@@ -483,44 +498,73 @@ if (fixtures.length === 0) {
         // Initial in_progress record so interrupted runs are still visible.
         await writeProgress('in_progress');
 
+        // Per-task errors shouldn't kill the whole suite — catch and surface
+        // them as failed results instead so sibling tasks complete and the
+        // final writeProgress ALWAYS fires with a terminal status.
         const tasks = fixtures.map(({ tree, filePath }, i) => async () => {
           testCaseResults[i].status = 'running';
           await writeProgress('in_progress');
-          const r = await replayFixture(tree, filePath);
-          testCaseResults[i].status = r.status;
-          if (r.error) testCaseResults[i].error = r.error;
-          if (r.callSid) testCaseResults[i].callSid = r.callSid;
-          if (r.durationSeconds !== undefined) {
-            testCaseResults[i].durationSeconds = r.durationSeconds;
+          try {
+            const r = await replayFixture(tree, filePath);
+            testCaseResults[i].status = r.status;
+            if (r.error) testCaseResults[i].error = r.error;
+            if (r.callSid) testCaseResults[i].callSid = r.callSid;
+            if (r.durationSeconds !== undefined) {
+              testCaseResults[i].durationSeconds = r.durationSeconds;
+            }
+            await writeProgress('in_progress');
+            return r;
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            const testCase = findTestCase(tree.testCaseId);
+            const label = testCase?.name || tree.testCaseId;
+            testCaseResults[i].status = 'failed';
+            testCaseResults[i].error = message;
+            await writeProgress('in_progress');
+            return {
+              label,
+              status: 'failed' as const,
+              error: message,
+              turnCount: 0,
+            };
           }
-          await writeProgress('in_progress');
-          return r;
         });
-        const results = await runWithConcurrency(tasks, MAX_CONCURRENT);
 
-        const failures: Array<string> = [];
-        for (const r of results) {
-          if (r.status === 'passed') {
-            console.log(`PASS: ${r.label} (${r.turnCount} turns)`);
-          } else if (r.status === 'remote_hangup') {
-            console.log(
-              `REMOTE HANGUP: ${r.label} (${r.turnCount} turns) — far end disconnected before success`
-            );
-          } else {
-            console.log(
-              `\nFAIL: ${r.label} (${r.turnCount} turns):\n${r.error}\n`
-            );
-            failures.push(`${r.label}: ${r.error}`);
+        try {
+          const results = await runWithConcurrency(tasks, MAX_CONCURRENT);
+
+          const failures: Array<string> = [];
+          for (const r of results) {
+            if (r.status === 'passed') {
+              console.log(`PASS: ${r.label} (${r.turnCount} turns)`);
+            } else if (r.status === 'remote_hangup') {
+              console.log(
+                `REMOTE HANGUP: ${r.label} (${r.turnCount} turns) — far end disconnected before success`
+              );
+            } else {
+              console.log(
+                `\nFAIL: ${r.label} (${r.turnCount} turns):\n${r.error}\n`
+              );
+              failures.push(`${r.label}: ${r.error}`);
+            }
           }
-        }
 
-        // Final write with completedAt and terminal status.
-        await writeProgress(failures.length ? 'failed' : 'passed', new Date());
-
-        if (failures.length) {
-          throw new Error(
-            `${failures.length}/${fixtures.length} replays failed:\n\n${failures.join('\n\n')}`
+          await writeProgress(
+            failures.length ? 'failed' : 'passed',
+            new Date()
           );
+
+          if (failures.length) {
+            throw new Error(
+              `${failures.length}/${fixtures.length} replays failed:\n\n${failures.join('\n\n')}`
+            );
+          }
+        } catch (err) {
+          // Belt-and-suspenders: if anything unexpected still throws, finalize
+          // the testrun record as failed with completedAt so it doesn't sit
+          // 'in_progress' forever.
+          await writeProgress('failed', new Date()).catch(() => {});
+          throw err;
         }
       },
       totalTimeoutMs
