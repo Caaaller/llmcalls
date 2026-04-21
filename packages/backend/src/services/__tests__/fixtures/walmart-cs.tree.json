@@ -2,7 +2,7 @@
   "version": 2,
   "id": "walmart-cs",
   "testCaseId": "walmart-cs",
-  "lastRecordedAt": "2026-04-18T20:48:59.011Z",
+  "lastRecordedAt": "2026-04-21T17:25:46.422Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-18T20:48:59.010Z",
+        "recordedAt": "2026-04-21T17:25:46.422Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -45,7 +45,7 @@
                 }
               },
               "recordedAt": "2026-04-18T20:48:59.011Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "Okay, I hear you.",
@@ -315,7 +315,7 @@
                       }
                     },
                     "recordedAt": "2026-04-18T20:48:59.011Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n25",
                       "ivrSpeech": "I'm transferring you to the customer support team to help you with your issue.",
@@ -1342,7 +1342,7 @@
                             }
                           },
                           "recordedAt": "2026-04-18T20:48:59.011Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n39",
                             "ivrSpeech": "I'm transferring you to the customer support team to help you with your issue.",
@@ -1385,7 +1385,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-18T20:48:59.011Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n53",
                                   "ivrSpeech": "If you see a Walmart Plus charge you don't recognize, your card might be compromised. Have you already checked your Walmart account for recent membership charges, or would you like help with that?",
@@ -1451,7 +1451,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-18T20:48:59.011Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n81",
                                         "ivrSpeech": "Hello. Thank you so much for calling walmart.com. My name is Daniel. With whom do I have the pleasure of speaking today?",
@@ -1583,7 +1583,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-18T20:48:59.011Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "terminal": true,
                                               "finalStatus": "initiated",
@@ -1620,14 +1620,83 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-16T19:11:14.465Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-21T17:25:46.422Z",
+              "isLatestPath": true,
               "child": {
-                "terminal": true,
-                "finalStatus": "initiated",
-                "durationSeconds": 72,
-                "reachedHuman": true,
-                "dtmfDigits": []
+                "id": "n117",
+                "ivrSpeech": "I hear you wanna speak with a representative. Right now, I can help with most things directly. Can you tell me a bit more about what you need today?",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "representative",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-21T17:25:46.422Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n118",
+                      "ivrSpeech": "I understand you want to speak with a representative. I can help you right now. What do you need help with?",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "billing question",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-21T17:25:46.422Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n119",
+                            "ivrSpeech": "Got it. You have a billing question. Can you tell me a little more about the issue? For example, is this about a recent order, a charge you don't recognize, or something else?",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "representative",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-21T17:25:46.422Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 100,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": []
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
               }
             }
           ]
