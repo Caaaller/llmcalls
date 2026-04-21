@@ -188,16 +188,40 @@ async function assertOutcome(
 }
 
 const ALL_CASES = [...DEFAULT_TEST_CASES, ...TEST_IVR_CASES];
+
+// Filter precedence: LIVE_EVAL_CASE (exact id match) > TEST_FILTER (substring
+// match against id or name) > LIVE_EVAL_IVR / LIVE_EVAL_LONG > DEFAULT_TEST_CASES.
+// TEST_FILTER is the shared convention with replayCallEval, so users can do:
+//   TEST_FILTER=wellsfargo pnpm --filter backend test:live:record
 const caseFilter = process.env.LIVE_EVAL_CASE
   ? new Set(process.env.LIVE_EVAL_CASE.split(',').map(s => s.trim()))
   : null;
+const testFilterRaw = (process.env.TEST_FILTER || '').trim();
+const testFilterTerms = testFilterRaw
+  ? testFilterRaw
+      .toLowerCase()
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+  : [];
 const testCases = caseFilter
   ? ALL_CASES.filter(tc => caseFilter.has(tc.id))
-  : process.env.LIVE_EVAL_IVR
-    ? TEST_IVR_CASES
-    : process.env.LIVE_EVAL_LONG
-      ? LONG_TEST_CASES
-      : DEFAULT_TEST_CASES;
+  : testFilterTerms.length
+    ? ALL_CASES.filter(tc => {
+        const haystack = `${tc.id} ${tc.name}`.toLowerCase();
+        return testFilterTerms.some(t => haystack.includes(t));
+      })
+    : process.env.LIVE_EVAL_IVR
+      ? TEST_IVR_CASES
+      : process.env.LIVE_EVAL_LONG
+        ? LONG_TEST_CASES
+        : DEFAULT_TEST_CASES;
+
+if (testFilterTerms.length && !caseFilter) {
+  console.log(
+    `TEST_FILTER=${testFilterRaw} — matched ${testCases.length}/${ALL_CASES.length} cases`
+  );
+}
 
 const maxPerCall = Math.max(
   ...testCases.map(

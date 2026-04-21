@@ -169,7 +169,34 @@ async function runLiveFallback(
   }
 }
 
-const fixtures = loadTreeFixtures();
+const allFixtures = loadTreeFixtures();
+
+// Filter fixtures by TEST_FILTER env var (case-insensitive substring match
+// against testCaseId or the test case's display name). Comma-separated for
+// multiple filters. Examples:
+//   TEST_FILTER=wellsfargo pnpm --filter backend test:replay-or-live
+//   TEST_FILTER=wells,att pnpm --filter backend test:replay-or-live
+const FILTER_RAW = (process.env.TEST_FILTER || '').trim();
+const FILTER_TERMS = FILTER_RAW
+  ? FILTER_RAW.toLowerCase()
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+  : [];
+const fixtures = FILTER_TERMS.length
+  ? allFixtures.filter(({ tree }) => {
+      const testCase = findTestCase(tree.testCaseId);
+      const haystack =
+        `${tree.testCaseId} ${testCase?.name || ''}`.toLowerCase();
+      return FILTER_TERMS.some(term => haystack.includes(term));
+    })
+  : allFixtures;
+
+if (FILTER_TERMS.length) {
+  console.log(
+    `TEST_FILTER=${FILTER_RAW} — matched ${fixtures.length}/${allFixtures.length} fixtures`
+  );
+}
 
 interface ReplayResult {
   label: string;
@@ -425,17 +452,15 @@ if (fixtures.length === 0) {
         // Initial in_progress record so interrupted runs are still visible.
         await writeProgress('in_progress');
 
-        const tasks = fixtures.map(
-          ({ tree, filePath }, i) => async () => {
-            testCaseResults[i].status = 'running';
-            await writeProgress('in_progress');
-            const r = await replayFixture(tree, filePath);
-            testCaseResults[i].status = r.status;
-            if (r.error) testCaseResults[i].error = r.error;
-            await writeProgress('in_progress');
-            return r;
-          }
-        );
+        const tasks = fixtures.map(({ tree, filePath }, i) => async () => {
+          testCaseResults[i].status = 'running';
+          await writeProgress('in_progress');
+          const r = await replayFixture(tree, filePath);
+          testCaseResults[i].status = r.status;
+          if (r.error) testCaseResults[i].error = r.error;
+          await writeProgress('in_progress');
+          return r;
+        });
         const results = await runWithConcurrency(tasks, MAX_CONCURRENT);
 
         const failures: Array<string> = [];
@@ -451,10 +476,7 @@ if (fixtures.length === 0) {
         }
 
         // Final write with completedAt and terminal status.
-        await writeProgress(
-          failures.length ? 'failed' : 'passed',
-          new Date()
-        );
+        await writeProgress(failures.length ? 'failed' : 'passed', new Date());
 
         if (failures.length) {
           throw new Error(
