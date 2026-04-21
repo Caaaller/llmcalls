@@ -199,13 +199,32 @@ function handleCallHangup(
   const internalStatus =
     cause === 'normal_clearing' || !cause ? 'completed' : 'failed';
 
+  // Capture Deepgram reconnect telemetry from the in-memory call state before
+  // clearing it — otherwise the values vanish before we can persist them.
+  const state = callStateManager.getCallState(callControlId);
+  const telemetry = state as unknown as {
+    dg_reconnects?: number;
+    dg_silent_ms?: number;
+  };
+  const dgReconnects = telemetry.dg_reconnects ?? 0;
+  const dgSilentMs = telemetry.dg_silent_ms ?? 0;
+  if (dgReconnects > 0 || dgSilentMs > 0) {
+    logOnError(
+      callHistoryService.setReconnectTelemetry(
+        callControlId,
+        dgReconnects,
+        dgSilentMs
+      ),
+      'Error persisting Deepgram reconnect telemetry'
+    );
+  }
+
   logOnError(
     callHistoryService.endCall(callControlId, internalStatus),
     'Error ending call'
   );
 
   // Clean up stall timer if active
-  const state = callStateManager.getCallState(callControlId);
   if (state.stallTimer) {
     clearInterval(state.stallTimer);
   }

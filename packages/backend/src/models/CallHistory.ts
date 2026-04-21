@@ -68,6 +68,8 @@ export interface ICallHistory extends Document {
   dtmfPresses: DTMFPress[];
   events: CallEvent[];
   recordingUrl?: string;
+  dgReconnects?: number;
+  dgSilentMs?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -178,6 +180,8 @@ const callHistorySchema = new Schema<ICallHistory>(
     dtmfPresses: [dtmfPressSchema],
     events: [eventSchema],
     recordingUrl: String,
+    dgReconnects: { type: Number, default: 0 },
+    dgSilentMs: { type: Number, default: 0 },
   },
   {
     timestamps: true,
