@@ -40,10 +40,13 @@ function formatTime(date: Date | string | null | undefined): string {
 
 function computeRunDuration(run: {
   startedAt: string;
-  completedAt: string;
+  completedAt?: string;
 }): string {
-  const ms =
-    new Date(run.completedAt).getTime() - new Date(run.startedAt).getTime();
+  const endMs = run.completedAt
+    ? new Date(run.completedAt).getTime()
+    : Date.now();
+  const ms = endMs - new Date(run.startedAt).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return '\u2014';
   return formatDuration(Math.round(ms / 1000));
 }
 
@@ -488,7 +491,9 @@ function TestRunsTab({
               <div className="run-item-header">
                 <span className="run-date">{formatRunDate(run.startedAt)}</span>
                 <span className={`run-status-badge ${run.status}`}>
-                  {run.status.toUpperCase()}
+                  {run.status === 'in_progress'
+                    ? 'RUNNING'
+                    : run.status.toUpperCase()}
                 </span>
               </div>
               <div className="run-item-meta">
@@ -654,12 +659,16 @@ function TestRunsTab({
               );
             }
 
+            const isInProgress =
+              tc.status === 'pending' || tc.status === 'running';
             const statusClass =
               tc.status === 'passed'
                 ? 'pass'
                 : tc.status === 'business_closed'
                   ? 'closed'
-                  : 'fail';
+                  : isInProgress
+                    ? 'pending'
+                    : 'fail';
             const isExpanded = expandedCallSid === tc.callSid;
 
             return (
@@ -669,14 +678,20 @@ function TestRunsTab({
               >
                 <div
                   className="test-case-row"
-                  onClick={() => toggleCallDetail(tc.callSid)}
+                  onClick={() =>
+                    tc.callSid ? toggleCallDetail(tc.callSid) : undefined
+                  }
                 >
                   <span className="test-case-icon">
                     {tc.status === 'passed'
                       ? '\u2705'
                       : tc.status === 'business_closed'
                         ? '\ud83d\udd5b'
-                        : '\u274C'}
+                        : tc.status === 'running'
+                          ? '\u23F3'
+                          : tc.status === 'pending'
+                            ? '\u2026'
+                            : '\u274C'}
                   </span>
                   <span className="test-case-name">{tc.name}</span>
                   {tc.error && (
@@ -693,15 +708,17 @@ function TestRunsTab({
                       )
                     )}
                   </span>
-                  <button
-                    className="btn-view-call"
-                    onClick={e => {
-                      e.stopPropagation();
-                      toggleCallDetail(tc.callSid);
-                    }}
-                  >
-                    {isExpanded ? 'Hide' : 'View Call'}
-                  </button>
+                  {tc.callSid && (
+                    <button
+                      className="btn-view-call"
+                      onClick={e => {
+                        e.stopPropagation();
+                        toggleCallDetail(tc.callSid);
+                      }}
+                    >
+                      {isExpanded ? 'Hide' : 'View Call'}
+                    </button>
+                  )}
                   {tc.status === 'failed' && (
                     <button
                       className="btn-why-failed"

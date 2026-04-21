@@ -178,7 +178,13 @@ export interface TestCaseResult {
   testCaseId: string;
   name: string;
   callSid: string;
-  status: 'passed' | 'failed' | 'business_closed';
+  status:
+    | 'passed'
+    | 'failed'
+    | 'business_closed'
+    | 'pending'
+    | 'running'
+    | 'skipped';
   durationSeconds: number;
   error?: string;
   timedOut: boolean;
@@ -195,8 +201,8 @@ export interface FailureAnalysis {
 export interface TestRunSummary {
   runId: string;
   startedAt: string;
-  completedAt: string;
-  status: 'passed' | 'failed';
+  completedAt?: string;
+  status: 'passed' | 'failed' | 'in_progress';
   totalTests: number;
   passedTests: number;
   failedTests: number;
