@@ -128,7 +128,7 @@ async function runLiveFallback(
   divergenceMsg: string,
   treeFilePath: string,
   tree: RecordedCallTree
-): Promise<void> {
+): Promise<{ callSid: string; durationSeconds: number; timedOut: boolean }> {
   if (!hasTelnyxCreds()) {
     throw new Error(
       `${divergenceMsg}\n\nWould fall back to live call, but Telnyx credentials are missing.`
@@ -164,6 +164,11 @@ async function runLiveFallback(
     console.log(`Live fallback completed: ${result.status}\n${timeline}`);
 
     expect(result.timedOut).toBe(false);
+    return {
+      callSid: result.callSid,
+      durationSeconds: result.durationSeconds,
+      timedOut: result.timedOut,
+    };
   } finally {
     await disconnect();
   }
@@ -263,8 +268,15 @@ async function replayFixture(
           ].join('\n');
 
           if (TEST_MODE === 'replay-or-live' && testCase) {
-            await runLiveFallback(testCase, msg, filePath, tree);
-            return { label, status: 'passed', turnCount: turnNumber };
+            const live = await runLiveFallback(testCase, msg, filePath, tree);
+            return {
+              label,
+              status: 'passed',
+              turnCount: turnNumber,
+              callSid: live.callSid,
+              durationSeconds: live.durationSeconds,
+              testCaseId: tree.testCaseId,
+            };
           }
           return { label, status: 'failed', error: msg, turnCount: turnNumber };
         }
@@ -288,8 +300,15 @@ async function replayFixture(
       ].join('\n');
 
       if (TEST_MODE === 'replay-or-live' && testCase) {
-        await runLiveFallback(testCase, msg, filePath, tree);
-        return { label, status: 'passed', turnCount: turnNumber };
+        const live = await runLiveFallback(testCase, msg, filePath, tree);
+        return {
+          label,
+          status: 'passed',
+          turnCount: turnNumber,
+          callSid: live.callSid,
+          durationSeconds: live.durationSeconds,
+          testCaseId: tree.testCaseId,
+        };
       }
       return { label, status: 'failed', error: msg, turnCount: turnNumber };
     }
@@ -458,6 +477,10 @@ if (fixtures.length === 0) {
           const r = await replayFixture(tree, filePath);
           testCaseResults[i].status = r.status;
           if (r.error) testCaseResults[i].error = r.error;
+          if (r.callSid) testCaseResults[i].callSid = r.callSid;
+          if (r.durationSeconds !== undefined) {
+            testCaseResults[i].durationSeconds = r.durationSeconds;
+          }
           await writeProgress('in_progress');
           return r;
         });
