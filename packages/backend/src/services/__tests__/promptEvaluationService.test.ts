@@ -13,7 +13,7 @@ import {
   expectedFromStepBehavior,
   actualFromResult,
 } from './promptEvalHelpers';
-import ivrNavigatorService from '../ivrNavigatorService';
+import ivrNavigatorService, { CallAction } from '../ivrNavigatorService';
 import transferConfig from '../../config/transfer-config';
 import {
   SINGLE_STEP_TEST_CASES,
@@ -356,6 +356,120 @@ describe('Prompt evaluation – hold detection', () => {
     });
 
     expect(result.aiAction).toBe('maybe_human');
+    callStateManager.clearCallState(testCallSid);
+  });
+});
+
+describe('Transfer confirmation gate', () => {
+  // Force decideAction to return human_detected so we can test the structural
+  // gate in processSpeech deterministically — independent of AI judgment.
+  function makeHumanDetectedAction(
+    speech: string,
+    humanIntroDetected = false
+  ): CallAction {
+    return {
+      action: 'human_detected',
+      reason: `forced human_detected for test on speech: "${speech.slice(0, 60)}"`,
+      detected: {
+        isIVRMenu: false,
+        menuOptions: [],
+        isMenuComplete: false,
+        loopDetected: false,
+        shouldTerminate: false,
+        transferRequested: false,
+        humanIntroDetected,
+      },
+    };
+  }
+
+  let decideActionSpy: jest.SpyInstance;
+
+  afterEach(() => {
+    decideActionSpy?.mockRestore();
+  });
+
+  it('downgrades human_detected to maybe_human on first-turn greeting without confirmation pending', async () => {
+    const testCallSid = 'jest-gate-no-confirmation-greeting';
+    decideActionSpy = jest
+      .spyOn(ivrNavigatorService, 'decideAction')
+      .mockResolvedValue(
+        makeHumanDetectedAction(
+          'Thank you for calling Acme. This is Sarah, how can I help you?',
+          true
+        )
+      );
+
+    const result = await processSpeech({
+      callSid: testCallSid,
+      speechResult:
+        'Thank you for calling Acme. This is Sarah, how can I help you?',
+      isFirstCall: true,
+      baseUrl: 'http://test',
+      callPurpose: 'speak with a representative',
+      transferNumber: defaultConfig.transferNumber,
+      userPhone: defaultConfig.userPhone,
+      userEmail: defaultConfig.userEmail,
+      testMode: true,
+    });
+
+    expect(result.aiAction).toBe('maybe_human');
+    const state = callStateManager.getCallState(testCallSid);
+    expect(state.transferInitiated).not.toBe(true);
+    callStateManager.clearCallState(testCallSid);
+  });
+
+  it('allows human_detected to transfer when awaitingHumanConfirmation is set', async () => {
+    const testCallSid = 'jest-gate-confirmation-pending';
+    callStateManager.updateCallState(testCallSid, {
+      awaitingHumanConfirmation: true,
+    });
+
+    decideActionSpy = jest
+      .spyOn(ivrNavigatorService, 'decideAction')
+      .mockResolvedValue(makeHumanDetectedAction('Yes I am a live agent'));
+
+    const result = await processSpeech({
+      callSid: testCallSid,
+      speechResult: 'Yes I am a live agent',
+      isFirstCall: false,
+      baseUrl: 'http://test',
+      callPurpose: 'speak with a representative',
+      transferNumber: defaultConfig.transferNumber,
+      userPhone: defaultConfig.userPhone,
+      userEmail: defaultConfig.userEmail,
+      testMode: true,
+    });
+
+    expect(result.aiAction).toBe('human_detected');
+    callStateManager.clearCallState(testCallSid);
+  });
+
+  it('downgrades human_detected on menu-sounding speech without confirmation pending', async () => {
+    const testCallSid = 'jest-gate-menu-no-confirmation';
+    decideActionSpy = jest
+      .spyOn(ivrNavigatorService, 'decideAction')
+      .mockResolvedValue(
+        makeHumanDetectedAction(
+          'Press 1 for sales, press 2 for support, press 0 for operator'
+        )
+      );
+
+    const result = await processSpeech({
+      callSid: testCallSid,
+      speechResult:
+        'Press 1 for sales, press 2 for support, press 0 for operator',
+      isFirstCall: true,
+      baseUrl: 'http://test',
+      callPurpose: 'speak with a representative',
+      transferNumber: defaultConfig.transferNumber,
+      userPhone: defaultConfig.userPhone,
+      userEmail: defaultConfig.userEmail,
+      testMode: true,
+    });
+
+    expect(result.aiAction).toBe('maybe_human');
+    const state = callStateManager.getCallState(testCallSid);
+    expect(state.transferInitiated).not.toBe(true);
     callStateManager.clearCallState(testCallSid);
   });
 });
