@@ -146,44 +146,44 @@ async function runLiveFallback(
   );
   console.warn(divergenceMsg);
 
-  const { connect, disconnect } = await import('../database');
-  await connect();
+  // NOTE: do NOT connect/disconnect Mongo here. When multiple fallbacks run
+  // in parallel, one task's disconnect() kills the shared mongoose connection
+  // that other tasks are still polling with, making callHistoryService.getCall
+  // return null. That silently breaks the transfer/hold early-exit detection
+  // in executeCall and causes real successes to be marked as timeouts.
+  // The suite-level `it(...)` block owns the connection lifecycle.
 
-  try {
-    const result = await executeCall(testCase);
-    const turns = await buildRecordedTurns(result.callSid);
-    const outcome = await getCallOutcome(
-      result.callSid,
-      result.durationSeconds,
-      result.status
+  const result = await executeCall(testCase);
+  const turns = await buildRecordedTurns(result.callSid);
+  const outcome = await getCallOutcome(
+    result.callSid,
+    result.durationSeconds,
+    result.status
+  );
+
+  if (turns.length > 0) {
+    mergePathIntoTree(tree, turns, outcome);
+    saveTreeFixture(treeFilePath, tree);
+    console.log(
+      `Live fallback recorded: ${testCase.id}.tree.json (${turns.length} turns)`
     );
-
-    if (turns.length > 0) {
-      mergePathIntoTree(tree, turns, outcome);
-      saveTreeFixture(treeFilePath, tree);
-      console.log(
-        `Live fallback recorded: ${testCase.id}.tree.json (${turns.length} turns)`
-      );
-    }
-
-    const timeline = await formatCallTimeline(result.callSid);
-    console.log(`Live fallback completed: ${result.status}\n${timeline}`);
-
-    const remoteHangup = await isRemoteHangup(result.callSid, result.timedOut);
-    // Do NOT throw on timedOut here. Throwing rejects the parallel task
-    // runner and abandons sibling in-flight tasks mid-flight, leaving their
-    // testrun records stuck at 'running' forever. Return the flag and let
-    // the caller decide — a single timed-out case becomes status=failed
-    // without killing the whole suite.
-    return {
-      callSid: result.callSid,
-      durationSeconds: result.durationSeconds,
-      timedOut: result.timedOut,
-      remoteHangup,
-    };
-  } finally {
-    await disconnect();
   }
+
+  const timeline = await formatCallTimeline(result.callSid);
+  console.log(`Live fallback completed: ${result.status}\n${timeline}`);
+
+  const remoteHangup = await isRemoteHangup(result.callSid, result.timedOut);
+  // Do NOT throw on timedOut here. Throwing rejects the parallel task
+  // runner and abandons sibling in-flight tasks mid-flight, leaving their
+  // testrun records stuck at 'running' forever. Return the flag and let
+  // the caller decide — a single timed-out case becomes status=failed
+  // without killing the whole suite.
+  return {
+    callSid: result.callSid,
+    durationSeconds: result.durationSeconds,
+    timedOut: result.timedOut,
+    remoteHangup,
+  };
 }
 
 const allFixtures = loadTreeFixtures();
@@ -422,6 +422,25 @@ if (fixtures.length === 0) {
       : Math.max(300_000, batches * maxTurns * 15_000);
 
   describe('Replay call evaluations', () => {
+    // Suite owns the Mongo connection lifecycle — NOT individual tasks.
+    // Parallel runLiveFallback tasks would otherwise fight over the shared
+    // mongoose connection and silently break callHistoryService.getCall().
+    // See the corresponding regression test in connectionRace.test.ts.
+    let suiteConnected = false;
+    beforeAll(async () => {
+      if (TEST_MODE === 'replay-or-live' && hasTelnyxCreds()) {
+        const { connect } = await import('../database');
+        await connect();
+        suiteConnected = true;
+      }
+    });
+    afterAll(async () => {
+      if (suiteConnected) {
+        const { disconnect } = await import('../database');
+        await disconnect();
+      }
+    });
+
     it(
       'replays all fixtures',
       async () => {
