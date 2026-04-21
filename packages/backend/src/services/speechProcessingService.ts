@@ -265,14 +265,25 @@ export async function processSpeech({
     // AI ITSELF set in the response — the AI made the judgment, we just ensure its
     // declared action matches its declared observations.
 
+    const confirmationPending =
+      !!callState.awaitingHumanConfirmation ||
+      !!callState.awaitingHumanClarification;
+
+    // Structural gate: human_detected is only valid when a confirmation question
+    // is already pending. Otherwise downgrade to maybe_human so the system asks
+    // "Am I speaking with a live agent?" first. No exceptions.
+    if (action.action === 'human_detected' && !confirmationPending) {
+      console.log(
+        `⚠️ human_detected without pending confirmation → maybe_human (was human_detected on speech: "${speechResult.slice(0, 80)}")`
+      );
+      action.action = 'maybe_human';
+    }
+
     // Consistency check: if the AI set humanIntroDetected=true (a proper personal
     // introduction), route through the MANDATORY confirmation flow.
     // - No confirmation pending → maybe_human (system will ask "Am I speaking with
     //   a live agent?"). Never fast-path to human_detected on a name alone.
     // - Confirmation already pending → human_detected is fine.
-    const confirmationPending =
-      !!callState.awaitingHumanConfirmation ||
-      !!callState.awaitingHumanClarification;
     if (
       action.detected.humanIntroDetected &&
       !confirmationPending &&
