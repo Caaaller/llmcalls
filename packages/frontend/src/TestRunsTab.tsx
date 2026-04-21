@@ -54,6 +54,7 @@ interface StatusCounts {
   passed: number;
   failed: number;
   closed: number;
+  remoteHangup: number;
   skipped: number;
   total: number;
 }
@@ -65,15 +66,17 @@ function computeStatusCounts(
   let passed = 0;
   let failed = 0;
   let closed = 0;
+  let remoteHangup = 0;
   let skipped = 0;
   for (const tc of testCases) {
     if (tc.status === 'passed') passed++;
     else if (tc.status === 'failed') failed++;
     else if (tc.status === 'business_closed') closed++;
+    else if (tc.status === 'remote_hangup') remoteHangup++;
     else if (tc.status === 'skipped') skipped++;
   }
   const total = testCases.length;
-  return { passed, failed, closed, skipped, total };
+  return { passed, failed, closed, remoteHangup, skipped, total };
 }
 
 function buildRunMeta(run: TestRunSummary): string {
@@ -147,6 +150,7 @@ function buildDetailProgressSegments(
   add(counts.passed, '#28a745');
   add(counts.failed, '#dc3545');
   add(counts.closed, '#d4a017');
+  add(counts.remoteHangup, '#8a6d3b');
   add(counts.skipped, '#6c757d');
   return segments;
 }
@@ -609,6 +613,14 @@ function TestRunsTab({
               <div className="summary-card-label">Closed</div>
             </div>
           )}
+          {counts.remoteHangup > 0 && (
+            <div className="summary-card">
+              <div className="summary-card-value closed">
+                {counts.remoteHangup}
+              </div>
+              <div className="summary-card-label">Hung Up</div>
+            </div>
+          )}
           {counts.skipped > 0 && (
             <div className="summary-card">
               <div className="summary-card-value skipped">{counts.skipped}</div>
@@ -666,9 +678,11 @@ function TestRunsTab({
                 ? 'pass'
                 : tc.status === 'business_closed'
                   ? 'closed'
-                  : isInProgress
-                    ? 'pending'
-                    : 'fail';
+                  : tc.status === 'remote_hangup'
+                    ? 'closed'
+                    : isInProgress
+                      ? 'pending'
+                      : 'fail';
             const isExpanded = expandedCallSid === tc.callSid;
 
             return (
@@ -687,11 +701,13 @@ function TestRunsTab({
                       ? '\u2705'
                       : tc.status === 'business_closed'
                         ? '\ud83d\udd5b'
-                        : tc.status === 'running'
-                          ? '\u23F3'
-                          : tc.status === 'pending'
-                            ? '\u2026'
-                            : '\u274C'}
+                        : tc.status === 'remote_hangup'
+                          ? '\ud83d\udcde'
+                          : tc.status === 'running'
+                            ? '\u23F3'
+                            : tc.status === 'pending'
+                              ? '\u2026'
+                              : '\u274C'}
                   </span>
                   <span className="test-case-name">{tc.name}</span>
                   {tc.error && (

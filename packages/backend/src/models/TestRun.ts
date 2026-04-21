@@ -8,6 +8,7 @@ export interface ITestCaseResult {
     | 'passed'
     | 'failed'
     | 'business_closed'
+    | 'remote_hangup'
     | 'skipped'
     | 'pending'
     | 'running';
@@ -40,6 +41,7 @@ const TestCaseResultSchema = new Schema<ITestCaseResult>(
         'passed',
         'failed',
         'business_closed',
+        'remote_hangup',
         'skipped',
         'pending',
         'running',
