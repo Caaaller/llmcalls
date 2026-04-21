@@ -2,7 +2,7 @@
   "version": 2,
   "id": "walmart-cs",
   "testCaseId": "walmart-cs",
-  "lastRecordedAt": "2026-04-21T17:25:46.422Z",
+  "lastRecordedAt": "2026-04-21T21:53:54.329Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T17:25:46.422Z",
+        "recordedAt": "2026-04-21T21:53:54.329Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -44,8 +44,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-18T20:48:59.011Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-21T21:53:54.329Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "Okay, I hear you.",
@@ -314,8 +314,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-18T20:48:59.011Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-04-21T21:53:54.329Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n25",
                       "ivrSpeech": "I'm transferring you to the customer support team to help you with your issue.",
@@ -1341,8 +1341,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-18T20:48:59.011Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-21T21:53:54.329Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n39",
                             "ivrSpeech": "I'm transferring you to the customer support team to help you with your issue.",
@@ -1360,14 +1360,82 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-03T01:21:29.775Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-21T21:53:54.329Z",
+                                "isLatestPath": true,
                                 "child": {
-                                  "terminal": true,
-                                  "finalStatus": "initiated",
-                                  "durationSeconds": 111,
-                                  "reachedHuman": true,
-                                  "dtmfDigits": []
+                                  "id": "n120",
+                                  "ivrSpeech": "There's one caller ahead of you. Estimated wait time is approximately one minute. This call and your voice may be recorded for quality or other business purposes, including fraud prevention.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-21T21:53:54.329Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n121",
+                                        "ivrSpeech": "Hi. Thank you for calling walmart.com. This is Honey. May I ask for your full name, please?",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "representative",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-21T21:53:54.329Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n122",
+                                              "ivrSpeech": "This is a rep a live representative here at walmart.com. May I ask for your first and last name, please, that is on the account?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "Oliver Ullman",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-21T21:53:54.329Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 165,
+                                                    "reachedHuman": true,
+                                                    "dtmfDigits": []
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
                                 }
                               },
                               {
@@ -1621,7 +1689,7 @@
                 }
               },
               "recordedAt": "2026-04-21T17:25:46.422Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n117",
                 "ivrSpeech": "I hear you wanna speak with a representative. Right now, I can help with most things directly. Can you tell me a bit more about what you need today?",
@@ -1641,7 +1709,7 @@
                       }
                     },
                     "recordedAt": "2026-04-21T17:25:46.422Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n118",
                       "ivrSpeech": "I understand you want to speak with a representative. I can help you right now. What do you need help with?",
@@ -1661,7 +1729,7 @@
                             }
                           },
                           "recordedAt": "2026-04-21T17:25:46.422Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n119",
                             "ivrSpeech": "Got it. You have a billing question. Can you tell me a little more about the issue? For example, is this about a recent order, a charge you don't recognize, or something else?",
@@ -1681,7 +1749,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-21T17:25:46.422Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "terminal": true,
                                   "finalStatus": "initiated",

@@ -2,7 +2,7 @@
   "version": 2,
   "id": "verizon-cs",
   "testCaseId": "verizon-cs",
-  "lastRecordedAt": "2026-04-18T20:49:00.064Z",
+  "lastRecordedAt": "2026-04-21T21:53:41.781Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
           }
         },
         "recordedAt": "2026-04-18T20:49:00.064Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n1",
           "ivrSpeech": "Verizon is here to help. We in our partners May Monitor and record calls for quality.",
@@ -718,7 +718,7 @@
                 }
               },
               "recordedAt": "2026-04-18T20:49:00.064Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n12",
                 "ivrSpeech": "Okay. 7 2 0 5 8 4 6, 3 5 8. Did I get that right?",
@@ -738,7 +738,7 @@
                       }
                     },
                     "recordedAt": "2026-04-18T20:49:00.064Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n13",
                       "ivrSpeech": "I'm sorry, but the number I heard doesn't match our records.",
@@ -758,7 +758,7 @@
                             }
                           },
                           "recordedAt": "2026-04-18T20:49:00.064Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n14",
                             "ivrSpeech": "I'm sorry, I didn't understand you.",
@@ -1009,7 +1009,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-18T20:49:00.064Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n32",
                                   "ivrSpeech": "I'm sorry, we're having trouble. If you are calling for a business account, say business or press one. For personal accounts, say personal or press two.",
@@ -1169,7 +1169,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-18T20:49:00.064Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n86",
                                         "ivrSpeech": "Hello. This is Ed from BRAKE Can you hear me?",
@@ -1189,7 +1189,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-18T20:49:00.064Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n87",
                                               "ivrSpeech": "I'm sorry. How can I help you today?",
@@ -1209,7 +1209,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-18T20:49:00.064Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "terminal": true,
                                                     "finalStatus": "initiated",
@@ -1599,8 +1599,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-17T21:44:09.752Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-21T21:53:41.781Z",
+        "isLatestPath": true,
         "child": {
           "id": "n66",
           "ivrSpeech": "Okay. What can I help you with today?",
@@ -1619,8 +1619,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-17T21:44:09.752Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-21T21:53:41.781Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n74",
                 "ivrSpeech": "I would be happy to get you to a representative. To make sure I connect you to the right team, are you calling about a personal or business account?",
@@ -1639,8 +1639,8 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-17T21:30:22.373Z",
-                    "isLatestPath": false,
+                    "recordedAt": "2026-04-21T21:53:41.781Z",
+                    "isLatestPath": true,
                     "child": {
                       "id": "n75",
                       "ivrSpeech": "I understand you want to speak with someone. Could you just let me know if you're calling about a personal or business account first? So I can route you correctly?",
@@ -1659,8 +1659,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-17T21:05:53.341Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-21T21:53:41.781Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n83",
                             "ivrSpeech": "I can help with that. Please hold.",
@@ -1702,8 +1702,8 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-17T21:05:53.341Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-21T21:53:41.781Z",
+                                "isLatestPath": true,
                                 "child": {
                                   "id": "n85",
                                   "ivrSpeech": "Hi. You have reached David of Verizon. It's my pleasure to assist you. How can I help you today?",
@@ -1721,14 +1721,37 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-17T21:05:53.341Z",
-                                      "isLatestPath": false,
+                                      "recordedAt": "2026-04-21T21:53:41.781Z",
+                                      "isLatestPath": true,
                                       "child": {
-                                        "terminal": true,
-                                        "finalStatus": "initiated",
-                                        "durationSeconds": 119,
-                                        "reachedHuman": true,
-                                        "dtmfDigits": []
+                                        "id": "n88",
+                                        "ivrSpeech": "Hi. You've reached Hope at Verizon, and it's my pleasure to assist you. How can I help?",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "Hi, am I speaking with a live agent?",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-21T21:53:41.781Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 158,
+                                              "reachedHuman": true,
+                                              "dtmfDigits": []
+                                            }
+                                          }
+                                        ]
                                       }
                                     }
                                   ]
