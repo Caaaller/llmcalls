@@ -2,6 +2,37 @@
 
 After making any fix to test infrastructure, prompts, or call handling, rerun the affected test(s) and verify the fix worked before reporting success. Don't just commit — prove it.
 
+## MANDATORY: Test Runs Must Finish Within 30 Minutes
+
+No test run should ever take more than 30 minutes. When kicking off any test run (live, replay, or eval), start a 30-minute timer. If the run hasn't completed in that window, IMMEDIATELY interrupt the user with an ALL-CAPS message explaining that the run is still going and why (current progress, what's blocking, likely cause). Never silently wait past 30 minutes — surface the stall.
+
+## MANDATORY: Timetable for Any Process Over 10 Minutes
+
+When any process (test suite, background agent, long-running command) takes more than 10 minutes total, include a NON-GUESSED timetable of where the time actually went when you report completion. Pull real timestamps from logs, MongoDB, Telnyx, or process start/end times — never estimate or guess. Format as a simple table: step | start → end | duration. If a step's timing is unknown, write "unknown" — do NOT fabricate numbers.
+
+## MANDATORY: Never Daemonize Long Tasks — Use run_in_background Only
+
+NEVER launch long-running test suites or commands with `nohup cmd &`, `cmd &`, or `disown`. Those detach the process and Claude's completion notifications never fire, leaving the user waiting in silence while the task already finished or failed. Always use the Bash tool's `run_in_background: true` parameter DIRECTLY on the command (no nohup, no `&`). The only exception: truly fire-and-forget daemons like the dev server — and even then, accept you won't get completion notifications. If you need to know when something finishes, `run_in_background: true` is the only acceptable option.
+
+## MANDATORY: Never Put Long Waits Inside a Claude Agent
+
+Claude background agents have a 600-second (10-minute) inactivity watchdog that kills them if they sit idle waiting for an external process. This has caused repeated silent stalls in this repo (jest test suites, live call monitoring, etc.). Rule:
+
+- Agents are for ACTIVE work: code edits, analysis, orchestration steps that involve frequent tool calls.
+- Long-running processes (jest, live call monitoring, CI builds, `pnpm test`, anything that might take >5 min) MUST run via Bash `run_in_background: true` from the MAIN thread — never inside an agent that waits for them.
+- When an agent does need to kick off a test, it should launch via `run_in_background`, commit/push any code it's done, then EXIT. The main thread polls for results.
+- If an agent stalls: the FIRST action in the main thread is aggressive recovery — check actual process state, read logs, get the real status in under 60 seconds. Do NOT schedule wakeups, do NOT launch replacement agents, do NOT wait.
+
+## MANDATORY: Stall Recovery Is Immediate
+
+When a task-notification arrives with status `failed` and reason "Agent stalled" / "stream watchdog did not recover":
+
+1. Immediately check: did the wrapped process actually complete? (ps, log tail, MongoDB, git log — whatever applies)
+2. Report the ACTUAL state to the user in the same turn — not "I'll check later"
+3. Continue recovery in the main thread, not by spawning another agent
+
+Never respond to a stalled-agent notification with "still running" or "will check in N minutes". That's the pattern that burns user time.
+
 ## MANDATORY: Be Trigger-Happy About Rerunning Live Calls
 
 After ANY change to prompts, IVR navigation, speech processing, endpointing, DTMF logic, or call-handling code, immediately kick off a live test call to validate — don't wait for the user to ask. Default to rerunning. Calls are cheap; stale assumptions are expensive. Use `pnpm --filter backend test:live:record` (NOT `/calls/initiate` — that's for user-initiated calls only).
@@ -128,16 +159,9 @@ import { MenuOption } from '../types/menu';
 // Use directly - TypeScript catches issues
 ```
 
-## MANDATORY: Use Worktrees for Separate Work Items
+## MANDATORY: No Worktrees — Work Directly on Branches
 
-Each distinct task or feature MUST be done in its own git worktree to avoid mixing unrelated changes. Before starting a new task:
-
-1. Create a worktree: `git worktree add ../llmcalls-<short-name> -b <branch-name>`
-2. Do all work in that worktree directory
-3. Commit and push from the worktree
-4. Clean up when done: `git worktree remove ../llmcalls-<short-name>`
-
-If you are already in a worktree (check with `git worktree list`), continue working there. Never mix unrelated changes in the same worktree.
+Do NOT create git worktrees. Do all work directly in /Users/oliverullman/Documents/coding/llmcalls. Each feature/fix gets its own branch (`git checkout -b <branch>`) but in the same directory. Commit, push, merge, done. Worktrees added overhead without benefit in this project.
 
 ## Git Workflow
 
