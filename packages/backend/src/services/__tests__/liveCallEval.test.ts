@@ -234,52 +234,123 @@ describe('Live call evaluations', () => {
       );
 
       const startedAt = new Date();
-      const tasks = testCases.map(tc => () => executeCall(tc));
-      const results = await runWithConcurrency(tasks, MAX_CONCURRENT);
+      const runId = `run-${startedAt.toISOString()}`;
+      const fullSuite = DEFAULT_TEST_CASES;
 
-      const failures: Array<string> = [];
-      let closedCount = 0;
+      // Records for test cases in this run (mutated as calls complete).
       const testCaseResults: Array<{
         testCaseId: string;
         name: string;
         callSid: string;
-        status: 'passed' | 'failed' | 'business_closed';
+        status: 'passed' | 'failed' | 'business_closed' | 'pending' | 'running';
         durationSeconds: number;
         error?: string;
         timedOut: boolean;
-      }> = [];
+      }> = testCases.map(tc => ({
+        testCaseId: tc.id,
+        name: tc.name,
+        callSid: '',
+        status: 'pending',
+        durationSeconds: 0,
+        timedOut: false,
+      }));
+
+      const baseUrl =
+        process.env.BASE_URL ||
+        (process.env.TELNYX_WEBHOOK_URL || '').replace(/\/voice\/?$/, '');
+
+      function buildSkippedResults() {
+        const ranIds = new Set(testCaseResults.map(tc => tc.testCaseId));
+        return fullSuite
+          .filter(tc => !ranIds.has(tc.id))
+          .map(tc => ({
+            testCaseId: tc.id,
+            name: tc.name,
+            callSid: '',
+            status: 'skipped' as const,
+            durationSeconds: 0,
+            timedOut: false,
+          }));
+      }
+
+      function countsFromResults() {
+        let passed = 0;
+        let failed = 0;
+        let closed = 0;
+        for (const r of testCaseResults) {
+          if (r.status === 'passed') passed++;
+          else if (r.status === 'failed') failed++;
+          else if (r.status === 'business_closed') closed++;
+        }
+        return { passed, failed, closed };
+      }
+
+      async function postTestRun(body: Record<string, unknown>) {
+        if (!baseUrl) return;
+        try {
+          const res = await fetch(`${baseUrl}/api/test-runs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (!res.ok) {
+            console.warn(`Failed to post test run: HTTP ${res.status}`);
+          }
+        } catch (err) {
+          console.warn('Failed to post test run:', err);
+        }
+      }
+
+      async function writeProgress(
+        status: 'in_progress' | 'passed' | 'failed',
+        completedAt?: Date
+      ) {
+        const { passed, failed, closed } = countsFromResults();
+        const skipped = buildSkippedResults();
+        await postTestRun({
+          runId,
+          startedAt,
+          ...(completedAt ? { completedAt } : {}),
+          status,
+          totalTests: fullSuite.length,
+          passedTests: passed,
+          failedTests: failed,
+          closedTests: closed,
+          skippedTests: skipped.length,
+          testCases: [...testCaseResults, ...skipped],
+        });
+      }
+
+      // Initial in_progress record so interrupted runs are still visible.
+      await writeProgress('in_progress');
+
+      const tasks = testCases.map(tc => () => executeCall(tc));
+      const results = await runWithConcurrency(tasks, MAX_CONCURRENT);
+
+      const failures: Array<string> = [];
 
       for (let i = 0; i < testCases.length; i++) {
         const tc = testCases[i];
         const result = results[i];
+        // Populate identifiers before assertion so an interrupt still shows the callSid.
+        testCaseResults[i].callSid = result.callSid;
+        testCaseResults[i].durationSeconds = result.durationSeconds;
+        testCaseResults[i].timedOut = result.timedOut;
+        testCaseResults[i].status = 'running';
+
         try {
           const closed = await hasBusinessClosed(result.callSid);
           if (closed) {
-            closedCount++;
             console.log(
               `CLOSED: ${tc.name} (${result.durationSeconds}s) — business closed`
             );
-            testCaseResults.push({
-              testCaseId: tc.id,
-              name: tc.name,
-              callSid: result.callSid,
-              status: 'business_closed',
-              durationSeconds: result.durationSeconds,
-              timedOut: result.timedOut,
-            });
+            testCaseResults[i].status = 'business_closed';
             continue;
           }
 
           await assertOutcome(tc, result);
           console.log(`PASS: ${tc.name} (${result.durationSeconds}s)`);
-          testCaseResults.push({
-            testCaseId: tc.id,
-            name: tc.name,
-            callSid: result.callSid,
-            status: 'passed',
-            durationSeconds: result.durationSeconds,
-            timedOut: result.timedOut,
-          });
+          testCaseResults[i].status = 'passed';
         } catch (e: unknown) {
           const timeline = await formatCallTimeline(result.callSid);
           const message = e instanceof Error ? e.message : String(e);
@@ -287,15 +358,8 @@ describe('Live call evaluations', () => {
           console.log(
             `\nFAIL: ${tc.name} (${result.durationSeconds}s, ${result.timedOut ? 'TIMED OUT' : result.status}):\n${timeline}\n`
           );
-          testCaseResults.push({
-            testCaseId: tc.id,
-            name: tc.name,
-            callSid: result.callSid,
-            status: 'failed',
-            durationSeconds: result.durationSeconds,
-            error: message,
-            timedOut: result.timedOut,
-          });
+          testCaseResults[i].status = 'failed';
+          testCaseResults[i].error = message;
         } finally {
           if (process.env.RECORD_CALLS === '1') {
             await recordCallToTree(
@@ -305,58 +369,13 @@ describe('Live call evaluations', () => {
               result.status
             );
           }
+          // Incremental write after each test case completes.
+          await writeProgress('in_progress');
         }
       }
 
-      // Add skipped entries for tests that weren't in this run
-      const ranIds = new Set(testCaseResults.map(tc => tc.testCaseId));
-      const fullSuite = DEFAULT_TEST_CASES;
-      const skippedResults = fullSuite
-        .filter(tc => !ranIds.has(tc.id))
-        .map(tc => ({
-          testCaseId: tc.id,
-          name: tc.name,
-          callSid: '',
-          status: 'skipped' as const,
-          durationSeconds: 0,
-          timedOut: false,
-        }));
-      const allResults = [...testCaseResults, ...skippedResults];
-      const skippedCount = skippedResults.length;
-
-      // Post test run results to the API for the Test Runs UI.
-      // Prefer BASE_URL; fall back to TELNYX_WEBHOOK_URL with the /voice
-      // webhook path stripped so /api/test-runs resolves correctly.
-      const baseUrl =
-        process.env.BASE_URL ||
-        (process.env.TELNYX_WEBHOOK_URL || '').replace(/\/voice\/?$/, '');
-      if (baseUrl) {
-        try {
-          const postRes = await fetch(`${baseUrl}/api/test-runs`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              runId: `run-${startedAt.toISOString()}`,
-              startedAt,
-              completedAt: new Date(),
-              status: failures.length ? 'failed' : 'passed',
-              totalTests: fullSuite.length,
-              passedTests: testCases.length - failures.length - closedCount,
-              failedTests: failures.length,
-              closedTests: closedCount,
-              skippedTests: skippedCount,
-              testCases: allResults,
-            }),
-          });
-          if (!postRes.ok) {
-            console.warn(
-              `Failed to post test run results: HTTP ${postRes.status}`
-            );
-          }
-        } catch (postErr) {
-          console.warn('Failed to post test run results:', postErr);
-        }
-      }
+      // Final write with completedAt and terminal status.
+      await writeProgress(failures.length ? 'failed' : 'passed', new Date());
 
       if (failures.length) {
         throw new Error(

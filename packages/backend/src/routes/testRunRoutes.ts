@@ -25,21 +25,25 @@ router.post('/', async (req: Request, res: Response) => {
       return;
     }
 
-    const testRun = await TestRun.findOneAndUpdate(
-      { runId },
-      {
-        runId,
-        startedAt,
-        completedAt,
-        status,
-        totalTests,
-        passedTests,
-        failedTests,
-        closedTests: closedTests || 0,
-        testCases,
-      },
-      { upsert: true, new: true, runValidators: true }
-    );
+    // Build update doc; only include completedAt when provided so in-progress
+    // writes don't overwrite a later-set value with undefined.
+    const update: Record<string, unknown> = {
+      runId,
+      startedAt,
+      status,
+      totalTests,
+      passedTests,
+      failedTests,
+      closedTests: closedTests || 0,
+      testCases,
+    };
+    if (completedAt) update.completedAt = completedAt;
+
+    const testRun = await TestRun.findOneAndUpdate({ runId }, update, {
+      upsert: true,
+      new: true,
+      runValidators: true,
+    });
 
     res.json({ success: true, testRun });
   } catch (err) {
