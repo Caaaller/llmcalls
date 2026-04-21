@@ -182,6 +182,7 @@ export interface TestCaseResult {
     | 'passed'
     | 'failed'
     | 'business_closed'
+    | 'remote_hangup'
     | 'pending'
     | 'running'
     | 'skipped';

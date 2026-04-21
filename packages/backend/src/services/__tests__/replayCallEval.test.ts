@@ -29,6 +29,7 @@ import {
   buildRecordedTurns,
   getCallOutcome,
   hasTelnyxCreds,
+  isRemoteHangup,
 } from './liveCallRunner';
 import { mergePathIntoTree, saveTreeFixture } from './treeUtils';
 import type { ActionHistoryEntry } from '../../config/prompts';
@@ -128,7 +129,12 @@ async function runLiveFallback(
   divergenceMsg: string,
   treeFilePath: string,
   tree: RecordedCallTree
-): Promise<{ callSid: string; durationSeconds: number; timedOut: boolean }> {
+): Promise<{
+  callSid: string;
+  durationSeconds: number;
+  timedOut: boolean;
+  remoteHangup: boolean;
+}> {
   if (!hasTelnyxCreds()) {
     throw new Error(
       `${divergenceMsg}\n\nWould fall back to live call, but Telnyx credentials are missing.`
@@ -163,11 +169,16 @@ async function runLiveFallback(
     const timeline = await formatCallTimeline(result.callSid);
     console.log(`Live fallback completed: ${result.status}\n${timeline}`);
 
+    const remoteHangup = await isRemoteHangup(result.callSid, result.timedOut);
+    // Only fail on timeout; remote_hangup is a neutral outcome and does not
+    // throw (the test harness still marks the test case as remote_hangup,
+    // not passed).
     expect(result.timedOut).toBe(false);
     return {
       callSid: result.callSid,
       durationSeconds: result.durationSeconds,
       timedOut: result.timedOut,
+      remoteHangup,
     };
   } finally {
     await disconnect();
@@ -205,7 +216,7 @@ if (FILTER_TERMS.length) {
 
 interface ReplayResult {
   label: string;
-  status: 'passed' | 'failed';
+  status: 'passed' | 'failed' | 'remote_hangup';
   error?: string;
   turnCount: number;
   callSid?: string;
@@ -271,7 +282,7 @@ async function replayFixture(
             const live = await runLiveFallback(testCase, msg, filePath, tree);
             return {
               label,
-              status: 'passed',
+              status: live.remoteHangup ? 'remote_hangup' : 'passed',
               turnCount: turnNumber,
               callSid: live.callSid,
               durationSeconds: live.durationSeconds,
@@ -421,6 +432,7 @@ if (fixtures.length === 0) {
               | 'passed'
               | 'failed'
               | 'business_closed'
+              | 'remote_hangup'
               | 'skipped',
             durationSeconds: 0,
             timedOut: false,
@@ -490,6 +502,10 @@ if (fixtures.length === 0) {
         for (const r of results) {
           if (r.status === 'passed') {
             console.log(`PASS: ${r.label} (${r.turnCount} turns)`);
+          } else if (r.status === 'remote_hangup') {
+            console.log(
+              `REMOTE HANGUP: ${r.label} (${r.turnCount} turns) — far end disconnected before success`
+            );
           } else {
             console.log(
               `\nFAIL: ${r.label} (${r.turnCount} turns):\n${r.error}\n`

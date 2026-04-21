@@ -21,6 +21,7 @@ import {
   buildRecordedTurns,
   getCallOutcome,
   hasBusinessClosed,
+  isRemoteHangup,
 } from './liveCallRunner';
 import type { CallResult } from './liveCallRunner';
 import { loadFixture, mergePathIntoTree, saveTreeFixture } from './treeUtils';
@@ -266,7 +267,13 @@ describe('Live call evaluations', () => {
         testCaseId: string;
         name: string;
         callSid: string;
-        status: 'passed' | 'failed' | 'business_closed' | 'pending' | 'running';
+        status:
+          | 'passed'
+          | 'failed'
+          | 'business_closed'
+          | 'remote_hangup'
+          | 'pending'
+          | 'running';
         durationSeconds: number;
         error?: string;
         timedOut: boolean;
@@ -369,6 +376,18 @@ describe('Live call evaluations', () => {
               `CLOSED: ${tc.name} (${result.durationSeconds}s) — business closed`
             );
             testCaseResults[i].status = 'business_closed';
+            continue;
+          }
+
+          const remoteHangup = await isRemoteHangup(
+            result.callSid,
+            result.timedOut
+          );
+          if (remoteHangup) {
+            console.log(
+              `REMOTE HANGUP: ${tc.name} (${result.durationSeconds}s) — far end disconnected before success`
+            );
+            testCaseResults[i].status = 'remote_hangup';
             continue;
           }
 

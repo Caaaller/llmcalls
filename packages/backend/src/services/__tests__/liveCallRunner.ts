@@ -373,3 +373,28 @@ export function hasTelnyxCreds(): boolean {
     (process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL)
   );
 }
+
+/**
+ * Remote-hangup detection: the far end (IVR/agent) disconnected before we
+ * reached a success signal AND the test harness did not time out. This is a
+ * neutral outcome like business_closed — not a test failure, but the call
+ * didn't succeed either. Must be called BEFORE assertOutcome throws.
+ *
+ * Criteria: call ended cleanly (status 'completed' or 'hangup'), no transfer
+ * fired, no hold queue reached, not timed out, not business_closed.
+ */
+export async function isRemoteHangup(
+  callSid: string,
+  timedOut: boolean
+): Promise<boolean> {
+  if (timedOut) return false;
+  const transferred = await callHistoryService.hasSuccessfulTransfer(callSid);
+  if (transferred) return false;
+  const onHold = await callHistoryService.hasReachedHoldQueue(callSid);
+  if (onHold) return false;
+  if (await hasBusinessClosed(callSid)) return false;
+  const call = await callHistoryService.getCall(callSid);
+  if (!call) return false;
+  // Call ended naturally (Telnyx reports status transition) vs still in-progress
+  return call.status === 'completed' || call.status === 'failed';
+}
