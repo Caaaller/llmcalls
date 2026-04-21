@@ -176,6 +176,9 @@ interface ReplayResult {
   status: 'passed' | 'failed';
   error?: string;
   turnCount: number;
+  callSid?: string;
+  durationSeconds?: number;
+  testCaseId?: string;
 }
 
 async function replayFixture(
@@ -354,10 +357,84 @@ if (fixtures.length === 0) {
           `Replaying ${fixtures.length} fixtures (concurrency=${MAX_CONCURRENT})`
         );
 
+        const startedAt = new Date();
+        const runId = `run-${startedAt.toISOString()}`;
+        const baseUrl =
+          process.env.BASE_URL ||
+          (process.env.TELNYX_WEBHOOK_URL || '').replace(/\/voice\/?$/, '');
+
+        const testCaseResults = fixtures.map(({ tree }) => {
+          const testCase = findTestCase(tree.testCaseId);
+          return {
+            testCaseId: tree.testCaseId,
+            name: testCase?.name || tree.testCaseId,
+            callSid: '',
+            status: 'pending' as
+              | 'pending'
+              | 'running'
+              | 'passed'
+              | 'failed'
+              | 'business_closed'
+              | 'skipped',
+            durationSeconds: 0,
+            timedOut: false,
+            error: undefined as string | undefined,
+          };
+        });
+
+        async function postTestRun(body: Record<string, unknown>) {
+          if (!baseUrl) return;
+          try {
+            const res = await fetch(`${baseUrl}/api/test-runs`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+              console.warn(`Failed to post test run: HTTP ${res.status}`);
+            }
+          } catch (err) {
+            console.warn('Failed to post test run:', err);
+          }
+        }
+
+        async function writeProgress(
+          status: 'in_progress' | 'passed' | 'failed',
+          completedAt?: Date
+        ) {
+          let passed = 0;
+          let failed = 0;
+          for (const r of testCaseResults) {
+            if (r.status === 'passed') passed++;
+            else if (r.status === 'failed') failed++;
+          }
+          await postTestRun({
+            runId,
+            startedAt,
+            ...(completedAt ? { completedAt } : {}),
+            status,
+            totalTests: fixtures.length,
+            passedTests: passed,
+            failedTests: failed,
+            closedTests: 0,
+            skippedTests: 0,
+            testCases: testCaseResults,
+          });
+        }
+
+        // Initial in_progress record so interrupted runs are still visible.
+        await writeProgress('in_progress');
+
         const tasks = fixtures.map(
-          ({ tree, filePath }) =>
-            () =>
-              replayFixture(tree, filePath)
+          ({ tree, filePath }, i) => async () => {
+            testCaseResults[i].status = 'running';
+            await writeProgress('in_progress');
+            const r = await replayFixture(tree, filePath);
+            testCaseResults[i].status = r.status;
+            if (r.error) testCaseResults[i].error = r.error;
+            await writeProgress('in_progress');
+            return r;
+          }
         );
         const results = await runWithConcurrency(tasks, MAX_CONCURRENT);
 
@@ -372,6 +449,12 @@ if (fixtures.length === 0) {
             failures.push(`${r.label}: ${r.error}`);
           }
         }
+
+        // Final write with completedAt and terminal status.
+        await writeProgress(
+          failures.length ? 'failed' : 'passed',
+          new Date()
+        );
 
         if (failures.length) {
           throw new Error(
