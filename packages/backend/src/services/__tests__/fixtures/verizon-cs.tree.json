@@ -2,7 +2,7 @@
   "version": 2,
   "id": "verizon-cs",
   "testCaseId": "verizon-cs",
-  "lastRecordedAt": "2026-04-21T21:53:41.781Z",
+  "lastRecordedAt": "2026-04-21T22:11:34.446Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -1599,7 +1599,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T21:53:41.781Z",
+        "recordedAt": "2026-04-21T22:11:34.446Z",
         "isLatestPath": true,
         "child": {
           "id": "n66",
@@ -1620,7 +1620,7 @@
                 }
               },
               "recordedAt": "2026-04-21T21:53:41.781Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n74",
                 "ivrSpeech": "I would be happy to get you to a representative. To make sure I connect you to the right team, are you calling about a personal or business account?",
@@ -1640,7 +1640,7 @@
                       }
                     },
                     "recordedAt": "2026-04-21T21:53:41.781Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n75",
                       "ivrSpeech": "I understand you want to speak with someone. Could you just let me know if you're calling about a personal or business account first? So I can route you correctly?",
@@ -1660,7 +1660,7 @@
                             }
                           },
                           "recordedAt": "2026-04-21T21:53:41.781Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n83",
                             "ivrSpeech": "I can help with that. Please hold.",
@@ -1703,7 +1703,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-21T21:53:41.781Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n85",
                                   "ivrSpeech": "Hi. You have reached David of Verizon. It's my pleasure to assist you. How can I help you today?",
@@ -1722,7 +1722,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-21T21:53:41.781Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n88",
                                         "ivrSpeech": "Hi. You've reached Hope at Verizon, and it's my pleasure to assist you. How can I help?",
@@ -1742,7 +1742,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-21T21:53:41.781Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "terminal": true,
                                               "finalStatus": "initiated",
@@ -1924,6 +1924,143 @@
                       "durationSeconds": 106,
                       "reachedHuman": true,
                       "dtmfDigits": []
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-21T22:11:34.446Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n89",
+                "ivrSpeech": "I understand you'd like to speak to a",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "representative",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-21T22:11:34.446Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n90",
+                      "ivrSpeech": "I can help with that. To make sure I get you to the right person, could you tell me a bit more? For example, are you calling about a",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "billing",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-21T22:11:34.446Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n91",
+                            "ivrSpeech": "Ensure I connect",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-21T22:11:34.446Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n92",
+                                  "ivrSpeech": "okay. I understand you need help with billing. And are you calling about are you calling about a wireless or Fios account? And is it for a personal or business line?",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "personal line",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-21T22:11:34.446Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n93",
+                                        "ivrSpeech": "And would that be for wireless or Fios?",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "wireless",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-21T22:11:34.446Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 117,
+                                              "reachedHuman": true,
+                                              "dtmfDigits": []
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
                     }
                   }
                 ]
