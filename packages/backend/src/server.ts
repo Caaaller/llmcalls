@@ -18,6 +18,7 @@ import apiRoutes from './routes/apiRoutes';
 import authRoutes from './routes/authRoutes';
 import testRunRoutes from './routes/testRunRoutes';
 import debugRoutes from './routes/debugRoutes';
+import labelingRoutes from './routes/labelingRoutes';
 import { requestLogger } from './middleware/requestLogger';
 import { attachStreamServer } from './routes/streamRoutes';
 
@@ -77,6 +78,8 @@ if (process.env.NODE_ENV !== 'production') {
   console.log('  ✅ /api/test-runs routes registered (dev only)');
   app.use('/debug', debugRoutes);
   console.log('  ✅ /debug routes registered (dev only)');
+  app.use('/api/labeling', labelingRoutes);
+  console.log('  ✅ /api/labeling routes registered (dev only)');
 }
 
 // Serve static files from public directory (after routes to avoid conflicts)
