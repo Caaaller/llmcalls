@@ -27,7 +27,7 @@ function getTelnyxVoice(config: TransferConfigType): string {
   if (configVoice?.startsWith('Polly.')) {
     return `AWS.${configVoice}-Neural`;
   }
-  return configVoice || 'AWS.Polly.Matthew-Neural';
+  return configVoice || 'Telnyx.KokoroTTS.am_michael';
 }
 
 /**

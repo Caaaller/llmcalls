@@ -42,7 +42,7 @@ const transferConfig = {
       model: 'gpt-4o-mini',
       maxTokens: 150,
       temperature: 0.7,
-      voice: 'Polly.Matthew',
+      voice: 'Telnyx.KokoroTTS.am_michael',
       language: 'en-US',
     } as AISettings,
   },

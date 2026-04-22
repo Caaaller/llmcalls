@@ -129,7 +129,7 @@ function getTelnyxVoice(aiVoice?: string): string {
   if (aiVoice?.startsWith('Polly.')) {
     return `AWS.${aiVoice}-Neural`;
   }
-  return aiVoice || 'AWS.Polly.Matthew-Neural';
+  return aiVoice || 'Telnyx.KokoroTTS.am_michael';
 }
 
 async function speakAndLog(
@@ -745,7 +745,7 @@ export async function processSpeech({
         await speakAndLog(
           callSid,
           'I apologize, but an application error has occurred. Please try again later.',
-          'AWS.Polly.Matthew-Neural'
+          'Telnyx.KokoroTTS.am_michael'
         );
         await telnyxService.terminateCall(callSid);
       } catch {
