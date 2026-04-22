@@ -46,3 +46,6 @@ coverage/
 worktrees/
 
 .env.bak
+
+# Labeling / extracted datasets (potential PII)
+data/
