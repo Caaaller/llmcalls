@@ -5,6 +5,7 @@
 
 import Telnyx from 'telnyx';
 import { toError } from '../utils/errorUtils';
+import callStateManager from './callStateManager';
 
 function toE164(phone: string): string | null {
   const digits = phone.replace(/\D/g, '');
@@ -31,6 +32,25 @@ class TelnyxService {
       throw new Error('TELNYX_API_KEY must be set');
     }
     this.client = new Telnyx({ apiKey });
+  }
+
+  /**
+   * Single source of truth for "don't fire outbound Telnyx actions at a
+   * call we already hung up on." Wraps per-call actions so in-flight LLM
+   * reasoning can't ghost-act on a dead leg (e.g. transfer firing 14s
+   * after the caller hung up). Does NOT apply to terminateCall (idempotent),
+   * read-only status calls, SMS, or outbound createCall.
+   */
+  private async guardedAction<T>(
+    callSid: string,
+    name: string,
+    fn: () => Promise<T>
+  ): Promise<T | undefined> {
+    if (callStateManager.isCallEnded(callSid)) {
+      console.log(`🔇 Skipping ${name} — call already ended`);
+      return undefined;
+    }
+    return fn();
   }
 
   async initiateCall(
@@ -70,46 +90,55 @@ class TelnyxService {
     text: string,
     voice?: string
   ): Promise<void> {
-    const resolvedVoice = voice || 'Telnyx.KokoroTTS.am_michael';
-    const voiceSettings = resolvedVoice.startsWith('Telnyx.KokoroTTS.')
-      ? { type: 'telnyx' as const, voice_speed: 1.0 }
-      : undefined;
-    try {
-      await this.client.calls.actions.speak(callControlId, {
-        payload: text,
-        voice: resolvedVoice,
-        ...(voiceSettings && { voice_settings: voiceSettings }),
-      });
-    } catch (error) {
-      console.error('Error speaking text:', toError(error).message);
-      throw error;
-    }
+    await this.guardedAction(callControlId, 'speakText', async () => {
+      const resolvedVoice = voice || 'Telnyx.KokoroTTS.am_michael';
+      const voiceSettings = resolvedVoice.startsWith('Telnyx.KokoroTTS.')
+        ? { type: 'telnyx' as const, voice_speed: 1.0 }
+        : undefined;
+      try {
+        await this.client.calls.actions.speak(callControlId, {
+          payload: text,
+          voice: resolvedVoice,
+          ...(voiceSettings && { voice_settings: voiceSettings }),
+        });
+      } catch (error) {
+        console.error('Error speaking text:', toError(error).message);
+        throw error;
+      }
+    });
   }
 
   async sendDTMF(callControlId: string, digits: string): Promise<boolean> {
-    const now = Date.now();
-    const last = this.lastDtmfByCall.get(callControlId);
-    if (
-      last &&
-      last.digits === digits &&
-      now - last.at < DTMF_DEDUP_WINDOW_MS
-    ) {
-      console.log(
-        `[DTMF] Duplicate press suppressed: ${digits} (${now - last.at}ms since last)`
-      );
-      return false;
-    }
-    try {
-      await this.client.calls.actions.sendDtmf(callControlId, {
-        digits,
-        duration_millis: 500,
-      });
-      this.lastDtmfByCall.set(callControlId, { digits, at: now });
-      return true;
-    } catch (error) {
-      console.error('Error sending DTMF:', toError(error).message);
-      return false;
-    }
+    const result = await this.guardedAction(
+      callControlId,
+      'sendDTMF',
+      async () => {
+        const now = Date.now();
+        const last = this.lastDtmfByCall.get(callControlId);
+        if (
+          last &&
+          last.digits === digits &&
+          now - last.at < DTMF_DEDUP_WINDOW_MS
+        ) {
+          console.log(
+            `[DTMF] Duplicate press suppressed: ${digits} (${now - last.at}ms since last)`
+          );
+          return false;
+        }
+        try {
+          await this.client.calls.actions.sendDtmf(callControlId, {
+            digits,
+            duration_millis: 500,
+          });
+          this.lastDtmfByCall.set(callControlId, { digits, at: now });
+          return true;
+        } catch (error) {
+          console.error('Error sending DTMF:', toError(error).message);
+          return false;
+        }
+      }
+    );
+    return result ?? false;
   }
 
   async terminateCall(callControlId: string): Promise<void> {
@@ -128,14 +157,16 @@ class TelnyxService {
   }
 
   async transfer(callControlId: string, to: string): Promise<void> {
-    const e164 = toE164(to);
-    const from = process.env.TELNYX_PHONE_NUMBER;
-    console.log(
-      `🔄 Transferring ${callControlId.slice(-20)} to ${e164 ?? to} from ${from}`
-    );
-    await this.client.calls.actions.transfer(callControlId, {
-      to: e164 ?? to,
-      from: from || undefined,
+    await this.guardedAction(callControlId, 'transfer', async () => {
+      const e164 = toE164(to);
+      const from = process.env.TELNYX_PHONE_NUMBER;
+      console.log(
+        `🔄 Transferring ${callControlId.slice(-20)} to ${e164 ?? to} from ${from}`
+      );
+      await this.client.calls.actions.transfer(callControlId, {
+        to: e164 ?? to,
+        from: from || undefined,
+      });
     });
   }
 
@@ -147,10 +178,12 @@ class TelnyxService {
     callControlId: string,
     streamUrl: string
   ): Promise<void> {
-    await this.client.calls.actions.startStreaming(callControlId, {
-      stream_url: streamUrl,
-      stream_track: 'inbound_track',
-      stream_codec: 'PCMU',
+    await this.guardedAction(callControlId, 'startStreaming', async () => {
+      await this.client.calls.actions.startStreaming(callControlId, {
+        stream_url: streamUrl,
+        stream_track: 'inbound_track',
+        stream_codec: 'PCMU',
+      });
     });
   }
 
