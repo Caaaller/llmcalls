@@ -328,6 +328,23 @@ function CallDetailInline({ callSid }: { callSid: string }) {
             const terminationIdx = call.events.findIndex(
               e => e.eventType === 'termination'
             );
+            const terminationReason =
+              terminationIdx !== -1 ? call.events[terminationIdx].reason : null;
+            const reasonLabel = ((): string => {
+              if (!terminationReason) return 'Call ended';
+              switch (terminationReason) {
+                case 'closed_no_menu':
+                  return 'Call ended — business was closed (no menu)';
+                case 'voicemail':
+                  return 'Call ended — reached voicemail';
+                case 'dead_end':
+                  return 'Call ended — hit dead end in menu';
+                case 'runner_timeout':
+                  return 'Call ended — test runner hit max duration';
+                default:
+                  return `Call ended — ${terminationReason}`;
+              }
+            })();
             const endMs = call.endTime
               ? new Date(call.endTime).getTime()
               : null;
@@ -368,7 +385,7 @@ function CallDetailInline({ callSid }: { callSid: string }) {
                       textAlign: 'center',
                     }}
                   >
-                    ── Call ended — events below were logged but not actually
+                    ── {reasonLabel}; events below were logged but not actually
                     played ──
                   </div>
                 );
