@@ -44,6 +44,7 @@ export interface ProcessSpeechParams {
   userEmail?: string;
   testMode?: boolean;
   skipInfoRequests?: boolean;
+  requireLiveAgent?: boolean;
   _sttDoneAt?: number;
 }
 
@@ -171,6 +172,7 @@ export async function processSpeech({
   userEmail,
   testMode = false,
   skipInfoRequests,
+  requireLiveAgent,
   _sttDoneAt,
 }: ProcessSpeechParams): Promise<ProcessSpeechResult> {
   try {
@@ -252,6 +254,7 @@ export async function processSpeech({
       awaitingHumanConfirmation: callState.awaitingHumanConfirmation,
       awaitingHumanClarification: callState.awaitingHumanClarification,
       skipInfoRequests: skipInfoRequests ?? callState.skipInfoRequests,
+      requireLiveAgent: requireLiveAgent ?? callState.requireLiveAgent,
     });
 
     const aiDoneAt = Date.now();

@@ -159,6 +159,7 @@ async function handleCallAnswered(
     customInstructions: config.customInstructions,
     userPhone: config.userPhone,
     ...(clientConfig?.skipInfoRequests && { skipInfoRequests: true }),
+    ...(clientConfig?.requireLiveAgent && { requireLiveAgent: true }),
   });
 
   logOnError(

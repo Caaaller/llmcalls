@@ -77,6 +77,7 @@ describe('Prompt evaluation – single-step', () => {
         userPhone: config.userPhone,
         userEmail: config.userEmail,
         testMode: true,
+        requireLiveAgent: testCase.requireLiveAgent,
       });
 
       if (!result.processingResult) {

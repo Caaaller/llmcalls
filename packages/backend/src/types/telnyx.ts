@@ -66,6 +66,13 @@ export interface TelnyxCallConfig {
   userPhone?: string;
   userEmail?: string;
   skipInfoRequests?: boolean;
+  /**
+   * Set TRUE for test cases where reaching a live agent is the only valid outcome
+   * (e.g. USPS "failed package pickup"). When true, the AI refuses callback
+   * offers that would bypass the live-agent queue. Normal calls leave this
+   * false/undefined so callbacks are accepted (they're faster for the user).
+   */
+  requireLiveAgent?: boolean;
 }
 
 export function encodeClientState(config: TelnyxCallConfig): string {

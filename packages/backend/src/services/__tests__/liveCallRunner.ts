@@ -103,6 +103,9 @@ export async function executeCall(
     callPurpose: testCase.callPurpose || 'speak with a representative',
     ...(customInstructions && { customInstructions }),
     ...(testCase.skipInfoRequests !== false && { skipInfoRequests: true }),
+    ...(testCase.expectedOutcome?.requireConfirmedTransfer && {
+      requireLiveAgent: true,
+    }),
   });
 
   try {

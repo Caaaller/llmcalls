@@ -24,6 +24,7 @@ const singleStepCases: {
   humanConfirmationEdge: PromptTestCase[];
   humanClarification: PromptTestCase[];
   holdDetection: PromptTestCase[];
+  callbackOffer: PromptTestCase[];
 } = {
   transfer: [
     {
@@ -695,6 +696,35 @@ const singleStepCases: {
       expectedBehavior: { shouldConfirmHuman: false, shouldPressDTMF: false },
     },
   ],
+
+  callbackOffer: [
+    {
+      name: 'Callback Offer - requireLiveAgent=true stays on queue',
+      description:
+        'USPS-style callback-vs-queue fork. When requireLiveAgent=true the AI MUST stay on the queue (press 2), NOT register a callback (press 1). Registering a callback is a dead-end for this test.',
+      speech:
+        "Your estimated wait time is five minutes. All of our representatives are assisting other callers. Rather than wait on hold, we can call you back when it's your turn. Press 1 to register a callback. Press 2 to remain on queue.",
+      config: DEFAULT_CALL_PURPOSE,
+      requireLiveAgent: true,
+      expectedBehavior: {
+        shouldPressDTMF: true,
+        expectedDigit: '2',
+      },
+    },
+    {
+      name: 'Callback Offer - requireLiveAgent=false accepts callback',
+      description:
+        'Normal user call: callback offered instead of waiting on hold. Default behavior should accept it (press 1) since a callback is faster for the user.',
+      speech:
+        "Your estimated wait time is five minutes. All of our representatives are assisting other callers. Rather than wait on hold, we can call you back when it's your turn. Press 1 to register a callback. Press 2 to remain on queue.",
+      config: DEFAULT_CALL_PURPOSE,
+      requireLiveAgent: false,
+      expectedBehavior: {
+        shouldPressDTMF: true,
+        expectedDigit: '1',
+      },
+    },
+  ],
 };
 
 export const SINGLE_STEP_TEST_CASES: PromptTestCase[] = [
@@ -708,6 +738,7 @@ export const SINGLE_STEP_TEST_CASES: PromptTestCase[] = [
   ...singleStepCases.humanConfirmationEdge,
   ...singleStepCases.humanClarification,
   ...singleStepCases.holdDetection,
+  ...singleStepCases.callbackOffer,
 ];
 
 export const MULTI_STEP_TEST_CASES: MultiStepTestCase[] = [

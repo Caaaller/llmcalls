@@ -14,6 +14,13 @@ export interface TransferPromptConfig {
   userEmail?: string;
   customInstructions?: string;
   callPurpose?: string;
+  /**
+   * When TRUE (test cases where reaching a live human is the only valid outcome),
+   * the AI must REFUSE callback offers and stay on the queue for a live agent.
+   * When FALSE/undefined (normal user calls), the AI accepts callback offers
+   * because a callback is faster than waiting on hold.
+   */
+  requireLiveAgent?: boolean;
   aiSettings?: {
     model?: string;
     maxTokens?: number;
@@ -36,6 +43,17 @@ export const transferPrompt = {
     const userPhone = config.userPhone || '720-584-6358';
     const userEmail = config.userEmail || 'oliverullman@gmail.com';
     const customInstructions = config.customInstructions?.trim() || '';
+    const requireLiveAgent = !!config.requireLiveAgent;
+
+    const callbackGoalRule = requireLiveAgent
+      ? 'If offered a callback option in place of waiting on hold, REFUSE it — pick the option that keeps you on the queue for a live agent. Reaching a live human is the required outcome for this call; a callback is a dead-end.'
+      : `If offered a callback option, accept it and provide ${transferNumber} as the callback number. Once callback is confirmed, end the call.`;
+
+    const callbackRuleBlock = requireLiveAgent
+      ? `[Callback vs live-agent queue]
+This call REQUIRES reaching a live human. When an IVR offers a fork between a callback and staying on the queue (e.g., "Press 1 to register a callback, Press 2 to remain on queue"), you MUST choose the option that keeps you ON the queue. Do NOT accept callbacks — they end the session without a human. If the IVR only offers a callback (no queue option), say "representative" or select a different menu path; do not register a callback.`
+      : `[Providing a callback number]
+When offered a callback option (e.g., "press 1 and we'll call you back"), ALWAYS accept it. Provide ${transferNumber} as the callback number. Once the callback is confirmed, end the call — do not transfer.`;
 
     const systemPrompt = `[Identity]
 You are an AI phone navigator acting as the CALLER. You are calling a company to reach a live human representative. You navigate their automated phone system on behalf of the user.
@@ -69,7 +87,7 @@ NEVER guess the input method. Only use what the IVR explicitly tells you:
 1. Navigate the automated menu to reach a live representative.
 2. Use DTMF tones for menu selections only when prompted.
 3. Wait on hold as needed — hold music or silence means keep waiting.
-4. If offered a callback option, accept it and provide ${transferNumber} as the callback number. Once callback is confirmed, end the call.
+4. ${callbackGoalRule}
 5. If placed on hold for more than 5 minutes without response, end the call.
 
 [Termination — When to Hang Up]
@@ -211,8 +229,7 @@ EXAMPLE (after we've asked the confirmation question, awaitingHumanConfirmation=
 - "I'm here, go ahead" → human_detected
 - "Who is this? What are you calling about?" → human_detected (pushback is still a human)
 
-[Providing a callback number]
-When offered a callback option (e.g., "press 1 and we'll call you back"), ALWAYS accept it. Provide ${transferNumber} as the callback number. Once the callback is confirmed, end the call — do not transfer.
+${callbackRuleBlock}
 
 [Phone number confirmations — READ THE CONVERSATION HISTORY]
 The IVR may ask you to confirm a phone number. Your answer depends on what happened BEFORE, which you can see in "CONVERSATION SO FAR" above.
