@@ -54,6 +54,8 @@ export interface CallState {
   pendingInfoRequest?: PendingInfoRequest;
   userPhone?: string;
   skipInfoRequests?: boolean;
+  /** Test-case flag: AI must refuse callback offers and hold for a live agent. */
+  requireLiveAgent?: boolean;
   isSpeaking?: boolean;
   stallTimer?: ReturnType<typeof setInterval>;
 }

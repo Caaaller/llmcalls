@@ -252,6 +252,8 @@ async function replayFixture(
       previousMenus: [...previousMenus],
       lastPressedDTMF,
       callPurpose: tree.config.callPurpose,
+      requireLiveAgent:
+        testCase?.expectedOutcome?.requireConfirmedTransfer === true,
     });
 
     // Skip wait turns — they're inferred from event gaps, not actual decideAction() output

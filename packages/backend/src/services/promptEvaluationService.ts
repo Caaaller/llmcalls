@@ -21,6 +21,9 @@ export interface PromptTestCase {
   config?: Partial<TransferConfig>;
   awaitingHumanConfirmation?: boolean;
   awaitingHumanClarification?: boolean;
+  /** When TRUE, the AI must refuse callback offers and stay on queue for a live
+   * agent. Mirrors the requireLiveAgent flag plumbed via client_state. */
+  requireLiveAgent?: boolean;
   expectedBehavior: {
     shouldTransfer?: boolean;
     shouldConfirmHuman?: boolean;

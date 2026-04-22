@@ -124,6 +124,7 @@ interface DecideActionParams {
   awaitingHumanConfirmation?: boolean;
   awaitingHumanClarification?: boolean;
   skipInfoRequests?: boolean;
+  requireLiveAgent?: boolean;
 }
 
 const REQUEST_INFO_RULE = `- "request_info": The system is asking for information you do NOT have (account number, member ID, etc.) and it is NOT available in your custom instructions, and it is NOT the user's phone number or email. The system will pause the call, ask the user for this info, and resume when they reply.`;
@@ -184,8 +185,13 @@ class IVRNavigatorService {
     awaitingHumanConfirmation,
     awaitingHumanClarification,
     skipInfoRequests,
+    requireLiveAgent,
   }: DecideActionParams): Promise<CallAction> {
-    const systemPrompt = transferPrompt['transfer-only'](config, '', false);
+    const systemPrompt = transferPrompt['transfer-only'](
+      { ...config, requireLiveAgent },
+      '',
+      false
+    );
 
     const previousMenusSummary =
       previousMenus.length > 0
