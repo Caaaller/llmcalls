@@ -137,6 +137,15 @@ async function speakAndLog(
   text: string,
   voice: string
 ): Promise<void> {
+  // Short-circuit if the call already ended (hangup webhook fired OR we
+  // explicitly terminated). Prevents ghost conversation entries + the
+  // Telnyx 422 "call already ended" 422 -> catch -> apology -> 422 chain.
+  if (callStateManager.isCallEnded(callSid)) {
+    console.log(
+      `🔇 Skipping speak — call already ended: "${text.slice(0, 60)}"`
+    );
+    return;
+  }
   callHistoryService
     .addConversation(callSid, 'ai', text)
     .catch(err => console.error('Error adding conversation:', err));

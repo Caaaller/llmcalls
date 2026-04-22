@@ -115,8 +115,30 @@ class CallStateManager {
   }
 
   clearCallState(callSid: string): void {
+    // Keep a tombstone for a while so late-arriving speak attempts (in-flight
+    // LLM responses that return after call.hangup) can be short-circuited
+    // instead of logging ghost events.
+    this.endedCalls.add(callSid);
+    setTimeout(() => this.endedCalls.delete(callSid), 60_000);
     this.callStates.delete(callSid);
   }
+
+  /**
+   * True if call.hangup already fired for this callSid (state was cleared)
+   * or any caller explicitly marked it ended. In-flight speech callers
+   * should check this before hitting Telnyx to avoid 422 "call already
+   * ended" errors and the resulting ghost event logs.
+   */
+  isCallEnded(callSid: string): boolean {
+    return this.endedCalls.has(callSid);
+  }
+
+  markCallEnded(callSid: string): void {
+    this.endedCalls.add(callSid);
+    setTimeout(() => this.endedCalls.delete(callSid), 60_000);
+  }
+
+  private endedCalls: Set<string> = new Set();
 
   setPendingInfoRequest(
     callSid: string,
