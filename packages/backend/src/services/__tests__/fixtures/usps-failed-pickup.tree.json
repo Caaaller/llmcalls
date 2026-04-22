@@ -2,7 +2,7 @@
   "version": 2,
   "id": "usps-failed-pickup",
   "testCaseId": "usps-failed-pickup",
-  "lastRecordedAt": "2026-04-21T21:52:38.816Z",
+  "lastRecordedAt": "2026-04-21T22:10:40.621Z",
   "config": {
     "callPurpose": "Failed package pickup. Pickup request EMC717292788 was marked as completed even though it didn't actually happen"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T21:52:38.816Z",
+        "recordedAt": "2026-04-21T22:10:40.621Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -43,7 +43,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-21T21:52:38.816Z",
+              "recordedAt": "2026-04-21T22:10:40.621Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -86,7 +86,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-21T21:52:38.816Z",
+                    "recordedAt": "2026-04-21T22:10:40.621Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n3",
@@ -107,7 +107,7 @@
                             }
                           },
                           "recordedAt": "2026-04-21T21:52:38.816Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n264",
                             "ivrSpeech": "Sorry. I didn't hear you.",
@@ -127,7 +127,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-21T21:52:38.816Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n265",
                                   "ivrSpeech": "You're calling about a mail or package pickup. Is that correct?",
@@ -147,7 +147,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-21T21:52:38.816Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n266",
                                         "ivrSpeech": "Sorry. Please say yes or no.",
@@ -167,7 +167,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-21T21:52:38.816Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n267",
                                               "ivrSpeech": "To continue, we need to collect some information to get",
@@ -187,7 +187,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-21T21:52:38.816Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "terminal": true,
                                                     "finalStatus": "initiated",
@@ -221,8 +221,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-17T18:14:34.748Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-21T22:10:40.621Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n4",
                             "ivrSpeech": "How can I help you?",
@@ -241,60 +241,14 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-17T18:14:34.748Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-21T22:10:40.621Z",
+                                "isLatestPath": true,
                                 "child": {
-                                  "id": "n5",
-                                  "ivrSpeech": "Sorry. I didn't hear you.",
-                                  "children": [
-                                    {
-                                      "aiAction": {
-                                        "action": "speak",
-                                        "speech": "Hi, am I speaking with a live agent?",
-                                        "reason": "",
-                                        "detected": {
-                                          "isIVRMenu": false,
-                                          "menuOptions": [],
-                                          "isMenuComplete": false,
-                                          "loopDetected": false,
-                                          "shouldTerminate": false,
-                                          "transferRequested": false
-                                        }
-                                      },
-                                      "recordedAt": "2026-04-17T18:14:34.748Z",
-                                      "isLatestPath": false,
-                                      "child": {
-                                        "id": "n6",
-                                        "ivrSpeech": "I understand you'd like to speak with an agent. Plea",
-                                        "children": [
-                                          {
-                                            "aiAction": {
-                                              "action": "speak",
-                                              "speech": "Hi, am I speaking with a live agent?",
-                                              "reason": "",
-                                              "detected": {
-                                                "isIVRMenu": false,
-                                                "menuOptions": [],
-                                                "isMenuComplete": false,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-04-17T18:14:34.748Z",
-                                            "isLatestPath": false,
-                                            "child": {
-                                              "terminal": true,
-                                              "finalStatus": "initiated",
-                                              "durationSeconds": 69,
-                                              "reachedHuman": true,
-                                              "dtmfDigits": []
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 37,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": []
                                 }
                               }
                             ]

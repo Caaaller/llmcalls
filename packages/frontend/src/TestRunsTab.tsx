@@ -160,6 +160,7 @@ interface RenderEventOptions {
   isSeekable: boolean;
   seekSeconds: number;
   onSeek: () => void;
+  isPostHangup?: boolean;
 }
 
 function renderEvent(
@@ -172,11 +173,18 @@ function renderEvent(
     isSeekable = false,
     seekSeconds = 0,
     onSeek,
+    isPostHangup = false,
   } = options ?? {};
   return (
     <div
       key={idx}
-      className={`inline-timeline-item${isActive ? ' inline-timeline-item-active' : ''}`}
+      className={`inline-timeline-item${isActive ? ' inline-timeline-item-active' : ''}${isPostHangup ? ' inline-timeline-item-post-hangup' : ''}`}
+      style={isPostHangup ? { opacity: 0.5, fontStyle: 'italic' } : undefined}
+      title={
+        isPostHangup
+          ? 'This event was logged after the call ended — no audio was actually played.'
+          : undefined
+      }
     >
       <div
         className={`inline-timeline-time${isSeekable ? ' timeline-time-clickable' : ''}`}
@@ -311,25 +319,66 @@ function CallDetailInline({ callSid }: { callSid: string }) {
 
       {call.events && call.events.length > 0 && (
         <div className="inline-timeline">
-          {call.events.map((event, idx) => {
-            const seekSec = getSeekSeconds(event.timestamp, call.startTime);
-            const nextEvent = call.events[idx + 1];
-            const nextSeekSec = nextEvent
-              ? getSeekSeconds(nextEvent.timestamp, call.startTime)
-              : Infinity;
-            const isActive =
-              !!recordingUrl &&
-              !!audioRef.current &&
-              !audioRef.current.paused &&
-              audioCurrentTime >= seekSec &&
-              audioCurrentTime < nextSeekSec;
-            return renderEvent(event, idx, {
-              isActive,
-              isSeekable: !!recordingUrl,
-              seekSeconds: seekSec,
-              onSeek: () => handleSeekToEvent(event.timestamp, call.startTime),
+          {(() => {
+            const endMs = call.endTime
+              ? new Date(call.endTime).getTime()
+              : null;
+            let hangupMarkerRendered = false;
+            const rendered: Array<React.ReactNode> = [];
+            call.events.forEach((event, idx) => {
+              const seekSec = getSeekSeconds(event.timestamp, call.startTime);
+              const nextEvent = call.events[idx + 1];
+              const nextSeekSec = nextEvent
+                ? getSeekSeconds(nextEvent.timestamp, call.startTime)
+                : Infinity;
+              const isActive =
+                !!recordingUrl &&
+                !!audioRef.current &&
+                !audioRef.current.paused &&
+                audioCurrentTime >= seekSec &&
+                audioCurrentTime < nextSeekSec;
+              const eventMs = event.timestamp
+                ? new Date(event.timestamp).getTime()
+                : 0;
+              // Allow a small grace window (2s) — Telnyx webhooks and Mongo
+              // writes can arrive slightly out of order. Mark anything more
+              // than 2s after call.endTime as post-hangup.
+              const isPostHangup = !!endMs && eventMs > endMs + 2000;
+
+              if (isPostHangup && !hangupMarkerRendered) {
+                hangupMarkerRendered = true;
+                rendered.push(
+                  <div
+                    key={`hangup-marker-${idx}`}
+                    style={{
+                      borderTop: '1px dashed #dc3545',
+                      margin: '8px 0',
+                      padding: '4px 8px',
+                      color: '#dc3545',
+                      fontSize: '0.85em',
+                      fontWeight: 600,
+                      textAlign: 'center',
+                    }}
+                  >
+                    ── Call ended — events below were logged but not actually
+                    played ──
+                  </div>
+                );
+              }
+
+              rendered.push(
+                renderEvent(event, idx, {
+                  isActive,
+                  isSeekable: !!recordingUrl,
+                  seekSeconds: seekSec,
+                  onSeek: () =>
+                    handleSeekToEvent(event.timestamp, call.startTime),
+                  isPostHangup,
+                })
+              );
             });
-          })}
+            return rendered;
+          })()}
         </div>
       )}
     </div>
