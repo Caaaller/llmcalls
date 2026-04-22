@@ -181,6 +181,15 @@ export async function executeCall(
       if (elapsed > maxDuration) {
         // Cap at maxDuration to avoid off-by-one from polling interval
         durationSeconds = Math.min(maxDuration, Math.round(elapsed));
+        // Record the forced termination in call history BEFORE hangup so the
+        // timeline has an explicit "runner_timeout" boundary. Events that
+        // arrive after this timestamp (AI decisions already in flight) are
+        // rendered as post-hangup ghost entries in the UI.
+        await callHistoryService
+          .addTermination(callSid, 'runner_timeout')
+          .catch(err =>
+            console.error('Error adding runner_timeout termination:', err)
+          );
         await telnyxService.terminateCall(callSid);
         timedOut = true;
         break;
