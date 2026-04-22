@@ -320,6 +320,14 @@ function CallDetailInline({ callSid }: { callSid: string }) {
       {call.events && call.events.length > 0 && (
         <div className="inline-timeline">
           {(() => {
+            // Find the INDEX of the first termination event in call.events.
+            // That event is the authoritative call-end boundary — anything
+            // at or after it was logged against a call that was already over.
+            // Falls back to call.endTime (minus the 2s grace) only if there
+            // is no termination event at all.
+            const terminationIdx = call.events.findIndex(
+              e => e.eventType === 'termination'
+            );
             const endMs = call.endTime
               ? new Date(call.endTime).getTime()
               : null;
@@ -340,10 +348,10 @@ function CallDetailInline({ callSid }: { callSid: string }) {
               const eventMs = event.timestamp
                 ? new Date(event.timestamp).getTime()
                 : 0;
-              // Allow a small grace window (2s) — Telnyx webhooks and Mongo
-              // writes can arrive slightly out of order. Mark anything more
-              // than 2s after call.endTime as post-hangup.
-              const isPostHangup = !!endMs && eventMs > endMs + 2000;
+              const isPostHangup =
+                terminationIdx !== -1
+                  ? idx > terminationIdx
+                  : !!endMs && eventMs > endMs + 2000;
 
               if (isPostHangup && !hangupMarkerRendered) {
                 hangupMarkerRendered = true;
