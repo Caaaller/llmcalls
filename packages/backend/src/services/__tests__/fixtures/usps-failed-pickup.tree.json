@@ -190,9 +190,9 @@
                                                   "isLatestPath": false,
                                                   "child": {
                                                     "terminal": true,
-                                                    "finalStatus": "initiated",
+                                                    "finalStatus": "application_error",
                                                     "durationSeconds": 74,
-                                                    "reachedHuman": true,
+                                                    "reachedHuman": false,
                                                     "dtmfDigits": []
                                                   }
                                                 }
@@ -245,9 +245,9 @@
                                 "isLatestPath": false,
                                 "child": {
                                   "terminal": true,
-                                  "finalStatus": "initiated",
+                                  "finalStatus": "application_error",
                                   "durationSeconds": 37,
-                                  "reachedHuman": true,
+                                  "reachedHuman": false,
                                   "dtmfDigits": []
                                 }
                               }
