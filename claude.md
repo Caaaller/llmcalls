@@ -11,6 +11,10 @@ Commands:
 - Backend: `pnpm --filter backend dev` (port 8068)
 - Frontend: `pnpm --filter frontend start` (port 8069, script is `start` not `dev`)
 
+## MANDATORY: Auto-Merge Clean PRs from Background Agents
+
+When a background agent opens a PR and reports all validation green (typecheck clean, unit tests passing, any ran live/replay tests green, no self-flagged blockers), merge it immediately. Do NOT wait for explicit user confirmation to merge. "Ready for review" is not a pause point — for this solo-dev repo, the agent's validation is sufficient. Only hold a PR when (a) the agent itself flagged a concern, (b) the user explicitly said "don't merge yet", or (c) two agents' PRs overlap and need sequencing.
+
 ## MANDATORY: Verify Fixes by Rerunning Tests
 
 After making any fix to test infrastructure, prompts, or call handling, rerun the affected test(s) and verify the fix worked before reporting success. Don't just commit — prove it.
