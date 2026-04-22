@@ -142,7 +142,11 @@ async function speakAndLog(
   callHistoryService
     .addConversation(callSid, 'ai', text)
     .catch(err => console.error('Error adding conversation:', err));
-  callStateManager.updateCallState(callSid, { isSpeaking: true });
+  callStateManager.updateCallState(callSid, {
+    isSpeaking: true,
+    lastSpeakStartedAt: Date.now(),
+    bargeInFiredThisTurn: false,
+  });
   // Reset silent-hold timer — AI speech counts as activity, not silence
   const { resetSilentHoldTimer } = await import('../routes/streamRoutes');
   resetSilentHoldTimer(callSid);

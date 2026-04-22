@@ -12,6 +12,8 @@ import { WebSocketServer, WebSocket as WS } from 'ws';
 import type { Server } from 'http';
 import callStateManager from '../services/callStateManager';
 import { processSpeech } from '../services/speechProcessingService';
+import { shouldBargeIn } from '../services/bargeInService';
+import telnyxService from '../services/telnyxService';
 import { toError } from '../utils/errorUtils';
 
 const DEEPGRAM_URL =
@@ -223,6 +225,22 @@ function openDeepgram(
         if ((cs.actionHistory || []).length > 0) {
           const reset = silentHoldResetters.get(state.callControlId);
           if (reset) reset();
+        }
+
+        // Barge-in: user/agent is speaking while we're speaking → cancel our TTS
+        // so they're not talking over a robot. shouldBargeIn enforces the
+        // post-start lockout and min-word guardrails.
+        if (shouldBargeIn(cs, text, Date.now())) {
+          cs.bargeInFiredThisTurn = true;
+          cs.isSpeaking = false;
+          console.log(
+            `[BARGE-IN] Canceling TTS — interim="${text.substring(0, 60)}"`
+          );
+          telnyxService
+            .stopSpeak(state.callControlId)
+            .catch(err =>
+              console.error('[BARGE-IN] stopSpeak error:', toError(err).message)
+            );
         }
       }
 
