@@ -370,7 +370,21 @@ describe('Live call evaluations', () => {
         testCaseResults[i].status = 'running';
 
         try {
-          const closed = await hasBusinessClosed(result.callSid);
+          // Settle delay: when a call times out, the AI may have been
+          // mid-decision (e.g. about to fire hang_up with closed_no_menu).
+          // That event writes to Mongo async, so checking hasBusinessClosed
+          // immediately after timeout can miss it. Wait up to 3s, retrying
+          // every 500ms, for the signal to arrive.
+          const CLOSE_SETTLE_MS = 3000;
+          const CLOSE_POLL_MS = 500;
+          let closed = await hasBusinessClosed(result.callSid);
+          if (!closed && result.timedOut) {
+            const deadline = Date.now() + CLOSE_SETTLE_MS;
+            while (!closed && Date.now() < deadline) {
+              await new Promise(r => setTimeout(r, CLOSE_POLL_MS));
+              closed = await hasBusinessClosed(result.callSid);
+            }
+          }
           if (closed) {
             console.log(
               `CLOSED: ${tc.name} (${result.durationSeconds}s) — business closed`
