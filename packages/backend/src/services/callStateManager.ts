@@ -55,6 +55,12 @@ export interface CallState {
   userPhone?: string;
   skipInfoRequests?: boolean;
   isSpeaking?: boolean;
+  /** Epoch ms when the current AI TTS playback started. Used by barge-in
+   * detection to enforce the post-start lockout window. */
+  lastSpeakStartedAt?: number;
+  /** True if we already canceled TTS for the current AI utterance. Prevents
+   * double-cancel on subsequent interim transcripts within the same turn. */
+  bargeInFiredThisTurn?: boolean;
   stallTimer?: ReturnType<typeof setInterval>;
 }
 

@@ -108,6 +108,34 @@ class TelnyxService {
     });
   }
 
+  /**
+   * Stop in-flight TTS playback on the call. Used by barge-in cancellation
+   * when we detect the user/live agent speaking while we're speaking.
+   * Telnyx's speak queues onto the playback pipeline, so stopPlayback
+   * cancels it and emits `call.speak.ended`.
+   */
+  async stopSpeak(callControlId: string): Promise<void> {
+    await this.guardedAction(callControlId, 'stopSpeak', async () => {
+      try {
+        await this.client.calls.actions.stopPlayback(callControlId, {
+          stop: 'current',
+        });
+      } catch (error) {
+        const err = toError(error);
+        // 90018 / "already ended" are fine — call ended underneath us.
+        // Also tolerate "no audio playing" since TTS may have finished
+        // between our decision to cancel and the API call.
+        if (
+          !err.message.includes('90018') &&
+          !err.message.includes('already ended') &&
+          !err.message.includes('no audio')
+        ) {
+          console.error('stopSpeak error:', err.message);
+        }
+      }
+    });
+  }
+
   async sendDTMF(callControlId: string, digits: string): Promise<boolean> {
     const result = await this.guardedAction(
       callControlId,
