@@ -67,9 +67,16 @@ function LabelingPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // Guard against double-submit from holding a key or a quick double-press
   const submittingRef = useRef<boolean>(false);
   const toastTimerRef = useRef<number | null>(null);
+  // Latest data read by the stable submitLabel — avoids recreating the
+  // keydown listener every time `data` changes (which drops keypresses
+  // during the remount window and is the cause of the "stuck at 1" bug).
+  const dataRef = useRef<NextTurnResponse | null>(null);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   const loadNext = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -79,7 +86,6 @@ function LabelingPage(): JSX.Element {
       setData(next);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      // retry once
       try {
         const next = await fetchNextTurn();
         setData(next);
@@ -111,8 +117,9 @@ function LabelingPage(): JSX.Element {
   const submitLabel = useCallback(
     async (label: Label): Promise<void> => {
       if (submittingRef.current) return;
-      if (!data?.turn) return;
-      const turn = data.turn;
+      const current = dataRef.current;
+      if (!current?.turn) return;
+      const turn = current.turn;
       submittingRef.current = true;
       try {
         const result = await postLabel({
@@ -128,7 +135,6 @@ function LabelingPage(): JSX.Element {
         await loadNext();
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        // retry once
         try {
           await postLabel({
             callSid: turn.callSid,
@@ -145,12 +151,12 @@ function LabelingPage(): JSX.Element {
         submittingRef.current = false;
       }
     },
-    [data, loadNext, showToast]
+    [loadNext, showToast]
   );
 
   useEffect(() => {
     function onKeyDown(ev: KeyboardEvent): void {
-      if (ev.repeat) return; // ignore auto-repeat from held keys
+      if (ev.repeat) return;
       if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
       const k = ev.key.toLowerCase();
       if (k === 'h' || k === 'i' || k === 'u' || k === 's') {

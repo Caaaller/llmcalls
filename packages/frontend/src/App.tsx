@@ -4,7 +4,6 @@ import './App.css';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import AppLayout from './components/AppLayout';
-import LabelingPage from './LabelingPage';
 import { api, type ApiConfigResponse } from './api/client';
 import {
   isAuthenticated,
@@ -15,15 +14,6 @@ import {
 } from './utils/auth';
 
 function App() {
-  // Labeling UI lives on its own route and is dev-only / unauthenticated.
-  // Short-circuit before any auth logic so it loads without a session.
-  if (
-    typeof window !== 'undefined' &&
-    window.location.pathname === '/labeling'
-  ) {
-    return <LabelingPage />;
-  }
-
   const [loading, setLoading] = useState<boolean>(true);
   const [showSignup, setShowSignup] = useState<boolean>(false);
   const queryClient = useQueryClient();

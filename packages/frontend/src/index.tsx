@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './index.css';
 import App from './App';
+import LabelingPage from './LabelingPage';
 import reportWebVitals from './reportWebVitals';
 
 // Create a client
@@ -22,10 +23,12 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
+const isLabelingRoute =
+  typeof window !== 'undefined' && window.location.pathname === '/labeling';
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      {isLabelingRoute ? <LabelingPage /> : <App />}
     </QueryClientProvider>
   </React.StrictMode>
 );
