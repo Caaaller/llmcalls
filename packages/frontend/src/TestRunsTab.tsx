@@ -320,16 +320,24 @@ function CallDetailInline({ callSid }: { callSid: string }) {
       {call.events && call.events.length > 0 && (
         <div className="inline-timeline">
           {(() => {
+            // Filter out turn_timing diagnostic events — they have no text
+            // body and render as empty rows in the timeline.
+            const visibleEvents = call.events.filter(
+              e => e.eventType !== 'turn_timing'
+            );
+            if (visibleEvents.length === 0) return null;
             // Find the INDEX of the first termination event in call.events.
             // That event is the authoritative call-end boundary — anything
             // at or after it was logged against a call that was already over.
             // Falls back to call.endTime (minus the 2s grace) only if there
             // is no termination event at all.
-            const terminationIdx = call.events.findIndex(
+            const terminationIdx = visibleEvents.findIndex(
               e => e.eventType === 'termination'
             );
             const terminationReason =
-              terminationIdx !== -1 ? call.events[terminationIdx].reason : null;
+              terminationIdx !== -1
+                ? visibleEvents[terminationIdx].reason
+                : null;
             const reasonLabel = ((): string => {
               if (!terminationReason) return 'Call ended';
               switch (terminationReason) {
@@ -350,9 +358,9 @@ function CallDetailInline({ callSid }: { callSid: string }) {
               : null;
             let hangupMarkerRendered = false;
             const rendered: Array<React.ReactNode> = [];
-            call.events.forEach((event, idx) => {
+            visibleEvents.forEach((event, idx) => {
               const seekSec = getSeekSeconds(event.timestamp, call.startTime);
-              const nextEvent = call.events[idx + 1];
+              const nextEvent = visibleEvents[idx + 1];
               const nextSeekSec = nextEvent
                 ? getSeekSeconds(nextEvent.timestamp, call.startTime)
                 : Infinity;
