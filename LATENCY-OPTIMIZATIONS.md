@@ -29,6 +29,14 @@ lines per turn.
 | **Median perceived** | **4494ms** |
 | p90                  | 5697ms     |
 
+**Latest measurement (2026-04-23, Haiku 4.5 + cache_control, 49 turns / 9 live calls):**
+
+| Metric               | Value      | Delta vs anchor        |
+| -------------------- | ---------- | ---------------------- |
+| Mean perceived       | 4616ms     | -151ms                 |
+| **Median perceived** | **4464ms** | **-30ms**              |
+| p90                  | 6127ms     | +430ms (p90 got worse) |
+
 **Breakdown (median case):**
 
 - `end→dispatch` ≈ 3200ms — DOMINATED BY LLM CALL
@@ -51,18 +59,20 @@ lines per turn.
 
 ## ✅ Tried & Shipped (currently on main)
 
-| #   | What                                                                                           | Commit / date                                | Measured effect                                                                                     |
-| --- | ---------------------------------------------------------------------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| 1   | Fire on Deepgram `speech_final` (vs waiting for `UtteranceEnd`)                                | `220990b` 2026-04-07                         | "~2.5-4.4s AI decisions (down from 4-13s)" — measurement pre-dates current instrumentation          |
-| 2   | System prompt trim 5800 → 3100 tokens                                                          | `827a0e0` 2026-04-07                         | Component of the big 2026-04-07 drop                                                                |
-| 3   | Anthropic prompt caching (system prompt cached)                                                | 2026-04-02                                   | Input tokens 6700 → ~1000; latency gain "modest" (~2.5-3.5s still)                                  |
-| 4   | Fast-retry cache (skip AI on repeated IVR prompt)                                              | 2026-04-02                                   | "Coverage question replayed instantly (skipped 3s AI call)"                                         |
-| 5   | Endpointing raised back 400ms → 1800ms (revert of earlier experiment)                          | `7c5650f` 2026-04-09                         | Reverted because 400ms caused mid-sentence cutoffs                                                  |
-| 6   | `max_tokens` capped at 400                                                                     | 2026-04-07                                   | Part of Phase 1 cluster; net ~+45ms A/B on 628 turns — noise                                        |
-| 7   | Sentence-buffered streaming TTS (flag-gated, default OFF)                                      | `ce0f090` / `3873427` / `d7010a8` 2026-04-22 | First-audio ~500ms faster on multi-sentence responses; zero effect on single-word IVR-nav responses |
-| 8   | Per-turn latency instrumentation (`turn_timing` events in MongoDB)                             | `38ef072` 2026-04-22                         | Observability only; zero perf effect                                                                |
-| 9   | Deepgram endpointing 1800 → 500ms + semantic turn detection (expanded filler/connective lists) | `d80074f` 2026-04-22                         | **Flat.** UtteranceEnd at 1800ms still dominates for continuous IVR speech. Replay 7/9 pass.        |
-| 10  | Fixture re-records after Phase 2 behavior change                                               | same as #9                                   | N/A                                                                                                 |
+| #   | What                                                                                           | Commit / date                                | Measured effect                                                                                                                                                   |
+| --- | ---------------------------------------------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Fire on Deepgram `speech_final` (vs waiting for `UtteranceEnd`)                                | `220990b` 2026-04-07                         | "~2.5-4.4s AI decisions (down from 4-13s)" — measurement pre-dates current instrumentation                                                                        |
+| 2   | System prompt trim 5800 → 3100 tokens                                                          | `827a0e0` 2026-04-07                         | Component of the big 2026-04-07 drop                                                                                                                              |
+| 3   | Anthropic prompt caching (system prompt cached)                                                | 2026-04-02                                   | Input tokens 6700 → ~1000; latency gain "modest" (~2.5-3.5s still)                                                                                                |
+| 4   | Fast-retry cache (skip AI on repeated IVR prompt)                                              | 2026-04-02                                   | "Coverage question replayed instantly (skipped 3s AI call)"                                                                                                       |
+| 5   | Endpointing raised back 400ms → 1800ms (revert of earlier experiment)                          | `7c5650f` 2026-04-09                         | Reverted because 400ms caused mid-sentence cutoffs                                                                                                                |
+| 6   | `max_tokens` capped at 400                                                                     | 2026-04-07                                   | Part of Phase 1 cluster; net ~+45ms A/B on 628 turns — noise                                                                                                      |
+| 7   | Sentence-buffered streaming TTS (flag-gated, default OFF)                                      | `ce0f090` / `3873427` / `d7010a8` 2026-04-22 | First-audio ~500ms faster on multi-sentence responses; zero effect on single-word IVR-nav responses                                                               |
+| 8   | Per-turn latency instrumentation (`turn_timing` events in MongoDB)                             | `38ef072` 2026-04-22                         | Observability only; zero perf effect                                                                                                                              |
+| 9   | Deepgram endpointing 1800 → 500ms + semantic turn detection (expanded filler/connective lists) | `d80074f` 2026-04-22                         | **Flat.** UtteranceEnd at 1800ms still dominates for continuous IVR speech. Replay 7/9 pass.                                                                      |
+| 10  | Fixture re-records after Phase 2 behavior change                                               | same as #9                                   | N/A                                                                                                                                                               |
+| 11  | Claude Haiku 4.5 for IVR nav (env-gated via `IVR_LLM_PROVIDER=anthropic` default)              | `b092206` 2026-04-23                         | Replay 7/10 (3 behavioral divergences, all plausibly correct alt paths). No cache: **+82ms median regression**.                                                   |
+| 12  | Anthropic prompt caching (`cache_control: ephemeral` on system message)                        | `6c9dccb` 2026-04-23                         | Cache hits confirmed (5458 cached tokens/call). **-30ms median vs Phase 2 anchor** (4464ms vs 4494ms). Marginal win. Mean 4616ms (-150ms). Not the 1000ms target. |
 
 ## ❌ Tried & Reverted / Inconclusive
 
