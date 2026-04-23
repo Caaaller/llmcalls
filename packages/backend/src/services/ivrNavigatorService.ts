@@ -5,6 +5,7 @@
  */
 
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { TransferConfig } from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { transferPrompt } from '../prompts/transfer-prompt';
@@ -283,14 +284,28 @@ Action rules:
 ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 }
 
+type LLMProvider = 'anthropic' | 'openai';
+
+const CLAUDE_HAIKU_MODEL = 'claude-haiku-4-5-20251001';
+
 class IVRNavigatorService {
-  private client: OpenAI;
+  private openaiClient: OpenAI;
+  private anthropicClient: Anthropic;
 
   constructor() {
-    this.client = new OpenAI({
+    this.openaiClient = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
       maxRetries: 5,
     });
+    this.anthropicClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      maxRetries: 5,
+    });
+  }
+
+  private getProvider(): LLMProvider {
+    const raw = (process.env.IVR_LLM_PROVIDER || 'anthropic').toLowerCase();
+    return raw === 'openai' ? 'openai' : 'anthropic';
   }
 
   /**
@@ -430,24 +445,42 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     } = params;
     const { systemMessage, userMessage } = this.buildMessages(params);
 
+    const provider = this.getProvider();
     const apiStart = Date.now();
-    const response = await this.client.chat.completions.create({
-      model:
-        process.env.OPENAI_MODEL_OVERRIDE ||
-        config.aiSettings?.model ||
-        'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage },
-      ],
-      max_tokens: 400,
-      temperature: 0,
-    });
-    console.log(
-      `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.prompt_tokens} out=${response.usage?.completion_tokens}`
-    );
+    let content: string;
 
-    const content = response.choices[0]?.message?.content;
+    if (provider === 'anthropic') {
+      const response = await this.anthropicClient.messages.create({
+        model: process.env.ANTHROPIC_MODEL_OVERRIDE || CLAUDE_HAIKU_MODEL,
+        system: systemMessage,
+        messages: [{ role: 'user', content: userMessage }],
+        max_tokens: 800,
+        temperature: 0,
+      });
+      console.log(
+        `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.input_tokens} out=${response.usage?.output_tokens}`
+      );
+      const first = response.content[0];
+      content = first && first.type === 'text' ? first.text : '';
+    } else {
+      const response = await this.openaiClient.chat.completions.create({
+        model:
+          process.env.OPENAI_MODEL_OVERRIDE ||
+          config.aiSettings?.model ||
+          'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 400,
+        temperature: 0,
+      });
+      console.log(
+        `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.prompt_tokens} out=${response.usage?.completion_tokens}`
+      );
+      content = response.choices[0]?.message?.content || '';
+    }
+
     if (!content) {
       throw new Error('No response from IVR navigator AI');
     }
@@ -594,41 +627,23 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     } = params;
     const { systemMessage, userMessage } = this.buildMessages(params);
 
+    const provider = this.getProvider();
     const apiStart = Date.now();
-    const model =
-      process.env.OPENAI_MODEL_OVERRIDE ||
-      config.aiSettings?.model ||
-      'gpt-4o-mini';
-
-    const stream = await this.client.chat.completions.create({
-      model,
-      messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: userMessage },
-      ],
-      max_tokens: 400,
-      temperature: 0,
-      stream: true,
-    });
 
     const extractor = new SpeechFieldExtractor();
     let firstTokenAt: number | null = null;
     let speechDoneFiredAt: number | null = null;
     let fullContent = '';
 
-    for await (const chunk of stream) {
-      const delta = chunk.choices[0]?.delta?.content || '';
-      if (!delta) continue;
-
+    const onDelta = (delta: string) => {
+      if (!delta) return;
       if (firstTokenAt === null) {
         firstTokenAt = Date.now();
         console.log(
           `⏱️ Time to first token (streaming): ${firstTokenAt - apiStart}ms`
         );
       }
-
       fullContent += delta;
-
       const extracted = extractor.extract(delta);
       if (extracted) callbacks.onSpeechChunk(extracted);
       if (extractor.isDone() && speechDoneFiredAt === null) {
@@ -638,9 +653,54 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
         );
         callbacks.onSpeechDone();
       }
-    }
+    };
 
-    console.log(`⏱️ Stream complete: ${Date.now() - apiStart}ms`);
+    if (provider === 'anthropic') {
+      const stream = this.anthropicClient.messages.stream({
+        model: process.env.ANTHROPIC_MODEL_OVERRIDE || CLAUDE_HAIKU_MODEL,
+        system: systemMessage,
+        messages: [{ role: 'user', content: userMessage }],
+        max_tokens: 800,
+        temperature: 0,
+      });
+
+      for await (const event of stream) {
+        if (
+          event.type === 'content_block_delta' &&
+          event.delta.type === 'text_delta'
+        ) {
+          onDelta(event.delta.text);
+        }
+      }
+
+      const finalMessage = await stream.finalMessage();
+      console.log(
+        `⏱️ Stream complete: ${Date.now() - apiStart}ms | in=${finalMessage.usage?.input_tokens} out=${finalMessage.usage?.output_tokens}`
+      );
+    } else {
+      const model =
+        process.env.OPENAI_MODEL_OVERRIDE ||
+        config.aiSettings?.model ||
+        'gpt-4o-mini';
+
+      const stream = await this.openaiClient.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 400,
+        temperature: 0,
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content || '';
+        if (delta) onDelta(delta);
+      }
+
+      console.log(`⏱️ Stream complete: ${Date.now() - apiStart}ms`);
+    }
 
     if (!fullContent) {
       throw new Error('No response from IVR navigator AI (streaming)');
