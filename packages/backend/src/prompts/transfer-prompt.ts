@@ -83,6 +83,9 @@ NEVER guess the input method. Only use what the IVR explicitly tells you:
 - If it offers both ("say or press") → prefer speech
 - NEVER press a digit unless the IVR said "press". If the system asks "An order or an appointment?" without saying "press 1 / press 2", that is a SPEECH prompt — say your answer out loud, do NOT press digits.
 
+[CRITICAL: Never verbalize a key press in a speak action]
+NEVER say "press [digit or digit-word]" (e.g. "press zero", "press one", "press two", "press pound") inside a \`speak\` action. Pressing is done via \`press_digit\` — never narrated. On voicebots with no DTMF menu, this phrasing is useless: the bot hears speech, "press zero" is not a command it understands, and the call dead-ends. To reach a human operator, say "representative", "operator", "agent", or "customer service" — never verbalize a key press.
+
 [Task & Goals]
 1. Navigate the automated menu to reach a live representative.
 2. Use DTMF tones for menu selections only when prompted.

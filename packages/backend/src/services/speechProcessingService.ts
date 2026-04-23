@@ -10,6 +10,7 @@
 import callStateManager from './callStateManager';
 import callHistoryService from './callHistoryService';
 import { spaceOutNumbers } from '../utils/spaceOutNumbers';
+import { sanitizeSpeakText } from '../utils/sanitizeSpeakText';
 export { spaceOutNumbers };
 import { EndReason } from '../models/CallHistory';
 import ivrNavigatorService, {
@@ -135,11 +136,15 @@ function createSentenceBufferedTTS({
         firstSentenceDispatchedAt: firstSpeakDispatchedAt,
       });
     }
-    // Space out multi-digit numbers so TTS speaks them one digit at a time
-    // (IVRs with speech recognition need digit-by-digit cadence). The
-    // non-streaming path applies this to the full response; we apply it
-    // per-sentence here so both paths produce identical spoken output.
-    const spoken = spaceOutNumbers(sentence);
+    // Sanitize "press [digit]" phrasing BEFORE spacing out numbers — on
+    // voicebots this phrasing dead-ends the call, so rewrite to
+    // "representative". Then space out multi-digit numbers so TTS speaks them
+    // one digit at a time. Both paths must run.
+    const sanitized = sanitizeSpeakText(sentence);
+    if (sanitized !== sentence) {
+      console.log(`🧹 sanitizeSpeakText: "${sentence}" → "${sanitized}"`);
+    }
+    const spoken = spaceOutNumbers(sanitized);
     console.log(`⏱️ Sentence ${n} dispatched: "${preview}"`);
     speakChain = speakChain
       .then(() => telnyxService.speakText(callSid, spoken, voice))
@@ -826,6 +831,18 @@ export async function processSpeech({
           .catch(err => console.error('Error adding DTMF:', err));
 
         await telnyxService.sendDTMF(callSid, action.digit);
+
+        // Arm the post-DTMF loop watcher. If the IVR continues talking without
+        // firing another speech_final (Costco scenario — continuous menu with
+        // no silence), the watcher in streamRoutes will force-dispatch the
+        // accumulated interim transcript so the AI gets a second turn and
+        // loopDetected can flip true.
+        callStateManager.updateCallState(callSid, {
+          lastDTMFPressedAt: Date.now(),
+          lastDTMFDigit: action.digit,
+          accumulatedInterimText: '',
+          forcedReprocessFiredAt: undefined,
+        });
       }
       return {
         twiml: '',
@@ -969,9 +986,16 @@ export async function processSpeech({
         };
       }
 
-      // Space out multi-digit numbers so TTS speaks them one digit at a time
-      // (IVRs with speech recognition need digit-by-digit cadence).
-      const spokenResponse = spaceOutNumbers(aiResponse);
+      // Sanitize "press [digit]" phrasing (voicebot-safe), then space out
+      // multi-digit numbers so TTS speaks them one digit at a time (IVRs
+      // with speech recognition need digit-by-digit cadence).
+      const sanitizedResponse = sanitizeSpeakText(aiResponse);
+      if (sanitizedResponse !== aiResponse) {
+        console.log(
+          `🧹 sanitizeSpeakText: "${aiResponse}" → "${sanitizedResponse}"`
+        );
+      }
+      const spokenResponse = spaceOutNumbers(sanitizedResponse);
       callStateManager.addToHistory(callSid, {
         type: 'ai',
         text: spokenResponse,
