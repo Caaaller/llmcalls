@@ -29,14 +29,16 @@ lines per turn.
 | **Median perceived** | **4494ms** |
 | p90                  | 5697ms     |
 
-**🎯 TARGET HIT (2026-04-23 02:28, streaming architecture ACTUALLY on, 42 turns / 9 live calls):**
+**🎯 TARGET HIT — confirmed across two runs (streaming architecture ACTUALLY on):**
 
-| Metric               | Value      | Delta vs anchor |
-| -------------------- | ---------- | --------------- |
-| Mean perceived       | ~2000ms    | ~-2700ms        |
-| **Median perceived** | **2007ms** | **-2487ms**     |
-| p90                  | 2925ms     | -2772ms         |
-| endToDispatch median | 994ms      | -2206ms         |
+| Metric               | First run (2026-04-23 02:28, n=42) | Fresh run (2026-04-23 11:10, n=64) | Delta vs anchor (4494ms median) |
+| -------------------- | ---------------------------------- | ---------------------------------- | ------------------------------- |
+| Mean perceived       | 2222ms                             | 2251ms                             | ~-2500ms                        |
+| **Median perceived** | **2007ms**                         | **2063ms**                         | **-2431 to -2487ms**            |
+| p90                  | 2925ms                             | 2838ms                             | -2772 to -2859ms                |
+| endToDispatch median | 994ms                              | ~1000ms                            | -2200ms                         |
+
+Both measurements are in the 2000-2100ms median band — result is reproducible, not a one-run fluke. Daytime vs after-hours had no meaningful effect on the median.
 
 **Phase breakdown (new `turn_timing` sub-fields from commit `c94beec`):**
 
