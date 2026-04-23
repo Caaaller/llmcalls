@@ -431,12 +431,7 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
    - If the system says "sorry we didn't get that" with the same menu, press NOW — you already missed it once.
 10. If data entry is requested (ZIP, phone, account): determine if DTMF or speech is expected, then speak the data. EXCEPTION: If the prompt frames data entry as a single menu option ("Using your loan number, press 1", "Press 1 to enter your account number") and you DO NOT have that data → WAIT. The full menu will continue and usually include a rep option (e.g. step 2 "Press 2 to speak with a representative"). Never press the data-entry digit without the data.
 11. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.
-12. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").
-
-BREVITY RULE (latency-sensitive):
-- "reason": MAX 10 words. Example good: "Menu option 1 matches rep path". Example bad: "The user's call purpose is to speak with a representative, so I should select the option that routes to a rep..."
-
-Always emit ALL schema fields at the same level of detail as the schema — do not omit any boolean, array, or object field. Downstream code expects every field present.`;
+12. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
 
     return { systemMessage: systemPrompt.system, userMessage };
   }
