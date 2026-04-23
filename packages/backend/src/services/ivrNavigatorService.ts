@@ -113,6 +113,124 @@ export interface CallAction {
   };
 }
 
+/**
+ * Incrementally extracts the value of the "speech" field from streaming JSON
+ * deltas. Operates as a character-level state machine — no JSON parser needed
+ * during streaming.
+ *
+ * The JSON structure the AI returns looks like:
+ *   {"action": "speak", "speech": "...", "reason": "...", "detected": {...}}
+ * The order of keys is not guaranteed, so we scan for the literal `"speech"`
+ * key in the stream.
+ *
+ * States:
+ *   - SEEKING_KEY:   scanning for the literal `"speech"` key
+ *   - SEEKING_COLON: found key, waiting for `:`
+ *   - SEEKING_QUOTE: found colon, waiting for opening `"`
+ *   - IN_VALUE:      inside the speech string value — emit chars
+ *   - DONE:          closing `"` found, stop emitting
+ */
+const enum SpeechExtractState {
+  SEEKING_KEY,
+  SEEKING_COLON,
+  SEEKING_QUOTE,
+  IN_VALUE,
+  DONE,
+}
+
+export class SpeechFieldExtractor {
+  private state = SpeechExtractState.SEEKING_KEY;
+  private keyBuffer = '';
+  private escape = false;
+  private readonly targetKey = '"speech"';
+
+  /**
+   * Feed a delta string into the extractor. Returns any speech characters
+   * found in this delta (may be empty if not yet inside the value).
+   */
+  extract(delta: string): string {
+    if (this.state === SpeechExtractState.DONE) return '';
+
+    let output = '';
+
+    for (let i = 0; i < delta.length; i++) {
+      const ch = delta[i];
+
+      switch (this.state) {
+        case SpeechExtractState.SEEKING_KEY:
+          this.keyBuffer += ch;
+          if (this.keyBuffer.length > this.targetKey.length) {
+            this.keyBuffer = this.keyBuffer.slice(-this.targetKey.length);
+          }
+          if (this.keyBuffer === this.targetKey) {
+            this.state = SpeechExtractState.SEEKING_COLON;
+            this.keyBuffer = '';
+          }
+          break;
+
+        case SpeechExtractState.SEEKING_COLON:
+          if (ch === ':') this.state = SpeechExtractState.SEEKING_QUOTE;
+          break;
+
+        case SpeechExtractState.SEEKING_QUOTE:
+          if (ch === '"') this.state = SpeechExtractState.IN_VALUE;
+          break;
+
+        case SpeechExtractState.IN_VALUE:
+          if (this.escape) {
+            switch (ch) {
+              case 'n':
+                output += '\n';
+                break;
+              case 't':
+                output += '\t';
+                break;
+              case 'r':
+                output += '\r';
+                break;
+              case '"':
+                output += '"';
+                break;
+              case '\\':
+                output += '\\';
+                break;
+              default:
+                output += ch;
+                break;
+            }
+            this.escape = false;
+          } else if (ch === '\\') {
+            this.escape = true;
+          } else if (ch === '"') {
+            this.state = SpeechExtractState.DONE;
+          } else {
+            output += ch;
+          }
+          break;
+
+        case SpeechExtractState.DONE:
+          return output;
+      }
+    }
+
+    return output;
+  }
+
+  isDone(): boolean {
+    return this.state === SpeechExtractState.DONE;
+  }
+}
+
+export interface StreamingCallbacks {
+  onSpeechChunk: (text: string) => void;
+  onSpeechDone: () => void;
+}
+
+export interface StreamingResult {
+  action: CallAction;
+  speechStreamed: boolean;
+}
+
 interface DecideActionParams {
   config: TransferConfig;
   conversationHistory: Array<{ type: string; text: string }>;
@@ -175,7 +293,12 @@ class IVRNavigatorService {
     });
   }
 
-  async decideAction({
+  /**
+   * Build the system+user messages for the AI call. Shared between the
+   * non-streaming (decideAction) and streaming (decideActionStreaming) paths
+   * so they send byte-identical prompts.
+   */
+  private buildMessages({
     config,
     actionHistory,
     currentSpeech,
@@ -186,7 +309,7 @@ class IVRNavigatorService {
     awaitingHumanClarification,
     skipInfoRequests,
     requireLiveAgent,
-  }: DecideActionParams): Promise<CallAction> {
+  }: DecideActionParams): { systemMessage: string; userMessage: string } {
     const systemPrompt = transferPrompt['transfer-only'](
       { ...config, requireLiveAgent },
       '',
@@ -295,6 +418,13 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
 11. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.
 12. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").`;
 
+    return { systemMessage: systemPrompt.system, userMessage };
+  }
+
+  async decideAction(params: DecideActionParams): Promise<CallAction> {
+    const { config, currentSpeech, awaitingHumanConfirmation, awaitingHumanClarification } = params;
+    const { systemMessage, userMessage } = this.buildMessages(params);
+
     const apiStart = Date.now();
     const response = await this.client.chat.completions.create({
       model:
@@ -302,7 +432,7 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
         config.aiSettings?.model ||
         'gpt-4o-mini',
       messages: [
-        { role: 'system', content: systemPrompt.system },
+        { role: 'system', content: systemMessage },
         { role: 'user', content: userMessage },
       ],
       max_tokens: 400,
@@ -316,6 +446,28 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     if (!content) {
       throw new Error('No response from IVR navigator AI');
     }
+
+    return this.postProcessAction(content, {
+      currentSpeech,
+      awaitingHumanConfirmation,
+      awaitingHumanClarification,
+    });
+  }
+
+  /**
+   * Parse the JSON string returned by the AI, normalize it, and apply the
+   * downgrade/fallback guards. Shared between decideAction and
+   * decideActionStreaming so both paths run identical post-processing.
+   */
+  private postProcessAction(
+    content: string,
+    ctx: {
+      currentSpeech: string;
+      awaitingHumanConfirmation?: boolean;
+      awaitingHumanClarification?: boolean;
+    }
+  ): CallAction {
+    const { currentSpeech, awaitingHumanConfirmation, awaitingHumanClarification } = ctx;
 
     // Extract JSON from response (Claude may wrap it in markdown code fences)
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -410,6 +562,95 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     }
 
     return action;
+  }
+
+  /**
+   * Streaming variant of decideAction. Uses identical prompts to decideAction
+   * but streams the JSON completion — as the AI emits the "speech" field
+   * character-by-character, we fire them through the SpeechFieldExtractor so
+   * the caller can start dispatching TTS before the full response arrives.
+   *
+   * The final action is still parsed from the full JSON once the stream ends,
+   * so all downstream routing/guards behave identically.
+   */
+  async decideActionStreaming(
+    params: DecideActionParams & { callbacks: StreamingCallbacks }
+  ): Promise<StreamingResult> {
+    const { config, currentSpeech, awaitingHumanConfirmation, awaitingHumanClarification, callbacks } = params;
+    const { systemMessage, userMessage } = this.buildMessages(params);
+
+    const apiStart = Date.now();
+    const model =
+      process.env.OPENAI_MODEL_OVERRIDE ||
+      config.aiSettings?.model ||
+      'gpt-4o-mini';
+
+    const stream = await this.client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userMessage },
+      ],
+      max_tokens: 400,
+      temperature: 0,
+      stream: true,
+    });
+
+    const extractor = new SpeechFieldExtractor();
+    let firstTokenAt: number | null = null;
+    let speechDoneFiredAt: number | null = null;
+    let fullContent = '';
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content || '';
+      if (!delta) continue;
+
+      if (firstTokenAt === null) {
+        firstTokenAt = Date.now();
+        console.log(`⏱️ Time to first token (streaming): ${firstTokenAt - apiStart}ms`);
+      }
+
+      fullContent += delta;
+
+      const extracted = extractor.extract(delta);
+      if (extracted) callbacks.onSpeechChunk(extracted);
+      if (extractor.isDone() && speechDoneFiredAt === null) {
+        speechDoneFiredAt = Date.now();
+        console.log(
+          `⏱️ Speech field complete (streaming): ${speechDoneFiredAt - apiStart}ms`
+        );
+        callbacks.onSpeechDone();
+      }
+    }
+
+    console.log(`⏱️ Stream complete: ${Date.now() - apiStart}ms`);
+
+    if (!fullContent) {
+      throw new Error('No response from IVR navigator AI (streaming)');
+    }
+
+    const action = this.postProcessAction(fullContent, {
+      currentSpeech,
+      awaitingHumanConfirmation,
+      awaitingHumanClarification,
+    });
+
+    // If the AI chose "speak" but the extractor never completed (extractor could
+    // fail if the JSON doesn't contain a "speech" key in the expected form), fall
+    // back to firing the parsed speech post-stream so TTS still happens.
+    if (action.action === 'speak' && action.speech && speechDoneFiredAt === null) {
+      console.log(
+        '[NAV] Streaming speech extraction missed — firing full text post-stream as fallback'
+      );
+      callbacks.onSpeechChunk(action.speech);
+      callbacks.onSpeechDone();
+      return { action, speechStreamed: true };
+    }
+
+    return {
+      action,
+      speechStreamed: action.action === 'speak' && speechDoneFiredAt !== null,
+    };
   }
 }
 
