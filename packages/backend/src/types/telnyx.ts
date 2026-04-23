@@ -31,6 +31,7 @@ export interface TelnyxWebhookPayload {
   connection_id?: string;
   from?: string;
   to?: string;
+  direction?: 'incoming' | 'outgoing' | string;
   state?: TelnyxCallStatus;
   hangup_cause?: string;
   hangup_source?: 'caller' | 'callee' | 'unknown' | string;

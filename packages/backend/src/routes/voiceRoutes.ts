@@ -13,6 +13,7 @@ import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
 import { EndReason } from '../models/CallHistory';
 import telnyxService from '../services/telnyxService';
+import { runSimulatorFlow } from '../services/simulatorAgentService';
 import transferConfig from '../config/transfer-config';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
 import { logOnError } from '../utils/logOnError';
@@ -21,6 +22,20 @@ const router: express.Router = express.Router();
 
 const STALL_POLL_INTERVAL_MS = 100;
 const STALL_TIMEOUT_MS = 2 * 60 * 1000;
+
+/**
+ * Check if a `call.initiated` event belongs to our self-call simulator DID.
+ * Returns false (skip) if `TELNYX_SIMULATOR_NUMBER` is unset so we never
+ * accidentally activate the simulator in a prod-like env.
+ */
+function isSimulatorInboundCall(
+  payload: TelnyxWebhookPayload | undefined
+): boolean {
+  const simNumber = process.env.TELNYX_SIMULATOR_NUMBER;
+  if (!simNumber) return false;
+  if (!payload) return false;
+  return payload.direction === 'incoming' && payload.to === simNumber;
+}
 
 function getTelnyxVoice(config: TransferConfigType): string {
   const configVoice = config.aiSettings.voice;
@@ -439,6 +454,17 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
   try {
     switch (eventType) {
+      case 'call.initiated':
+        if (isSimulatorInboundCall(payload)) {
+          console.log(
+            `[SIM] Inbound simulator call detected on ${payload?.to} — launching scripted flow`
+          );
+          // Fire-and-forget — don't block the webhook response pipeline.
+          void runSimulatorFlow(callControlId);
+        }
+        // Outbound-initiated legs also surface here; ignore them — our
+        // /voice handler acts on `call.answered` for those.
+        break;
       case 'call.answered':
         await handleCallAnswered(callControlId, payload);
         break;

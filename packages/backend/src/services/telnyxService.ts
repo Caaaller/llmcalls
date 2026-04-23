@@ -169,6 +169,20 @@ class TelnyxService {
     return result ?? false;
   }
 
+  /**
+   * Answer an inbound call. Only used by the self-call simulator — our
+   * outbound calls are auto-answered by the far end, so we never need to
+   * call this for normal traffic.
+   */
+  async answerCall(callControlId: string): Promise<void> {
+    try {
+      await this.client.calls.actions.answer(callControlId, {});
+    } catch (error) {
+      console.error('Error answering call:', toError(error).message);
+      throw error;
+    }
+  }
+
   async terminateCall(callControlId: string): Promise<void> {
     try {
       await this.client.calls.actions.hangup(callControlId, {});

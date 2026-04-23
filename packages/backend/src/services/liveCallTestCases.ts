@@ -23,7 +23,30 @@ export interface LiveCallTestCase {
   };
 }
 
+/**
+ * Self-call simulator case. Only included when `TELNYX_SIMULATOR_NUMBER` env
+ * var is set — otherwise we'd dial an empty string and fail spuriously.
+ */
+const SIMULATOR_CASES: LiveCallTestCase[] = process.env.TELNYX_SIMULATOR_NUMBER
+  ? [
+      {
+        id: 'self-call-human-greeting',
+        name: 'Self-call simulator — AI detects human greeting and confirms',
+        description:
+          'Places a call to our own simulator DID which auto-answers with a randomized "human agent" greeting. Validates the AI: (1) hears the greeting and marks maybe_human, (2) asks "Am I speaking with a live agent?", (3) hears the scripted confirmation and upgrades to human_detected, (4) fires a transfer event. Fast (<30s), cheap, deterministic outcome, non-flaky.',
+        phoneNumber: process.env.TELNYX_SIMULATOR_NUMBER as string,
+        callPurpose: 'Test call to the simulator agent',
+        expectedOutcome: {
+          shouldReachHuman: true,
+          requireConfirmedTransfer: true,
+          maxDurationSeconds: 60,
+        },
+      },
+    ]
+  : [];
+
 export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
+  ...SIMULATOR_CASES,
   {
     id: 'walmart-cs',
     name: 'Walmart CS — bypass AI assistant to reach a human',
