@@ -48,6 +48,13 @@ lines per turn.
 
 **Critical context:** All measurements between `f3a377d` (2026-04-23 01:15) and this one were against the NON-streaming path because `.env` had `USE_STREAMING=false` from when we temporarily disabled it after the original flush-blocking issue. Setting `USE_STREAMING=true` is what enabled the architectural refactor. The code was correct the whole time; the config was silently disabling it.
 
+**Success criteria:**
+
+- Latency improvement ≥1000ms median: **✅ HIT — 2487ms (2.5× target)**
+- Replay divergences ≤10: **✅ HIT — 4 divergences** (Target, Verizon, Walmart, Wells Fargo — same set as pre-streaming, no new regressions)
+
+**Skeptic independent verification (2026-04-22):** Pulled raw `turn_timing` events from MongoDB directly (n=42, 9 calls since 2026-04-23T06:18:00Z). Recomputed: median `perceivedMs` = **2007ms**, mean = **2222ms**, p90 = **2925ms**, min=1565 max=5019 — matches reported numbers exactly. Streaming confirmed active: 72 "Time to first token (streaming)" log lines in agent stdout. 7 of 9 calls produced turn_timings with ≥4 user turns (healthy multi-turn); the 2 excluded calls (0 turn_timings each) correctly ended on `closed_no_menu` before any AI responses with timing — they did not pollute the sample. Transcript spot-checks (USPS, UMR, Costco): AI responded sensibly, no hallucinations, no loops, reasonable terminal events. Sub-timestamp reconstruction (TTFT + speechStream + dispatchDelay) matches `endToDispatch` within 50ms on all 42 turns. **Caveat:** `streamTailMs` median is −9716ms (impossible). Race between fire-and-forget flush and stream completion: `emitTurnTiming` runs at `ttsSpeakStartedAt` while `cs.streamCompleteAt` still holds the prior turn's value (the current turn's stream hasn't finished yet). This is a reporting-only bug in a diagnostic sub-field; it does NOT touch `perceivedMs`, so the headline number is trustworthy. Recommend: fix `streamTailMs` attribution (e.g. attach streamCompleteAt to a turn ID, or drop the field until a per-turn correlation exists). **Verdict: CONFIRMED WIN.**
+
 ### Historical (pre-target-hit, non-streaming Haiku+cache, 49 turns / 9 live calls)
 
 | Metric               | Value      | Delta vs anchor        |
