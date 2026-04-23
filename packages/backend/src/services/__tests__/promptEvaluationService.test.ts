@@ -294,9 +294,19 @@ describe('Prompt evaluation – hold detection', () => {
       expectedHoldDetected: true,
     },
     {
-      name: 'No Hold - bare "One moment please"',
+      name: 'Hold - bare "One moment please" (voicebot fetching agent)',
       speech: 'One moment please.',
-      expectedHoldDetected: false,
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - "Just a moment"',
+      speech: 'Just a moment.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - "Hang tight"',
+      speech: 'Hang tight while I look into that.',
+      expectedHoldDetected: true,
     },
   ];
 

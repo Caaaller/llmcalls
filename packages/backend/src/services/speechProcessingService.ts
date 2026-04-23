@@ -769,6 +769,34 @@ export async function processSpeech({
       };
     }
 
+    // ── 5e. Loop-override: when the AI reports loopDetected=true but decided
+    //       NOT to press a digit (wait/speak), force a press using the first
+    //       plausible menu option. Some IVRs (e.g. Costco) continuously replay
+    //       the same menu with no silence, so the AI's "wait" is guaranteed to
+    //       loop forever. The prompt tells the model to press on loop, but the
+    //       model doesn't always obey. This is the safety net.
+    if (
+      action.detected.loopDetected &&
+      (action.action === 'wait' || action.action === 'speak')
+    ) {
+      const menuOptions = (action.detected.menuOptions as MenuOption[]) || [];
+      const prevDigit = callState.lastPressedDTMF;
+      // Prefer a menu option we haven't already pressed (rotate on repeat).
+      // Fall back to any option if the only one available is the prev digit.
+      const unpressed = menuOptions.filter(
+        o => o.digit && o.digit !== prevDigit
+      );
+      const forced = unpressed[0] || menuOptions[0];
+      if (forced && forced.digit) {
+        console.log(
+          `🔁 Loop override: AI said ${action.action} on loopDetected=true — forcing press_digit=${forced.digit} (${forced.option})`
+        );
+        action.action = 'press_digit';
+        action.digit = forced.digit;
+        action.reason = `Loop override: ${action.reason || 'AI returned non-press on loop'} → force press ${forced.digit} (${forced.option})`;
+      }
+    }
+
     // ── 6. Handle IVR menu / press digit ─────────────────────────────────────
     if (action.action === 'press_digit' && action.digit) {
       const menuOptions = action.detected.menuOptions as MenuOption[];
