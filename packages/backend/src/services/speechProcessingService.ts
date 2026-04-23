@@ -440,8 +440,17 @@ export async function processSpeech({
       speechAlreadyStreamed = streamResult.speechStreamed;
       if (speechAlreadyStreamed) {
         const streamedText = ttsCallbacks.getFullText();
+        // Stamp the ai-conversation event at the moment the FIRST sentence was
+        // dispatched to Telnyx — that's the closest proxy we have for when the
+        // user actually hears audio start. Without this, the timestamp ends up
+        // ~1-2s late (post-stream-complete wall clock) and clicking it in the
+        // UI seeks the recording past the start of the AI response.
+        const cs = callStateManager.getCallState(callSid);
+        const aiTimestamp = cs.firstSentenceDispatchedAt
+          ? new Date(cs.firstSentenceDispatchedAt)
+          : null;
         callHistoryService
-          .addConversation(callSid, 'ai', streamedText)
+          .addConversation(callSid, 'ai', streamedText, aiTimestamp)
           .catch(err => console.error('Error adding conversation:', err));
       }
     } else {
