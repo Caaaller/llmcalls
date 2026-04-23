@@ -4,6 +4,10 @@
  * and calls processSpeech() on utterance completion.
  *
  * Uses raw WebSocket to Deepgram (Deepgram v5 SDK connect() is broken for Node).
+ *
+ * ⚠️ LATENCY-SENSITIVE FILE — Before changing endpointing, semantic detection,
+ * or dispatch timing, read ../../LATENCY-OPTIMIZATIONS.md in the repo root.
+ * That doc tracks every attempted optimization so we don't repeat work.
  */
 
 import type { IncomingMessage } from 'http';

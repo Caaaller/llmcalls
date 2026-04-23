@@ -2,6 +2,9 @@
  * Speech Processing Service
  * Main function used by BOTH route handler and eval service.
  * Orchestrates full speech processing: state management, AI decisions, and Telnyx API calls.
+ *
+ * ⚠️ LATENCY-SENSITIVE FILE — Before changing the dispatch pipeline or
+ * streaming integration, read ../../LATENCY-OPTIMIZATIONS.md in the repo root.
  */
 
 import callStateManager from './callStateManager';
