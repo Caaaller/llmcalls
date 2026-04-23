@@ -29,7 +29,26 @@ lines per turn.
 | **Median perceived** | **4494ms** |
 | p90                  | 5697ms     |
 
-**Latest measurement (2026-04-23, Haiku 4.5 + cache_control, 49 turns / 9 live calls):**
+**🎯 TARGET HIT (2026-04-23 02:28, streaming architecture ACTUALLY on, 42 turns / 9 live calls):**
+
+| Metric               | Value      | Delta vs anchor |
+| -------------------- | ---------- | --------------- |
+| Mean perceived       | ~2000ms    | ~-2700ms        |
+| **Median perceived** | **2007ms** | **-2487ms**     |
+| p90                  | 2925ms     | -2772ms         |
+| endToDispatch median | 994ms      | -2206ms         |
+
+**Phase breakdown (new `turn_timing` sub-fields from commit `c94beec`):**
+
+- TTFT (speechEnd → first LLM token): 774ms
+- speechStream (first token → speech field closes): 224ms
+- dispatchDelay (speech field closes → TTS fires): **0ms** ← streaming works
+- Stream fallback fired: **0/42 (0%)**
+- Telnyx pipeline (dispatch → speakStart): ~1013ms
+
+**Critical context:** All measurements between `f3a377d` (2026-04-23 01:15) and this one were against the NON-streaming path because `.env` had `USE_STREAMING=false` from when we temporarily disabled it after the original flush-blocking issue. Setting `USE_STREAMING=true` is what enabled the architectural refactor. The code was correct the whole time; the config was silently disabling it.
+
+### Historical (pre-target-hit, non-streaming Haiku+cache, 49 turns / 9 live calls)
 
 | Metric               | Value      | Delta vs anchor        |
 | -------------------- | ---------- | ---------------------- |
