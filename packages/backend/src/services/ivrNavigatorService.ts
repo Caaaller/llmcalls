@@ -251,11 +251,11 @@ const REQUEST_INFO_RULE = `- "request_info": The system is asking for informatio
 const REQUEST_INFO_SKIP_RULE = `- "request_info": DISABLED. Do NOT use this action. If the system asks for information you don't have (account number, member ID, etc.), say "I don't have that information" instead.`;
 
 function buildCallActionSchema(skipInfoRequests: boolean): string {
-  return `You must respond with valid JSON matching this schema:
+  return `You must respond with valid JSON matching this schema. CRITICAL: emit fields in the EXACT order shown below — "speech" MUST come first so streaming TTS can start as early as possible:
 {
+  "speech": "what to say" (required if action is "speak", otherwise empty string ""),
   "action": "press_digit" | "speak" | "wait" | "human_detected" | "maybe_human" | "maybe_human_unclear" | "hang_up" | "request_info",
   "digit": "0"-"9" | "*" | "#" (required if action is "press_digit"),
-  "speech": "what to say" (required if action is "speak"),
   "requestedInfo": "description of what info is needed" (required if action is "request_info"),
   "reason": "brief explanation of your decision",
   "detected": {

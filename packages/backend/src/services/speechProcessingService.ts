@@ -19,7 +19,8 @@ import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
 
-const USE_STREAMING = process.env.USE_STREAMING === 'true';
+// Streaming TTS is now the default. Set USE_STREAMING=false to disable (rollback escape hatch).
+const USE_STREAMING = process.env.USE_STREAMING !== 'false';
 
 // Common title abbreviations — if a period follows one of these (case-insensitive), don't split.
 const ABBREVIATIONS =
@@ -435,10 +436,15 @@ export async function processSpeech({
         ...aiParams,
         callbacks: ttsCallbacks,
       });
-      // Wait for the full speak chain to drain (and streamingTTSActive to clear)
-      // before continuing — keeps downstream code (barge-in, next turn's
-      // resetSilentHoldTimer, etc.) from racing against in-flight TTS.
-      await ttsCallbacks.flush();
+      // Fire-and-forget flush: drain the speak chain in the background so
+      // streamingTTSActive/isSpeaking clear correctly, but DON'T block the
+      // main flow on it. Telnyx has already queued the TTS server-side by the
+      // time the speakText API call resolves; the user hears audio independent
+      // of when processSpeech returns. Blocking here was adding ~speakText API
+      // latency per turn on the critical path for zero user-perceived benefit.
+      ttsCallbacks
+        .flush()
+        .catch(err => console.error('Streaming TTS flush error:', err));
       action = streamResult.action;
       speechAlreadyStreamed = streamResult.speechStreamed;
       if (speechAlreadyStreamed) {
