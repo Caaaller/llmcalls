@@ -367,6 +367,13 @@ class CallHistoryService {
       ttsSpeakStartedAt: number;
       endpointingMs?: number;
       perceivedMs: number;
+      firstTokenAt?: number;
+      speechFieldCompleteAt?: number;
+      firstSentenceDispatchedAt?: number;
+      streamCompleteAt?: number;
+      streamFallbackFired?: boolean;
+      speechCompleteDeltaMs?: number;
+      streamTailMs?: number;
     },
     timestamp: Date | null = null
   ): Promise<void> {

@@ -60,6 +60,23 @@ export interface TurnTimingMetadata {
   endpointingMs?: number;
   /** User-perceived latency: end-of-speech → audio starts playing back. */
   perceivedMs: number;
+  /** Epoch ms when the IVR navigator LLM emitted its first streaming token. */
+  firstTokenAt?: number;
+  /** Epoch ms when the streamed "speech" field closed (mid-stream). */
+  speechFieldCompleteAt?: number;
+  /** Epoch ms when the first buffered sentence was dispatched to TTS. */
+  firstSentenceDispatchedAt?: number;
+  /** Epoch ms when the LLM stream fully completed. */
+  streamCompleteAt?: number;
+  /** True if SpeechFieldExtractor missed mid-stream and fell back to
+   * dispatching the parsed speech post-stream. */
+  streamFallbackFired?: boolean;
+  /** Derived: speechFieldCompleteAt - firstTokenAt. How much of the stream
+   * elapsed before the "speech" field closed. */
+  speechCompleteDeltaMs?: number;
+  /** Derived: streamCompleteAt - speechFieldCompleteAt. How long the stream
+   * kept going after the speech field closed. */
+  streamTailMs?: number;
 }
 
 export interface CallEvent {
@@ -186,6 +203,13 @@ const eventSchema = new Schema<CallEvent>(
       ttsSpeakStartedAt: Number,
       endpointingMs: Number,
       perceivedMs: Number,
+      firstTokenAt: Number,
+      speechFieldCompleteAt: Number,
+      firstSentenceDispatchedAt: Number,
+      streamCompleteAt: Number,
+      streamFallbackFired: Boolean,
+      speechCompleteDeltaMs: Number,
+      streamTailMs: Number,
     },
   },
   { _id: false }

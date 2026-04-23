@@ -77,6 +77,19 @@ export interface CallState {
   /** Epoch ms when backend dispatched TTS (first speakText call of the turn).
    * Cleared after emission. */
   ttsDispatchedAt?: number;
+  /** Epoch ms when the IVR navigator LLM emitted its first streaming token. */
+  firstTokenAt?: number;
+  /** Epoch ms when the streamed "speech" field finished (closing quote seen
+   * by SpeechFieldExtractor). */
+  speechFieldCompleteAt?: number;
+  /** Epoch ms when the first buffered sentence was dispatched to the TTS
+   * service (first telnyxService.speakText call of the turn). */
+  firstSentenceDispatchedAt?: number;
+  /** Epoch ms when the LLM stream fully completed (after the final token). */
+  streamCompleteAt?: number;
+  /** True if the SpeechFieldExtractor did not fire onSpeechDone mid-stream
+   * and we had to fall back to dispatching the parsed speech post-stream. */
+  streamFallbackFired?: boolean;
   /** Per-turn latency snapshots captured on call.speak.started. Used for the
    * per-call summary line on hangup. */
   turnTimings?: Array<{
@@ -86,6 +99,11 @@ export interface CallState {
     ttsSpeakStartedAt: number;
     endpointingMs?: number;
     perceivedMs: number;
+    firstTokenAt?: number;
+    speechFieldCompleteAt?: number;
+    firstSentenceDispatchedAt?: number;
+    streamCompleteAt?: number;
+    streamFallbackFired?: boolean;
   }>;
   /** Guards against multiple call.speak.started events (streaming TTS fires
    * one per sentence) — only the first one counts for latency. */

@@ -10,6 +10,7 @@ import { TransferConfig } from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { transferPrompt } from '../prompts/transfer-prompt';
 import { formatConversationForAI, ActionHistoryEntry } from '../config/prompts';
+import callStateManager from './callStateManager';
 
 const INVALID_ENTRY_PATTERNS =
   /did not recognize|invalid entry|not a valid|not recognized/i;
@@ -622,7 +623,10 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
    * so all downstream routing/guards behave identically.
    */
   async decideActionStreaming(
-    params: DecideActionParams & { callbacks: StreamingCallbacks }
+    params: DecideActionParams & {
+      callbacks: StreamingCallbacks;
+      callSid?: string;
+    }
   ): Promise<StreamingResult> {
     const {
       config,
@@ -630,6 +634,7 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       awaitingHumanConfirmation,
       awaitingHumanClarification,
       callbacks,
+      callSid,
     } = params;
     const { systemMessage, userMessage } = this.buildMessages(params);
 
@@ -648,6 +653,11 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
         console.log(
           `⏱️ Time to first token (streaming): ${firstTokenAt - apiStart}ms`
         );
+        if (callSid) {
+          callStateManager.updateCallState(callSid, {
+            firstTokenAt,
+          });
+        }
       }
       fullContent += delta;
       const extracted = extractor.extract(delta);
@@ -657,6 +667,11 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
         console.log(
           `⏱️ Speech field complete (streaming): ${speechDoneFiredAt - apiStart}ms`
         );
+        if (callSid) {
+          callStateManager.updateCallState(callSid, {
+            speechFieldCompleteAt: speechDoneFiredAt,
+          });
+        }
         callbacks.onSpeechDone();
       }
     };
@@ -686,9 +701,13 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       }
 
       const finalMessage = await stream.finalMessage();
+      const streamCompleteAt = Date.now();
       console.log(
-        `⏱️ Stream complete: ${Date.now() - apiStart}ms | in=${finalMessage.usage?.input_tokens} out=${finalMessage.usage?.output_tokens}`
+        `⏱️ Stream complete: ${streamCompleteAt - apiStart}ms | in=${finalMessage.usage?.input_tokens} out=${finalMessage.usage?.output_tokens}`
       );
+      if (callSid) {
+        callStateManager.updateCallState(callSid, { streamCompleteAt });
+      }
     } else {
       const model =
         process.env.OPENAI_MODEL_OVERRIDE ||
@@ -711,7 +730,11 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
         if (delta) onDelta(delta);
       }
 
-      console.log(`⏱️ Stream complete: ${Date.now() - apiStart}ms`);
+      const streamCompleteAt = Date.now();
+      console.log(`⏱️ Stream complete: ${streamCompleteAt - apiStart}ms`);
+      if (callSid) {
+        callStateManager.updateCallState(callSid, { streamCompleteAt });
+      }
     }
 
     if (!fullContent) {
@@ -735,6 +758,11 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       console.log(
         '[NAV] Streaming speech extraction missed — firing full text post-stream as fallback'
       );
+      if (callSid) {
+        callStateManager.updateCallState(callSid, {
+          streamFallbackFired: true,
+        });
+      }
       callbacks.onSpeechChunk(action.speech);
       callbacks.onSpeechDone();
       return { action, speechStreamed: true };

@@ -210,6 +210,22 @@ function recordTurnTiming(callControlId: string): void {
     ? userSpeechEndedAt - userSpeechStartedAt
     : undefined;
 
+  const {
+    firstTokenAt,
+    speechFieldCompleteAt,
+    firstSentenceDispatchedAt,
+    streamCompleteAt,
+    streamFallbackFired,
+  } = cs;
+  const speechCompleteDeltaMs =
+    speechFieldCompleteAt !== undefined && firstTokenAt !== undefined
+      ? speechFieldCompleteAt - firstTokenAt
+      : undefined;
+  const streamTailMs =
+    streamCompleteAt !== undefined && speechFieldCompleteAt !== undefined
+      ? streamCompleteAt - speechFieldCompleteAt
+      : undefined;
+
   cs.turnTimingEmittedForCurrentTurn = true;
   if (!cs.turnTimings) cs.turnTimings = [];
   cs.turnTimings.push({
@@ -219,17 +235,40 @@ function recordTurnTiming(callControlId: string): void {
     ttsSpeakStartedAt,
     endpointingMs,
     perceivedMs,
+    firstTokenAt,
+    speechFieldCompleteAt,
+    firstSentenceDispatchedAt,
+    streamCompleteAt,
+    streamFallbackFired,
   });
 
   // Clear anchors so the next turn starts fresh.
   cs.userSpeechStartedAt = undefined;
   cs.userSpeechEndedAt = undefined;
   cs.ttsDispatchedAt = undefined;
+  cs.firstTokenAt = undefined;
+  cs.speechFieldCompleteAt = undefined;
+  cs.firstSentenceDispatchedAt = undefined;
+  cs.streamCompleteAt = undefined;
+  cs.streamFallbackFired = undefined;
 
   const endpointingFragment =
     endpointingMs !== undefined ? `speechStart→end=${endpointingMs}ms  ` : '';
+  const subFragment =
+    firstTokenAt !== undefined
+      ? `  ttft=${firstTokenAt - userSpeechEndedAt}ms` +
+        (speechCompleteDeltaMs !== undefined
+          ? `  speechDelta=${speechCompleteDeltaMs}ms`
+          : '') +
+        (firstSentenceDispatchedAt !== undefined &&
+        speechFieldCompleteAt !== undefined
+          ? `  dispatchAfterSpeech=${firstSentenceDispatchedAt - speechFieldCompleteAt}ms`
+          : '') +
+        (streamTailMs !== undefined ? `  streamTail=${streamTailMs}ms` : '') +
+        (streamFallbackFired ? `  FALLBACK=true` : '')
+      : '';
   console.log(
-    `⏱️ TURN LATENCY  ${endpointingFragment}end→dispatch=${endDispatchMs}ms  dispatch→speakStart=${dispatchSpeakMs}ms  TOTAL_PERCEIVED=${perceivedMs}ms  call=${callControlId.slice(-20)}`
+    `⏱️ TURN LATENCY  ${endpointingFragment}end→dispatch=${endDispatchMs}ms  dispatch→speakStart=${dispatchSpeakMs}ms  TOTAL_PERCEIVED=${perceivedMs}ms${subFragment}  call=${callControlId.slice(-20)}`
   );
 
   logOnError(
@@ -240,6 +279,13 @@ function recordTurnTiming(callControlId: string): void {
       ttsSpeakStartedAt,
       endpointingMs,
       perceivedMs,
+      firstTokenAt,
+      speechFieldCompleteAt,
+      firstSentenceDispatchedAt,
+      streamCompleteAt,
+      streamFallbackFired,
+      speechCompleteDeltaMs,
+      streamTailMs,
     }),
     'Error persisting turn_timing event'
   );

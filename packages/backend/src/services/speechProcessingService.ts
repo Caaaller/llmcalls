@@ -129,6 +129,9 @@ function createSentenceBufferedTTS({
       const elapsed = firstChunkAt !== null ? Date.now() - firstChunkAt : 0;
       console.log(`⏱️ First sentence dispatched to TTS: ${elapsed}ms`);
       firstSpeakDispatchedAt = Date.now();
+      callStateManager.updateCallState(callSid, {
+        firstSentenceDispatchedAt: firstSpeakDispatchedAt,
+      });
     }
     console.log(`⏱️ Sentence ${n} dispatched: "${preview}"`);
     speakChain = speakChain
@@ -435,6 +438,7 @@ export async function processSpeech({
       const streamResult = await ivrNavigatorService.decideActionStreaming({
         ...aiParams,
         callbacks: ttsCallbacks,
+        callSid,
       });
       // Fire-and-forget flush: drain the speak chain in the background so
       // streamingTTSActive/isSpeaking clear correctly, but DON'T block the
