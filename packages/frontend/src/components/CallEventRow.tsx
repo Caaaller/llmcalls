@@ -78,6 +78,14 @@ function getEventTypeMeta(event: CallEvent): EventTypeMeta {
         badgeClass: 'event-type-badge type-info',
         badgeLabel: 'Info Res',
       };
+    case 'turn_timing':
+      // Diagnostic event — HistoryTab filters these out before render.
+      // This case exists to satisfy exhaustive switch typecheck.
+      return {
+        rowClass: 'event-row',
+        badgeClass: 'event-type-badge',
+        badgeLabel: '',
+      };
   }
 }
 
@@ -117,6 +125,8 @@ function renderEventBody(event: CallEvent) {
       return <span>Requested: {event.text}</span>;
     case 'info_response':
       return <span>Answered: {event.text}</span>;
+    case 'turn_timing':
+      return null;
   }
 }
 

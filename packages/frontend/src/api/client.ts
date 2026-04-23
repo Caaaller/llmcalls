@@ -110,7 +110,8 @@ export interface CallEvent {
     | 'termination'
     | 'hold'
     | 'info_request'
-    | 'info_response';
+    | 'info_response'
+    | 'turn_timing';
   type?: 'user' | 'ai' | 'system';
   text?: string;
   digit?: string;
