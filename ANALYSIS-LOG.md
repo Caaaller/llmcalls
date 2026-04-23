@@ -34,6 +34,18 @@ streaming-era multi-turn calls, bucketed by turn index within the call:
 Medians hover 1919-2462ms across all turn positions. `actionHistory`
 is capped at 12 turns so prompt size stops growing.
 
+### Re-checked 2026-04-23 (n=200, ~50% more samples)
+
+| Metric                       | Value                                                           |
+| ---------------------------- | --------------------------------------------------------------- |
+| Pearson r                    | 0.036 (weaker than the first analysis — still essentially zero) |
+| Slope                        | +3ms per additional turn                                        |
+| Early turns (idx 0-1) median | 1921ms (n=46)                                                   |
+| Late turns (idx 5+) median   | 2044ms (n=102)                                                  |
+| Early → late delta           | +123ms                                                          |
+
+Verdict stands: **no meaningful slowdown over call length.** The +123ms early-vs-late median is within within-turn variance (σ ≈ 300-500ms on any single turn). Longer calls just have more chances for p90/p99 spikes because they have more turns — but individual turns don't get slower.
+
 **Why perception might say otherwise:** p90 creeps up on later turns
 (2925 → 3067ms), so long calls occasionally have a slow turn that
 stands out. Median stays flat.
