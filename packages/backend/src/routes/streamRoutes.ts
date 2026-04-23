@@ -19,6 +19,11 @@ import { processSpeech } from '../services/speechProcessingService';
 import { shouldBargeIn } from '../services/bargeInService';
 import telnyxService from '../services/telnyxService';
 import { toError } from '../utils/errorUtils';
+import {
+  appendInterim,
+  resetWatcherFields,
+  shouldForceReprocess,
+} from '../services/postDTMFLoopWatcher';
 
 // Endpointing dropped from 1800 → 500ms to shrink the "user stopped → Deepgram
 // declares speech_final" window. Combined with a semantic completeness check
@@ -325,6 +330,34 @@ function openDeepgram(
               console.error('[BARGE-IN] stopSpeak error:', toError(err).message)
             );
         }
+
+        // Post-DTMF loop watcher: accumulate interim-transcript text while
+        // the watcher is armed (post-DTMF, no speech_final yet). When the
+        // watcher fires, force-dispatch the accumulator through the normal
+        // speech-processing entry point so the AI gets a 2nd turn even
+        // against continuous-speech IVRs like Costco.
+        if (!r.is_final && cs.lastDTMFPressedAt !== undefined) {
+          const merged = appendInterim(cs.accumulatedInterimText ?? '', text);
+          callStateManager.updateCallState(state.callControlId, {
+            accumulatedInterimText: merged,
+          });
+          const now = Date.now();
+          const fresh = callStateManager.getCallState(state.callControlId);
+          if (shouldForceReprocess(fresh, now)) {
+            const sinceDTMF = now - (fresh.lastDTMFPressedAt ?? now);
+            const textToProcess = fresh.accumulatedInterimText ?? '';
+            console.log(
+              `🔁 Post-DTMF loop watcher: forcing reprocess after ${sinceDTMF}ms with accumulated "${textToProcess.slice(0, 80)}…"`
+            );
+            callStateManager.updateCallState(state.callControlId, {
+              forcedReprocessFiredAt: now,
+              accumulatedInterimText: '',
+            });
+            if (state.onUtterance) {
+              void state.onUtterance(textToProcess);
+            }
+          }
+        }
       }
 
       if (r.is_final && text) {
@@ -360,6 +393,10 @@ function openDeepgram(
               console.log(
                 `[DG] semantic wait expired (${SEMANTIC_WAIT_MAX_MS}ms) → force-firing: "${pending.substring(0, 80)}"`
               );
+              callStateManager.updateCallState(
+                state.callControlId,
+                resetWatcherFields()
+              );
               void onUtterance(pending);
               setTimeout(() => {
                 if (state) state.speechFired = false;
@@ -371,6 +408,12 @@ function openDeepgram(
           state.speechFired = true;
           console.log(
             `[DG] speech_final → firing: "${fullText.substring(0, 80)}"`
+          );
+          // Real speech_final — clear post-DTMF watcher fields so the next
+          // press starts a fresh window.
+          callStateManager.updateCallState(
+            state.callControlId,
+            resetWatcherFields()
           );
           if (fullText) void onUtterance(fullText);
           // Reset speechFired after a short delay so we don't permanently deafen
@@ -392,6 +435,10 @@ function openDeepgram(
       // Only fire if speech_final didn't already handle this utterance
       if (text && !state.speechFired) {
         state.transcript = '';
+        callStateManager.updateCallState(
+          state.callControlId,
+          resetWatcherFields()
+        );
         void onUtterance(text);
       } else {
         state.transcript = '';

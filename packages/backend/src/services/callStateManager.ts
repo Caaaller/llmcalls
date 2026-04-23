@@ -108,6 +108,21 @@ export interface CallState {
   /** Guards against multiple call.speak.started events (streaming TTS fires
    * one per sentence) — only the first one counts for latency. */
   turnTimingEmittedForCurrentTurn?: boolean;
+  /** Epoch ms when the most recent DTMF digit was dispatched. Used by the
+   * post-DTMF loop watcher to decide whether to force-reprocess an
+   * accumulating interim transcript (Costco scenario: IVR replays menu
+   * continuously with no silence, so Deepgram never fires speech_final and
+   * loopDetected can't flip true via the normal path). */
+  lastDTMFPressedAt?: number;
+  /** The digit sent at lastDTMFPressedAt. */
+  lastDTMFDigit?: string;
+  /** Epoch ms when the post-DTMF watcher last force-dispatched an interim
+   * transcript to processSpeech. Used to de-dupe — we never fire more often
+   * than once per POST_DTMF_LOOP_WATCHER_MS window. */
+  forcedReprocessFiredAt?: number;
+  /** Running accumulator of Deepgram interim transcript text since the last
+   * DTMF press. Cleared on real speech_final / UtteranceEnd / force-dispatch. */
+  accumulatedInterimText?: string;
 }
 
 export function createDefaultCallState(callSid: string): CallState {
