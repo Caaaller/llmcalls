@@ -240,38 +240,49 @@ function CallDetailView({ call, onCallInitiated }: CallDetailViewProps) {
         </div>
       )}
 
-      {call.events && call.events.length > 0 && (
-        <div className="test-cases-section">
-          <div className="section-label">
-            Event Timeline ({call.events.length} events)
-          </div>
-          {call.events.map((event, idx) => {
-            const seekSec = getSeekSeconds(event.timestamp, call.startTime);
-            const nextEvent = call.events[idx + 1];
-            const nextSeekSec = nextEvent
-              ? getSeekSeconds(nextEvent.timestamp, call.startTime)
-              : Infinity;
-            const isActive =
-              !!recordingUrl &&
-              !!audioRef.current &&
-              !audioRef.current.paused &&
-              audioCurrentTime >= seekSec &&
-              audioCurrentTime < nextSeekSec;
-            return (
-              <CallEventRow
-                key={idx}
-                event={event}
-                isActive={isActive}
-                isSeekable={!!recordingUrl}
-                seekSeconds={seekSec}
-                onSeek={() =>
-                  handleSeekToEvent(event.timestamp, call.startTime)
-                }
-              />
-            );
-          })}
-        </div>
-      )}
+      {call.events &&
+        call.events.length > 0 &&
+        (() => {
+          // Internal diagnostic events (turn_timing sub-timestamps) are stored
+          // alongside transcript events but should not render in the timeline —
+          // they have no text body so they showed up as empty rows.
+          const visibleEvents = call.events.filter(
+            e => e.eventType !== 'turn_timing'
+          );
+          if (visibleEvents.length === 0) return null;
+          return (
+            <div className="test-cases-section">
+              <div className="section-label">
+                Event Timeline ({visibleEvents.length} events)
+              </div>
+              {visibleEvents.map((event, idx) => {
+                const seekSec = getSeekSeconds(event.timestamp, call.startTime);
+                const nextEvent = visibleEvents[idx + 1];
+                const nextSeekSec = nextEvent
+                  ? getSeekSeconds(nextEvent.timestamp, call.startTime)
+                  : Infinity;
+                const isActive =
+                  !!recordingUrl &&
+                  !!audioRef.current &&
+                  !audioRef.current.paused &&
+                  audioCurrentTime >= seekSec &&
+                  audioCurrentTime < nextSeekSec;
+                return (
+                  <CallEventRow
+                    key={idx}
+                    event={event}
+                    isActive={isActive}
+                    isSeekable={!!recordingUrl}
+                    seekSeconds={seekSec}
+                    onSeek={() =>
+                      handleSeekToEvent(event.timestamp, call.startTime)
+                    }
+                  />
+                );
+              })}
+            </div>
+          );
+        })()}
     </div>
   );
 }
