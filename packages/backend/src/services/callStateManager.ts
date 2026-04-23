@@ -68,6 +68,28 @@ export interface CallState {
    * double-cancel on subsequent interim transcripts within the same turn. */
   bargeInFiredThisTurn?: boolean;
   stallTimer?: ReturnType<typeof setInterval>;
+  /** Epoch ms when Deepgram fired SpeechStarted for the current user turn.
+   * Cleared after the turn's timing event is emitted. */
+  userSpeechStartedAt?: number;
+  /** Epoch ms when Deepgram decided the user finished speaking (speech_final
+   * or UtteranceEnd, whichever fired first). Cleared after emission. */
+  userSpeechEndedAt?: number;
+  /** Epoch ms when backend dispatched TTS (first speakText call of the turn).
+   * Cleared after emission. */
+  ttsDispatchedAt?: number;
+  /** Per-turn latency snapshots captured on call.speak.started. Used for the
+   * per-call summary line on hangup. */
+  turnTimings?: Array<{
+    speechStartedAt?: number;
+    speechEndedAt: number;
+    ttsDispatchedAt: number;
+    ttsSpeakStartedAt: number;
+    endpointingMs?: number;
+    perceivedMs: number;
+  }>;
+  /** Guards against multiple call.speak.started events (streaming TTS fires
+   * one per sentence) — only the first one counts for latency. */
+  turnTimingEmittedForCurrentTurn?: boolean;
 }
 
 export function createDefaultCallState(callSid: string): CallState {

@@ -51,6 +51,17 @@ export interface DTMFPress {
 
 import { MenuOption } from '../types/menu';
 
+export interface TurnTimingMetadata {
+  speechStartedAt?: number;
+  speechEndedAt: number;
+  ttsDispatchedAt: number;
+  ttsSpeakStartedAt: number;
+  /** Time between user starting to speak and Deepgram declaring speech final. */
+  endpointingMs?: number;
+  /** User-perceived latency: end-of-speech → audio starts playing back. */
+  perceivedMs: number;
+}
+
 export interface CallEvent {
   eventType:
     | 'conversation'
@@ -60,8 +71,9 @@ export interface CallEvent {
     | 'termination'
     | 'hold'
     | 'info_request'
-    | 'info_response';
-  type?: string; // For conversation events: 'user', 'ai', 'system'
+    | 'info_response'
+    | 'turn_timing';
+  type?: string; // For conversation events: 'user', 'ai', 'system'; for turn_timing: 'turn_timing'
   text?: string; // For conversation events
   digit?: string; // For DTMF events
   reason?: string; // For DTMF and termination events
@@ -69,6 +81,7 @@ export interface CallEvent {
   transferNumber?: string; // For transfer events
   success?: boolean; // For transfer events
   timestamp?: Date;
+  metadata?: TurnTimingMetadata; // For turn_timing events
 }
 
 export interface CallHistoryMetadata {
@@ -146,6 +159,7 @@ const eventSchema = new Schema<CallEvent>(
         'hold',
         'info_request',
         'info_response',
+        'turn_timing',
       ],
       required: true,
     },
@@ -164,6 +178,14 @@ const eventSchema = new Schema<CallEvent>(
     timestamp: {
       type: Date,
       default: Date.now,
+    },
+    metadata: {
+      speechStartedAt: Number,
+      speechEndedAt: Number,
+      ttsDispatchedAt: Number,
+      ttsSpeakStartedAt: Number,
+      endpointingMs: Number,
+      perceivedMs: Number,
     },
   },
   { _id: false }

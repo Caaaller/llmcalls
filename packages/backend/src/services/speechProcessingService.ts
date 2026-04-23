@@ -22,7 +22,10 @@ const USE_STREAMING = process.env.USE_STREAMING === 'true';
 const ABBREVIATIONS =
   /\b(Dr|Mr|Mrs|Ms|St|Ave|Blvd|Rd|Vs|Etc|Jr|Sr|Prof|Gov|Sgt|Cpl|Lt|Capt|Col|Gen|Pres|Rep|Sen)\s*$/i;
 
-export function isSentenceBoundary(text: string, boundaryIndex: number): boolean {
+export function isSentenceBoundary(
+  text: string,
+  boundaryIndex: number
+): boolean {
   // boundaryIndex points to the punctuation char (.!?)
   const before = text.slice(0, boundaryIndex + 1);
 
@@ -104,11 +107,14 @@ function createSentenceBufferedTTS({
 
   function dispatchSentence(sentence: string): void {
     if (!isSpeakingSet) {
+      const dispatchedAt = Date.now();
+      const prev = callStateManager.getCallState(callSid);
       callStateManager.updateCallState(callSid, {
         isSpeaking: true,
         streamingTTSActive: true,
-        lastSpeakStartedAt: Date.now(),
+        lastSpeakStartedAt: dispatchedAt,
         bargeInFiredThisTurn: false,
+        ttsDispatchedAt: prev.ttsDispatchedAt ?? dispatchedAt,
       });
       isSpeakingSet = true;
     }
@@ -295,10 +301,15 @@ async function speakAndLog(
   callHistoryService
     .addConversation(callSid, 'ai', text)
     .catch(err => console.error('Error adding conversation:', err));
+  const dispatchedAt = Date.now();
+  const prev = callStateManager.getCallState(callSid);
   callStateManager.updateCallState(callSid, {
     isSpeaking: true,
-    lastSpeakStartedAt: Date.now(),
+    lastSpeakStartedAt: dispatchedAt,
     bargeInFiredThisTurn: false,
+    // Only capture the first dispatch of the turn (later sentences in the same
+    // turn shouldn't overwrite the anchor).
+    ttsDispatchedAt: prev.ttsDispatchedAt ?? dispatchedAt,
   });
   // Reset silent-hold timer — AI speech counts as activity, not silence
   const { resetSilentHoldTimer } = await import('../routes/streamRoutes');

@@ -26,7 +26,8 @@ const DEEPGRAM_URL =
   '&smart_format=true' +
   '&endpointing=1800' +
   '&utterance_end_ms=1800' +
-  '&interim_results=true';
+  '&interim_results=true' +
+  '&vad_events=true';
 
 interface DeepgramResult {
   type: 'Results';
@@ -40,6 +41,11 @@ interface DeepgramResult {
 interface DeepgramUtteranceEnd {
   type: 'UtteranceEnd';
   last_word_end: number;
+}
+
+interface DeepgramSpeechStarted {
+  type: 'SpeechStarted';
+  timestamp: number;
 }
 
 const INCOMPLETE_TRAILING_WORDS = new Set([
@@ -202,12 +208,24 @@ function openDeepgram(
   });
 
   dgWs.on('message', (data: Buffer) => {
-    let msg: DeepgramResult | DeepgramUtteranceEnd;
+    let msg: DeepgramResult | DeepgramUtteranceEnd | DeepgramSpeechStarted;
     try {
       msg = JSON.parse(data.toString()) as
         | DeepgramResult
-        | DeepgramUtteranceEnd;
+        | DeepgramUtteranceEnd
+        | DeepgramSpeechStarted;
     } catch {
+      return;
+    }
+
+    if (msg.type === 'SpeechStarted') {
+      // Capture the moment Deepgram's VAD decides the user began speaking.
+      // Only update if a turn isn't already being timed — otherwise mid-turn
+      // filler (e.g. "uh") would reset the anchor.
+      const cs = callStateManager.getCallState(state.callControlId);
+      if (!cs.userSpeechStartedAt) {
+        cs.userSpeechStartedAt = Date.now();
+      }
       return;
     }
 
@@ -444,6 +462,10 @@ export function attachStreamServer(httpServer: Server): void {
           if (callState.isSpeaking) return;
 
           const sttDoneAt = Date.now();
+          // Stamp the moment Deepgram declared the user finished speaking.
+          // This is the anchor for the perceived-latency measurement.
+          callState.userSpeechEndedAt = sttDoneAt;
+          callState.turnTimingEmittedForCurrentTurn = false;
           console.log(`[STREAM-STT] "${text}"`);
           try {
             await processSpeech({

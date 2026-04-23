@@ -355,6 +355,43 @@ class CallHistoryService {
   }
 
   /**
+   * Record a per-turn latency snapshot (user speech end → AI audio starts).
+   * Driven by the call.speak.started webhook; see voiceRoutes.
+   */
+  async addTurnTiming(
+    callSid: string,
+    metadata: {
+      speechStartedAt?: number;
+      speechEndedAt: number;
+      ttsDispatchedAt: number;
+      ttsSpeakStartedAt: number;
+      endpointingMs?: number;
+      perceivedMs: number;
+    },
+    timestamp: Date | null = null
+  ): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      await CallHistory.findOneAndUpdate(
+        { callSid },
+        {
+          $push: {
+            events: {
+              eventType: 'turn_timing' as const,
+              type: 'turn_timing',
+              metadata,
+              timestamp: timestamp || new Date(),
+            },
+          },
+        }
+      );
+    } catch (error: unknown) {
+      console.error('❌ Error adding turn timing:', getErrorMessage(error));
+    }
+  }
+
+  /**
    * Record a termination
    */
   async addTermination(

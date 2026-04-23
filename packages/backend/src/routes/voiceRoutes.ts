@@ -190,6 +190,92 @@ async function handleCallAnswered(
   }
 }
 
+/**
+ * Compute and persist a single per-turn latency snapshot when Telnyx reports
+ * that AI audio has hit the wire (`call.speak.started`). Guards against
+ * duplicate emission when streaming TTS fires multiple `speak.started` events
+ * per turn.
+ */
+function recordTurnTiming(callControlId: string): void {
+  const cs = callStateManager.getCallState(callControlId);
+  if (cs.turnTimingEmittedForCurrentTurn) return;
+  const { userSpeechEndedAt, ttsDispatchedAt, userSpeechStartedAt } = cs;
+  if (!userSpeechEndedAt || !ttsDispatchedAt) return;
+
+  const ttsSpeakStartedAt = Date.now();
+  const endDispatchMs = ttsDispatchedAt - userSpeechEndedAt;
+  const dispatchSpeakMs = ttsSpeakStartedAt - ttsDispatchedAt;
+  const perceivedMs = endDispatchMs + dispatchSpeakMs;
+  const endpointingMs = userSpeechStartedAt
+    ? userSpeechEndedAt - userSpeechStartedAt
+    : undefined;
+
+  cs.turnTimingEmittedForCurrentTurn = true;
+  if (!cs.turnTimings) cs.turnTimings = [];
+  cs.turnTimings.push({
+    speechStartedAt: userSpeechStartedAt,
+    speechEndedAt: userSpeechEndedAt,
+    ttsDispatchedAt,
+    ttsSpeakStartedAt,
+    endpointingMs,
+    perceivedMs,
+  });
+
+  // Clear anchors so the next turn starts fresh.
+  cs.userSpeechStartedAt = undefined;
+  cs.userSpeechEndedAt = undefined;
+  cs.ttsDispatchedAt = undefined;
+
+  const endpointingFragment =
+    endpointingMs !== undefined ? `speechStart→end=${endpointingMs}ms  ` : '';
+  console.log(
+    `⏱️ TURN LATENCY  ${endpointingFragment}end→dispatch=${endDispatchMs}ms  dispatch→speakStart=${dispatchSpeakMs}ms  TOTAL_PERCEIVED=${perceivedMs}ms  call=${callControlId.slice(-20)}`
+  );
+
+  logOnError(
+    callHistoryService.addTurnTiming(callControlId, {
+      speechStartedAt: userSpeechStartedAt,
+      speechEndedAt: userSpeechEndedAt,
+      ttsDispatchedAt,
+      ttsSpeakStartedAt,
+      endpointingMs,
+      perceivedMs,
+    }),
+    'Error persisting turn_timing event'
+  );
+}
+
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const idx = Math.min(
+    sorted.length - 1,
+    Math.floor((p / 100) * sorted.length)
+  );
+  return sorted[idx];
+}
+
+function logCallTimingSummary(callControlId: string): void {
+  const cs = callStateManager.getCallState(callControlId);
+  const turns = cs.turnTimings ?? [];
+  if (turns.length === 0) return;
+  const perceived = turns.map(t => t.perceivedMs).sort((a, b) => a - b);
+  const endpointing = turns
+    .map(t => t.endpointingMs)
+    .filter((v): v is number => v !== undefined)
+    .sort((a, b) => a - b);
+  const perceivedMedian = percentile(perceived, 50);
+  const perceivedP90 = percentile(perceived, 90);
+  const endpointingMedian =
+    endpointing.length > 0 ? percentile(endpointing, 50) : undefined;
+  const endpointingFragment =
+    endpointingMedian !== undefined
+      ? `  endpointing_median=${endpointingMedian}ms`
+      : '';
+  console.log(
+    `⏱️ CALL SUMMARY  turns=${turns.length}  perceived_median=${perceivedMedian}ms  perceived_p90=${perceivedP90}ms${endpointingFragment}  call=${callControlId.slice(-20)}`
+  );
+}
+
 const ERROR_HANGUP_CAUSES = new Set<string>([
   'call_rejected',
   'destination_out_of_order',
@@ -256,6 +342,9 @@ function handleCallHangup(
     'Error ending call'
   );
 
+  // Emit per-call latency summary before state gets wiped.
+  logCallTimingSummary(callControlId);
+
   // Clean up stall timer if active
   if (state.stallTimer) {
     clearInterval(state.stallTimer);
@@ -313,9 +402,11 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       case 'call.recording.saved':
         await handleRecordingSaved(callControlId, payload);
         break;
-      case 'call.speak.started':
+      case 'call.speak.started': {
         callStateManager.updateCallState(callControlId, { isSpeaking: true });
+        recordTurnTiming(callControlId);
         break;
+      }
       case 'call.speak.ended': {
         // Don't clear isSpeaking mid-stream — sentence-level streaming TTS fires
         // multiple speak.ended events per turn. The final flush() will clear
