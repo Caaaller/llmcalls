@@ -316,9 +316,18 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       case 'call.speak.started':
         callStateManager.updateCallState(callControlId, { isSpeaking: true });
         break;
-      case 'call.speak.ended':
-        callStateManager.updateCallState(callControlId, { isSpeaking: false });
+      case 'call.speak.ended': {
+        // Don't clear isSpeaking mid-stream — sentence-level streaming TTS fires
+        // multiple speak.ended events per turn. The final flush() will clear
+        // both streamingTTSActive and isSpeaking once the chain drains.
+        const speakEndState = callStateManager.getCallState(callControlId);
+        if (!speakEndState.streamingTTSActive) {
+          callStateManager.updateCallState(callControlId, {
+            isSpeaking: false,
+          });
+        }
         break;
+      }
       default:
         if (eventType.startsWith('call.')) {
           console.log(`[EVENT] Unhandled: ${eventType}`);

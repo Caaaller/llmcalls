@@ -57,6 +57,10 @@ export interface CallState {
   /** Test-case flag: AI must refuse callback offers and hold for a live agent. */
   requireLiveAgent?: boolean;
   isSpeaking?: boolean;
+  /** True while sentence-level streaming TTS is dispatching multiple speak commands
+   * for a single turn. When set, call.speak.ended MUST NOT clear isSpeaking — the
+   * final flush() will clear both flags once all sentences have played. */
+  streamingTTSActive?: boolean;
   /** Epoch ms when the current AI TTS playback started. Used by barge-in
    * detection to enforce the post-start lockout window. */
   lastSpeakStartedAt?: number;
