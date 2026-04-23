@@ -15,7 +15,19 @@
 import telnyxService from './telnyxService';
 import { toError } from '../utils/errorUtils';
 
-const SIM_VOICE = 'Telnyx.KokoroTTS.am_michael';
+// AWS Polly Neural voices sound more conversational/human than Kokoro's
+// polished podcast delivery. Randomized per call so the AI gets a variety
+// of speakers over a test run. Males + females, US accents, all Neural.
+const SIM_VOICES = [
+  'AWS.Polly.Joanna-Neural',
+  'AWS.Polly.Matthew-Neural',
+  'AWS.Polly.Ruth-Neural',
+  'AWS.Polly.Stephen-Neural',
+  'AWS.Polly.Kendra-Neural',
+  'AWS.Polly.Kevin-Neural',
+  'AWS.Polly.Joey-Neural',
+  'AWS.Polly.Salli-Neural',
+];
 
 const AGENT_NAMES = [
   'Alex',
@@ -26,6 +38,29 @@ const AGENT_NAMES = [
   'Jordan',
   'Riley',
   'Casey',
+  'Chris',
+  'Pat',
+  'Dana',
+  'Robin',
+];
+
+// Filler prefixes sprinkled onto ~40% of utterances to break up the
+// scripted feel. Real humans start sentences with "uh,", "um,", "so,",
+// "okay,", "alright,"; TTS scripts don't. Adding them makes the AI's
+// human-detection job closer to the real-world task.
+const FILLER_PREFIXES = [
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  'Uh, ',
+  'Um, ',
+  'So, ',
+  'Okay so, ',
+  'Alright, ',
+  'Yeah, ',
 ];
 
 const GREETING_TEMPLATES = [
@@ -35,6 +70,9 @@ const GREETING_TEMPLATES = [
   "Hello, you've reached customer support, {name} here. What's going on?",
   'Hey, {name} with support — what can I help you with?',
   'Good {timeOfDay}, {name} here. How can I help?',
+  "Hi there, this is {name}. What's going on today?",
+  "Hey, {name} from the support team. What's up?",
+  "{name} here — tell me what's going on.",
 ];
 
 const CONFIRMATION_TEMPLATES = [
@@ -43,16 +81,22 @@ const CONFIRMATION_TEMPLATES = [
   "Absolutely, this is a live rep. Tell me what's going on.",
   'Yes, human here. How can I assist?',
   "Correct, you've got a real person. What can I do for you?",
+  "Yeah I'm a real human, not a bot. What's the issue?",
+  "Totally, live person on the line. What's up?",
+  "Yep, I'm a real agent. Go ahead.",
 ];
 
 const FOLLOWUP_TEMPLATES = [
   "So tell me, what's the issue you're having?",
   'Go ahead, what can I help with?',
   "I'm all ears.",
+  "Whenever you're ready, walk me through it.",
+  'What can I do for you?',
 ];
 
 export interface SimulatorScript {
   agentName: string;
+  voice: string;
   greeting: string;
   confirmation: string;
   followup: string;
@@ -86,16 +130,29 @@ function fillTemplate(template: string, vars: Record<string, string>): string {
  */
 export function pickSimulatorScript(): SimulatorScript {
   const agentName = pickRandom(AGENT_NAMES);
+  const voice = pickRandom(SIM_VOICES);
   const greetingTemplate = pickRandom(GREETING_TEMPLATES);
   const confirmation = pickRandom(CONFIRMATION_TEMPLATES);
   const followup = pickRandom(FOLLOWUP_TEMPLATES);
   const timeOfDay = currentTimeOfDay();
 
+  // Sprinkle filler prefixes independently on each utterance. Most slots
+  // are empty strings, so the net rate of fillers is ~50% across all 3
+  // utterances — roughly 1-2 per call have a real filler prefix.
+  const withFiller = (text: string): string => {
+    const prefix = pickRandom(FILLER_PREFIXES);
+    if (!prefix) return text;
+    return prefix + text;
+  };
+
   return {
     agentName,
-    greeting: fillTemplate(greetingTemplate, { name: agentName, timeOfDay }),
-    confirmation,
-    followup,
+    voice,
+    greeting: withFiller(
+      fillTemplate(greetingTemplate, { name: agentName, timeOfDay })
+    ),
+    confirmation: withFiller(confirmation),
+    followup: withFiller(followup),
     pickupDelayMs: randomBetween(800, 2500),
     greetingToConfirmationMs: randomBetween(4000, 6000),
     confirmationToFollowupMs: randomBetween(3000, 5000),
@@ -133,19 +190,19 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
 
     await sleep(script.pickupDelayMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
-    await telnyxService.speakText(callControlId, script.greeting, SIM_VOICE);
+    await telnyxService.speakText(callControlId, script.greeting, script.voice);
 
     await sleep(script.greetingToConfirmationMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
     await telnyxService.speakText(
       callControlId,
       script.confirmation,
-      SIM_VOICE
+      script.voice
     );
 
     await sleep(script.confirmationToFollowupMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
-    await telnyxService.speakText(callControlId, script.followup, SIM_VOICE);
+    await telnyxService.speakText(callControlId, script.followup, script.voice);
 
     // Let the followup play, then hang up if we're still within the cap.
     const remaining = HARD_CAP_MS - (Date.now() - startedAt);
