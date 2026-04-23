@@ -452,13 +452,19 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     if (provider === 'anthropic') {
       const response = await this.anthropicClient.messages.create({
         model: process.env.ANTHROPIC_MODEL_OVERRIDE || CLAUDE_HAIKU_MODEL,
-        system: systemMessage,
+        system: [
+          {
+            type: 'text',
+            text: systemMessage,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
         messages: [{ role: 'user', content: userMessage }],
         max_tokens: 800,
         temperature: 0,
       });
       console.log(
-        `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.input_tokens} out=${response.usage?.output_tokens}`
+        `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.input_tokens} out=${response.usage?.output_tokens} cache_read=${response.usage?.cache_read_input_tokens ?? 0} cache_write=${response.usage?.cache_creation_input_tokens ?? 0}`
       );
       const first = response.content[0];
       content = first && first.type === 'text' ? first.text : '';
@@ -658,7 +664,13 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     if (provider === 'anthropic') {
       const stream = this.anthropicClient.messages.stream({
         model: process.env.ANTHROPIC_MODEL_OVERRIDE || CLAUDE_HAIKU_MODEL,
-        system: systemMessage,
+        system: [
+          {
+            type: 'text',
+            text: systemMessage,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
         messages: [{ role: 'user', content: userMessage }],
         max_tokens: 800,
         temperature: 0,
