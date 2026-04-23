@@ -433,12 +433,10 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
 11. NEVER return "wait" more than 2 turns in a row for the same menu. If previous actions show repeated waits on menu options, press the best available digit.
 12. CRITICAL: If you see FAILED DIGITS above, those digits DO NOT WORK. You MUST choose a digit NOT in the failed list. If the warning says ALL DTMF digits have been rejected, you MUST use action "speak" (NOT "press_digit") and say the option name or digit aloud (e.g., "one" or "administrative staff" or "representative").
 
-BREVITY RULES (latency-sensitive):
+BREVITY RULE (latency-sensitive):
 - "reason": MAX 10 words. Example good: "Menu option 1 matches rep path". Example bad: "The user's call purpose is to speak with a representative, so I should select the option that routes to a rep..."
-- "speech": ONLY include if action is "speak". Otherwise omit entirely. Do NOT include empty string.
-- "menuOptions": ONLY include if isIVRMenu=true. Otherwise omit entirely. Do NOT include empty array.
-- "terminationReason": ONLY include if shouldTerminate=true. Otherwise use null.
-- All other "detected.*" booleans: output in standard order, no extra whitespace, no prose.`;
+
+Always emit ALL schema fields at the same level of detail as the schema — do not omit any boolean, array, or object field. Downstream code expects every field present.`;
 
     return { systemMessage: systemPrompt.system, userMessage };
   }
