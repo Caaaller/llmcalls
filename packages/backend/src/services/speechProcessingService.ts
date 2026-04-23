@@ -7,11 +7,163 @@
 import callStateManager from './callStateManager';
 import callHistoryService from './callHistoryService';
 import { EndReason } from '../models/CallHistory';
-import ivrNavigatorService, { CallAction } from './ivrNavigatorService';
+import ivrNavigatorService, {
+  CallAction,
+  StreamingCallbacks,
+} from './ivrNavigatorService';
 import telnyxService from './telnyxService';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
+
+const USE_STREAMING = process.env.USE_STREAMING === 'true';
+
+// Common title abbreviations — if a period follows one of these (case-insensitive), don't split.
+const ABBREVIATIONS =
+  /\b(Dr|Mr|Mrs|Ms|St|Ave|Blvd|Rd|Vs|Etc|Jr|Sr|Prof|Gov|Sgt|Cpl|Lt|Capt|Col|Gen|Pres|Rep|Sen)\s*$/i;
+
+export function isSentenceBoundary(text: string, boundaryIndex: number): boolean {
+  // boundaryIndex points to the punctuation char (.!?)
+  const before = text.slice(0, boundaryIndex + 1);
+
+  // Don't split on abbreviations like "Dr." — period after a short honorific.
+  if (text[boundaryIndex] === '.') {
+    if (ABBREVIATIONS.test(before)) return false;
+    // Also skip if preceded by a single uppercase letter (e.g. "U.S.", initials)
+    if (/\b[A-Z]\.$/.test(before)) return false;
+  }
+
+  return true;
+}
+
+export function extractSentences(buffer: string): {
+  sentences: string[];
+  remainder: string;
+} {
+  const sentences: string[] = [];
+  let searchFrom = 0;
+
+  while (searchFrom < buffer.length) {
+    // Find next sentence-ending punctuation
+    const match = /[.!?]/.exec(buffer.slice(searchFrom));
+    if (!match) break;
+
+    const absIdx = searchFrom + match.index;
+    const afterPunct = buffer[absIdx + 1];
+
+    // Valid boundary: punctuation followed by whitespace, end of buffer, or another punctuation
+    const isFollowedByBreak =
+      afterPunct === undefined ||
+      afterPunct === ' ' ||
+      afterPunct === '\n' ||
+      /[.!?]/.test(afterPunct);
+
+    if (isFollowedByBreak && isSentenceBoundary(buffer, absIdx)) {
+      const sentence = buffer.slice(0, absIdx + 1).trim();
+      if (sentence.length > 0) {
+        sentences.push(sentence);
+      }
+      // Remainder starts after the punctuation + any trailing whitespace
+      const afterSentence = buffer.slice(absIdx + 1).replace(/^\s+/, '');
+      buffer = afterSentence;
+      searchFrom = 0;
+    } else {
+      searchFrom = absIdx + 1;
+    }
+  }
+
+  return { sentences, remainder: buffer };
+}
+
+/**
+ * Build a StreamingCallbacks adapter that buffers incoming token deltas,
+ * extracts complete sentences, and dispatches each one to telnyxService as
+ * an independent speakText call. Sentences are chained so they play in order.
+ *
+ * The caller must await `flush()` once the AI stream ends — that drains any
+ * remaining buffered text and waits for the full speak chain to resolve before
+ * clearing streamingTTSActive + isSpeaking.
+ */
+function createSentenceBufferedTTS({
+  callSid,
+  voice,
+}: {
+  callSid: string;
+  voice: string;
+}): StreamingCallbacks & {
+  getFullText: () => string;
+  flush: () => Promise<void>;
+} {
+  let fullText = '';
+  let buffer = '';
+  let speakChain: Promise<void> = Promise.resolve();
+  let firstChunkAt: number | null = null;
+  let firstSpeakDispatchedAt: number | null = null;
+  let sentenceCount = 0;
+  let isSpeakingSet = false;
+
+  function dispatchSentence(sentence: string): void {
+    if (!isSpeakingSet) {
+      callStateManager.updateCallState(callSid, {
+        isSpeaking: true,
+        streamingTTSActive: true,
+        lastSpeakStartedAt: Date.now(),
+        bargeInFiredThisTurn: false,
+      });
+      isSpeakingSet = true;
+    }
+    sentenceCount++;
+    const n = sentenceCount;
+    const preview = sentence.slice(0, 60) + (sentence.length > 60 ? '...' : '');
+    if (firstSpeakDispatchedAt === null) {
+      const elapsed = firstChunkAt !== null ? Date.now() - firstChunkAt : 0;
+      console.log(`⏱️ First sentence dispatched to TTS: ${elapsed}ms`);
+      firstSpeakDispatchedAt = Date.now();
+    }
+    console.log(`⏱️ Sentence ${n} dispatched: "${preview}"`);
+    speakChain = speakChain
+      .then(() => telnyxService.speakText(callSid, sentence, voice))
+      .catch(err => console.error('Streaming TTS error:', err));
+  }
+
+  return {
+    onSpeechChunk(text: string) {
+      if (firstChunkAt === null) firstChunkAt = Date.now();
+      fullText += text;
+      buffer += text;
+
+      const { sentences, remainder } = extractSentences(buffer);
+      buffer = remainder;
+
+      for (const sentence of sentences) {
+        dispatchSentence(sentence);
+      }
+    },
+
+    onSpeechDone() {
+      // Flush any remaining text in the buffer (last partial sentence or a
+      // response with no terminal punctuation).
+      const remaining = buffer.trim();
+      if (remaining.length > 0) {
+        buffer = '';
+        dispatchSentence(remaining);
+      }
+    },
+
+    getFullText() {
+      return fullText;
+    },
+
+    flush(): Promise<void> {
+      return speakChain.then(() => {
+        callStateManager.updateCallState(callSid, {
+          streamingTTSActive: false,
+          isSpeaking: false,
+        });
+      });
+    },
+  };
+}
 
 /**
  * Map the AI's terminationReason to a structured endReason enum value.
@@ -236,11 +388,10 @@ export async function processSpeech({
 
     const actionHistory = callState.actionHistory || [];
 
-    // ── 2. Single AI call ────────────────────────────────────────────────────
+    // ── 2. AI call (streaming or non-streaming) ─────────────────────────────
     const conversationHistory = callState.conversationHistory || [];
 
-    const aiStartAt = Date.now();
-    const action = await ivrNavigatorService.decideAction({
+    const aiParams = {
       config,
       conversationHistory: conversationHistory.map(h => ({
         type: h.type,
@@ -255,7 +406,36 @@ export async function processSpeech({
       awaitingHumanClarification: callState.awaitingHumanClarification,
       skipInfoRequests: skipInfoRequests ?? callState.skipInfoRequests,
       requireLiveAgent: requireLiveAgent ?? callState.requireLiveAgent,
-    });
+    };
+
+    const aiStartAt = Date.now();
+    let action: CallAction;
+    let speechAlreadyStreamed = false;
+
+    if (USE_STREAMING && !testMode) {
+      const ttsCallbacks = createSentenceBufferedTTS({
+        callSid,
+        voice: getTelnyxVoice(config.aiSettings.voice),
+      });
+      const streamResult = await ivrNavigatorService.decideActionStreaming({
+        ...aiParams,
+        callbacks: ttsCallbacks,
+      });
+      // Wait for the full speak chain to drain (and streamingTTSActive to clear)
+      // before continuing — keeps downstream code (barge-in, next turn's
+      // resetSilentHoldTimer, etc.) from racing against in-flight TTS.
+      await ttsCallbacks.flush();
+      action = streamResult.action;
+      speechAlreadyStreamed = streamResult.speechStreamed;
+      if (speechAlreadyStreamed) {
+        const streamedText = ttsCallbacks.getFullText();
+        callHistoryService
+          .addConversation(callSid, 'ai', streamedText)
+          .catch(err => console.error('Error adding conversation:', err));
+      }
+    } else {
+      action = await ivrNavigatorService.decideAction(aiParams);
+    }
 
     const aiDoneAt = Date.now();
     // Full AI decision log — so we can diagnose why the AI chose a given action without
@@ -638,6 +818,41 @@ export async function processSpeech({
 
     // ── 8. Handle speak (AI conversational response) ─────────────────────────
     const aiResponse = action.speech || '';
+
+    // When streaming is active, sentence-level TTS has already fired from the
+    // stream callbacks — don't double-speak. Record history and return.
+    if (speechAlreadyStreamed) {
+      if (!testMode) {
+        console.log('🤖 (streamed)', aiResponse);
+        if (_sttDoneAt) {
+          console.log(
+            `⏱️ TOTAL STT→TTS (streamed): ${Date.now() - _sttDoneAt}ms`
+          );
+        }
+      }
+      callStateManager.addToHistory(callSid, {
+        type: 'user',
+        text: speechResult,
+      });
+      callStateManager.addToHistory(callSid, { type: 'ai', text: aiResponse });
+
+      // Still check for DTMF digits in speech (e.g. data entry). Note: with
+      // streaming on, we will have already spoken the digits as words — the
+      // sendDTMF call here is the actual DTMF tones for IVR data entry.
+      const dtmfDigits = extractDTMFDigits(aiResponse.trim());
+      if (dtmfDigits && !testMode) {
+        console.log(`🔢 Data entry DTMF (streamed): ${dtmfDigits}`);
+        await telnyxService.sendDTMF(callSid, `ww${dtmfDigits}`);
+      }
+
+      return {
+        twiml: '',
+        shouldSend: !testMode,
+        processingResult: result,
+        aiAction: action.action,
+        aiResponse,
+      };
+    }
 
     if (!testMode) {
       if (
