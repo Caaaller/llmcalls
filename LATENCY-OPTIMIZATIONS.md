@@ -96,6 +96,34 @@ lines per turn.
 
 ## 🔬 Researched but NOT tried
 
+### Newer research (2026-04-23, research-lead agent)
+
+**🚨 CRITICAL:** Anthropic deprecated **assistant-message prefilling** on Opus 4.6+ (returns 400 on Opus 4.7). If our code relies on prefill to skip preamble, it will break on future model upgrades. Migrate to `output_config.format` / structured outputs. [source](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prefill-claudes-response)
+
+**Top-5 ranked by leverage for our stack (Node + Telnyx + Deepgram + Anthropic):**
+
+| Rank | Technique                                                                                                                                                  | Est. win                                                               | Complexity                                                           | Source                                                                                                                                                             |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1    | **Deepgram Flux `eager_eot_threshold=0.4`** — fire LLM on medium-confidence EOT, cancel on `TurnResumed`                                                   | 150-350ms median, 600ms p95                                            | 4-8h — perfect stack fit, Telnyx already has native Flux integration | [Deepgram](https://developers.deepgram.com/docs/flux/voice-agent-eager-eot) · [Telnyx](https://telnyx.com/release-notes/automatic-eager-end-of-turn-deepgram-flux) |
+| 2    | **LLM hedging (Sierra pattern)** — fire 2 identical Anthropic calls, take first response, cancel loser                                                     | 200-500ms tail-latency                                                 | 6h, 2x LLM cost on hedged turns only                                 | [Sierra](https://sierra.ai/blog/voice-latency)                                                                                                                     |
+| 3    | **Two-model SLM filler pattern** — micro Haiku prompt streams "one moment" instantly while main Haiku generates real response; filler NOT added to context | ~400ms perceived (user hears audio ~1s faster)                         | 8-12h, no new API key needed                                         | [WebRTC.ventures](https://webrtc.ventures/2025/06/reducing-voice-agent-latency-with-parallel-slms-and-llms/)                                                       |
+| 4    | **Pre-cached filler audio** — pre-synth Kokoro WAVs for "one moment", "please hold", "transferring", "okay" and use Telnyx `playback_start`                | 100-200ms + eliminates 900ms `dispatch→speakStart` for matched turns   | 4h, works today on our stack                                         | [Vapi](https://vapi.ai/blog/audio-caching-for-latency-reduction)                                                                                                   |
+| 5    | **Extended 1h prompt cache + `output_config.format`** — prevents 5-min cache-miss tax on idle calls; also replaces deprecated prefill                      | Up to 85% latency reduction on cached portion; fixes cache-miss spikes | 2h, only cost is 2x cache-write amortised                            | [Anthropic](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)                                                                                  |
+
+**Combined plausible win if all 5 land:** ~700-1200ms off 4380ms median.
+
+**Recommended order:** Flux → audio cache → extended cache + output_config → SLM filler → hedging.
+
+**Not top-5 but noted:**
+
+- **OpenAI Realtime API (GA Aug 2025, SIP support)** — full stack rewrite + vendor migration, out of scope
+- **Cartesia Sonic-3** — 40ms time-to-first-audio, could replace Kokoro, needs new API key
+- **Hume EVI 3** — 1.2s end-to-end (worse than our target if Flux + hedging land)
+- **XML output format** — 14-80% MORE tokens than JSON. Do NOT switch.
+- **Deepgram `vad_events`** — for barge-in, not first-turn latency
+
+## Older research
+
 | #   | What                                                       | Source                         | Estimated win                              | Notes                                                                                                      |
 | --- | ---------------------------------------------------------- | ------------------------------ | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | 1   | Barge-in cancellation (TTS cancel on new Deepgram partial) | 2026-04-22                     | Perception win, not measured latency       | "Only option that reduces dead space" per recent review                                                    |
