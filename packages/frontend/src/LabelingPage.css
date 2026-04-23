@@ -295,3 +295,31 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+.labeling-mode-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.labeling-mode-toggle button {
+  padding: 6px 12px;
+  border: 1px solid #d0d3db;
+  background: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #444;
+}
+.labeling-mode-toggle button.active {
+  background: #4f7cff;
+  color: #fff;
+  border-color: #4f7cff;
+}
+.labeling-current-label {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #666;
+}
+.labeling-current-label strong {
+  color: #c78810;
+}
