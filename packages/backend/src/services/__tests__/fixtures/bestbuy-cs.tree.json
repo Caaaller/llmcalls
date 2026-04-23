@@ -2,7 +2,7 @@
   "version": 2,
   "id": "bestbuy-cs",
   "testCaseId": "bestbuy-cs",
-  "lastRecordedAt": "2026-04-18T20:48:59.484Z",
+  "lastRecordedAt": "2026-04-23T01:16:43.870Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-18T20:48:59.484Z",
+        "recordedAt": "2026-04-23T01:16:43.870Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -66,7 +66,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-18T20:48:59.484Z",
+              "recordedAt": "2026-04-23T01:16:43.870Z",
               "isLatestPath": true,
               "child": {
                 "id": "n29",
@@ -86,7 +86,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-18T20:48:59.484Z",
+                    "recordedAt": "2026-04-23T01:16:43.870Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n30",
@@ -246,7 +246,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-18T20:48:59.484Z",
+                          "recordedAt": "2026-04-23T01:16:43.870Z",
                           "isLatestPath": true,
                           "child": {
                             "id": "n32",
@@ -266,7 +266,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-18T20:48:59.484Z",
+                                "recordedAt": "2026-04-23T01:16:43.870Z",
                                 "isLatestPath": true,
                                 "child": {
                                   "id": "n41",
@@ -627,7 +627,7 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-18T20:48:59.484Z",
+                                      "recordedAt": "2026-04-23T01:16:43.870Z",
                                       "isLatestPath": true,
                                       "child": {
                                         "id": "n67",
@@ -647,7 +647,7 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-04-18T20:48:59.484Z",
+                                            "recordedAt": "2026-04-23T01:16:43.870Z",
                                             "isLatestPath": true,
                                             "child": {
                                               "id": "n68",
@@ -667,7 +667,7 @@
                                                       "transferRequested": false
                                                     }
                                                   },
-                                                  "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                  "recordedAt": "2026-04-23T01:16:43.870Z",
                                                   "isLatestPath": true,
                                                   "child": {
                                                     "id": "n69",
@@ -687,7 +687,7 @@
                                                             "transferRequested": false
                                                           }
                                                         },
-                                                        "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                        "recordedAt": "2026-04-23T01:16:43.870Z",
                                                         "isLatestPath": true,
                                                         "child": {
                                                           "id": "n148",
@@ -707,7 +707,7 @@
                                                                   "transferRequested": false
                                                                 }
                                                               },
-                                                              "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                              "recordedAt": "2026-04-23T01:16:43.870Z",
                                                               "isLatestPath": true,
                                                               "child": {
                                                                 "id": "n149",
@@ -727,82 +727,14 @@
                                                                         "transferRequested": false
                                                                       }
                                                                     },
-                                                                    "recordedAt": "2026-04-18T20:48:59.484Z",
+                                                                    "recordedAt": "2026-04-23T01:16:43.870Z",
                                                                     "isLatestPath": true,
                                                                     "child": {
-                                                                      "id": "n150",
-                                                                      "ivrSpeech": "Okay. Could you repeat the phone number, please?",
-                                                                      "children": [
-                                                                        {
-                                                                          "aiAction": {
-                                                                            "action": "speak",
-                                                                            "speech": "7 2 0 5 8 4 6 3 5 8",
-                                                                            "reason": "",
-                                                                            "detected": {
-                                                                              "isIVRMenu": false,
-                                                                              "menuOptions": [],
-                                                                              "isMenuComplete": false,
-                                                                              "loopDetected": false,
-                                                                              "shouldTerminate": false,
-                                                                              "transferRequested": false
-                                                                            }
-                                                                          },
-                                                                          "recordedAt": "2026-04-18T20:48:59.484Z",
-                                                                          "isLatestPath": true,
-                                                                          "child": {
-                                                                            "id": "n151",
-                                                                            "ivrSpeech": "Okay. Just one second.",
-                                                                            "children": [
-                                                                              {
-                                                                                "aiAction": {
-                                                                                  "action": "wait",
-                                                                                  "reason": "No action before next speech",
-                                                                                  "detected": {
-                                                                                    "isIVRMenu": false,
-                                                                                    "menuOptions": [],
-                                                                                    "isMenuComplete": false,
-                                                                                    "loopDetected": false,
-                                                                                    "shouldTerminate": false,
-                                                                                    "transferRequested": false
-                                                                                  }
-                                                                                },
-                                                                                "recordedAt": "2026-04-18T20:48:59.484Z",
-                                                                                "isLatestPath": true,
-                                                                                "child": {
-                                                                                  "id": "n152",
-                                                                                  "ivrSpeech": "We are looking for the order. That phone number. May I confirm your email, please?",
-                                                                                  "children": [
-                                                                                    {
-                                                                                      "aiAction": {
-                                                                                        "action": "speak",
-                                                                                        "speech": "oliverullman@gmail.com",
-                                                                                        "reason": "",
-                                                                                        "detected": {
-                                                                                          "isIVRMenu": false,
-                                                                                          "menuOptions": [],
-                                                                                          "isMenuComplete": false,
-                                                                                          "loopDetected": false,
-                                                                                          "shouldTerminate": false,
-                                                                                          "transferRequested": false
-                                                                                        }
-                                                                                      },
-                                                                                      "recordedAt": "2026-04-18T20:48:59.484Z",
-                                                                                      "isLatestPath": true,
-                                                                                      "child": {
-                                                                                        "terminal": true,
-                                                                                        "finalStatus": "initiated",
-                                                                                        "durationSeconds": 228,
-                                                                                        "reachedHuman": true,
-                                                                                        "dtmfDigits": []
-                                                                                      }
-                                                                                    }
-                                                                                  ]
-                                                                                }
-                                                                              }
-                                                                            ]
-                                                                          }
-                                                                        }
-                                                                      ]
+                                                                      "terminal": true,
+                                                                      "finalStatus": "initiated",
+                                                                      "durationSeconds": 143,
+                                                                      "reachedHuman": true,
+                                                                      "dtmfDigits": []
                                                                     }
                                                                   }
                                                                 ]

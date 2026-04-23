@@ -2,7 +2,7 @@
   "version": 2,
   "id": "walmart-cs",
   "testCaseId": "walmart-cs",
-  "lastRecordedAt": "2026-04-21T22:12:05.868Z",
+  "lastRecordedAt": "2026-04-23T02:13:56.523Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T22:12:05.868Z",
+        "recordedAt": "2026-04-23T02:13:56.523Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -44,7 +44,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-21T22:12:05.868Z",
+              "recordedAt": "2026-04-23T02:13:56.523Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -314,7 +314,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-21T22:12:05.868Z",
+                    "recordedAt": "2026-04-23T02:13:56.523Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n25",
@@ -1341,107 +1341,16 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-21T22:12:05.868Z",
+                          "recordedAt": "2026-04-23T02:13:56.523Z",
                           "isLatestPath": true,
                           "child": {
-                            "id": "n39",
-                            "ivrSpeech": "I'm transferring you to the customer support team to help you with your issue.",
+                            "id": "n120",
+                            "ivrSpeech": "I know you wanna speak with a representative. I'm here to help you right now. Can you share more details about your billing issue or give me your order number? That way, I can check what's going on.",
                             "children": [
                               {
                                 "aiAction": {
-                                  "action": "wait",
-                                  "reason": "No action before next speech",
-                                  "detected": {
-                                    "isIVRMenu": false,
-                                    "menuOptions": [],
-                                    "isMenuComplete": false,
-                                    "loopDetected": false,
-                                    "shouldTerminate": false,
-                                    "transferRequested": false
-                                  }
-                                },
-                                "recordedAt": "2026-04-21T21:53:54.329Z",
-                                "isLatestPath": false,
-                                "child": {
-                                  "id": "n120",
-                                  "ivrSpeech": "There's one caller ahead of you. Estimated wait time is approximately one minute. This call and your voice may be recorded for quality or other business purposes, including fraud prevention.",
-                                  "children": [
-                                    {
-                                      "aiAction": {
-                                        "action": "wait",
-                                        "reason": "No action before next speech",
-                                        "detected": {
-                                          "isIVRMenu": false,
-                                          "menuOptions": [],
-                                          "isMenuComplete": false,
-                                          "loopDetected": false,
-                                          "shouldTerminate": false,
-                                          "transferRequested": false
-                                        }
-                                      },
-                                      "recordedAt": "2026-04-21T21:53:54.329Z",
-                                      "isLatestPath": false,
-                                      "child": {
-                                        "id": "n121",
-                                        "ivrSpeech": "Hi. Thank you for calling walmart.com. This is Honey. May I ask for your full name, please?",
-                                        "children": [
-                                          {
-                                            "aiAction": {
-                                              "action": "speak",
-                                              "speech": "representative",
-                                              "reason": "",
-                                              "detected": {
-                                                "isIVRMenu": false,
-                                                "menuOptions": [],
-                                                "isMenuComplete": false,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-04-21T21:53:54.329Z",
-                                            "isLatestPath": false,
-                                            "child": {
-                                              "id": "n122",
-                                              "ivrSpeech": "This is a rep a live representative here at walmart.com. May I ask for your first and last name, please, that is on the account?",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "speak",
-                                                    "speech": "Oliver Ullman",
-                                                    "reason": "",
-                                                    "detected": {
-                                                      "isIVRMenu": false,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": false,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-04-21T21:53:54.329Z",
-                                                  "isLatestPath": false,
-                                                  "child": {
-                                                    "terminal": true,
-                                                    "finalStatus": "initiated",
-                                                    "durationSeconds": 165,
-                                                    "reachedHuman": true,
-                                                    "dtmfDigits": []
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
-                                }
-                              },
-                              {
-                                "aiAction": {
                                   "action": "speak",
-                                  "speech": "charge I don't recognize",
+                                  "speech": "billing issue",
                                   "reason": "",
                                   "detected": {
                                     "isIVRMenu": false,
@@ -1452,14 +1361,37 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-21T22:12:05.868Z",
+                                "recordedAt": "2026-04-23T02:13:56.523Z",
                                 "isLatestPath": true,
                                 "child": {
-                                  "terminal": true,
-                                  "finalStatus": "initiated",
-                                  "durationSeconds": 143,
-                                  "reachedHuman": true,
-                                  "dtmfDigits": []
+                                  "id": "n121",
+                                  "ivrSpeech": "Got it. You're having a billing issue. Can you tell me what the charge was for or share your order number? Will help me look into the problem for you.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "representative",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-23T02:13:56.523Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 151,
+                                        "reachedHuman": true,
+                                        "dtmfDigits": []
+                                      }
+                                    }
+                                  ]
                                 }
                               }
                             ]

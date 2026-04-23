@@ -422,7 +422,12 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
   }
 
   async decideAction(params: DecideActionParams): Promise<CallAction> {
-    const { config, currentSpeech, awaitingHumanConfirmation, awaitingHumanClarification } = params;
+    const {
+      config,
+      currentSpeech,
+      awaitingHumanConfirmation,
+      awaitingHumanClarification,
+    } = params;
     const { systemMessage, userMessage } = this.buildMessages(params);
 
     const apiStart = Date.now();
@@ -467,7 +472,11 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       awaitingHumanClarification?: boolean;
     }
   ): CallAction {
-    const { currentSpeech, awaitingHumanConfirmation, awaitingHumanClarification } = ctx;
+    const {
+      currentSpeech,
+      awaitingHumanConfirmation,
+      awaitingHumanClarification,
+    } = ctx;
 
     // Extract JSON from response (Claude may wrap it in markdown code fences)
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -576,7 +585,13 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
   async decideActionStreaming(
     params: DecideActionParams & { callbacks: StreamingCallbacks }
   ): Promise<StreamingResult> {
-    const { config, currentSpeech, awaitingHumanConfirmation, awaitingHumanClarification, callbacks } = params;
+    const {
+      config,
+      currentSpeech,
+      awaitingHumanConfirmation,
+      awaitingHumanClarification,
+      callbacks,
+    } = params;
     const { systemMessage, userMessage } = this.buildMessages(params);
 
     const apiStart = Date.now();
@@ -607,7 +622,9 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
 
       if (firstTokenAt === null) {
         firstTokenAt = Date.now();
-        console.log(`⏱️ Time to first token (streaming): ${firstTokenAt - apiStart}ms`);
+        console.log(
+          `⏱️ Time to first token (streaming): ${firstTokenAt - apiStart}ms`
+        );
       }
 
       fullContent += delta;
@@ -638,7 +655,11 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     // If the AI chose "speak" but the extractor never completed (extractor could
     // fail if the JSON doesn't contain a "speech" key in the expected form), fall
     // back to firing the parsed speech post-stream so TTS still happens.
-    if (action.action === 'speak' && action.speech && speechDoneFiredAt === null) {
+    if (
+      action.action === 'speak' &&
+      action.speech &&
+      speechDoneFiredAt === null
+    ) {
       console.log(
         '[NAV] Streaming speech extraction missed — firing full text post-stream as fallback'
       );

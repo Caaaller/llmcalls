@@ -2,7 +2,7 @@
   "version": 2,
   "id": "wellsfargo-cs",
   "testCaseId": "wellsfargo-cs",
-  "lastRecordedAt": "2026-04-21T22:11:01.488Z",
+  "lastRecordedAt": "2026-04-23T02:12:58.816Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T22:11:01.488Z",
+        "recordedAt": "2026-04-23T02:12:58.816Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -42,7 +42,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-21T22:11:01.488Z",
+              "recordedAt": "2026-04-23T02:12:58.816Z",
               "isLatestPath": true,
               "child": {
                 "id": "n58",
@@ -247,7 +247,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-21T22:11:01.488Z",
+                    "recordedAt": "2026-04-23T02:12:58.816Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n110",
@@ -268,7 +268,7 @@
                             }
                           },
                           "recordedAt": "2026-04-21T22:11:01.488Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n128",
                             "ivrSpeech": "Alright. Other options. You can say, open a new account, find a branch or ATM, verify an account, or damaged",
@@ -288,7 +288,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-21T22:11:01.488Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "terminal": true,
                                   "finalStatus": "initiated",
@@ -314,8 +314,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-21T18:58:23.662Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-23T02:12:58.816Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n114",
                             "ivrSpeech": "alright. Other options. You can say open a new account, find a branch or ATM, verify an account, or damage",
@@ -482,6 +482,166 @@
                                     }
                                   ]
                                 }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "representative",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-23T02:12:58.816Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n131",
+                                  "ivrSpeech": "Sorry. To open a new account, press 1 or say open new account. To",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-23T02:12:58.816Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n132",
+                                        "ivrSpeech": "I'll connect you to a banker. But first, please use the short phrase to describe what you're calling about. You can say things like order new checks, or change my PIN. These are just examples. So tell me what you're calling about.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "speak with a representative",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-23T02:12:58.816Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n133",
+                                              "ivrSpeech": "So that I can",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "speak with a representative",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-23T02:12:58.816Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 126,
+                                                    "reachedHuman": true,
+                                                    "dtmfDigits": ["1"]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "wait",
+                            "reason": "No action before next speech",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-23T01:02:04.640Z",
+                          "isLatestPath": false,
+                          "child": {
+                            "id": "n129",
+                            "ivrSpeech": "alright. Other options. You can say, open a new account, find a branch or ATM, verify an account, or damaged card. Otherwise, to access your account, say or enter the account or card number you're calling about.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "press_digit",
+                                  "digit": "1",
+                                  "reason": "AI selected: The call purpose is to speak with a representative, and there are no options that match this in the current menu.",
+                                  "detected": {
+                                    "isIVRMenu": true,
+                                    "menuOptions": [],
+                                    "isMenuComplete": true,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-23T01:02:04.640Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n130",
+                                  "ivrSpeech": "To open a new account, press 1.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "wait",
+                                        "reason": "No action before next speech",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-23T01:02:04.640Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 116,
+                                        "reachedHuman": true,
+                                        "dtmfDigits": ["1", "1"]
+                                      }
+                                    }
+                                  ]
+                                }
                               }
                             ]
                           }
@@ -502,7 +662,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-21T21:53:53.075Z",
+                    "recordedAt": "2026-04-23T01:16:44.921Z",
                     "isLatestPath": false,
                     "child": {
                       "id": "n111",
@@ -522,7 +682,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-21T21:53:53.075Z",
+                          "recordedAt": "2026-04-23T01:16:44.921Z",
                           "isLatestPath": false,
                           "child": {
                             "id": "n112",
@@ -588,177 +748,14 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-21T21:53:53.075Z",
+                                "recordedAt": "2026-04-23T01:16:44.921Z",
                                 "isLatestPath": false,
                                 "child": {
-                                  "id": "n121",
-                                  "ivrSpeech": "If you would like to receive written communications from Wells Fargo in an alternative format, in compliance with the Americans with Disabilities Act. Please let a representative know or contact us at 1806424720. Please hold while connect you with a banker who can help you.",
-                                  "children": [
-                                    {
-                                      "aiAction": {
-                                        "action": "wait",
-                                        "reason": "No action before next speech",
-                                        "detected": {
-                                          "isIVRMenu": false,
-                                          "menuOptions": [],
-                                          "isMenuComplete": false,
-                                          "loopDetected": false,
-                                          "shouldTerminate": false,
-                                          "transferRequested": false
-                                        }
-                                      },
-                                      "recordedAt": "2026-04-21T21:53:53.075Z",
-                                      "isLatestPath": false,
-                                      "child": {
-                                        "id": "n122",
-                                        "ivrSpeech": "For service on an existing account, press 1. If you are calling to apply for a new account, press 2.",
-                                        "children": [
-                                          {
-                                            "aiAction": {
-                                              "action": "press_digit",
-                                              "digit": "1",
-                                              "reason": "AI selected: The menu is complete, and I need to speak with a representative.",
-                                              "detected": {
-                                                "isIVRMenu": true,
-                                                "menuOptions": [],
-                                                "isMenuComplete": true,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-04-21T21:53:53.075Z",
-                                            "isLatestPath": false,
-                                            "child": {
-                                              "id": "n123",
-                                              "ivrSpeech": "We appreciate your business. The next available representative will take your call.",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "wait",
-                                                    "reason": "No action before next speech",
-                                                    "detected": {
-                                                      "isIVRMenu": false,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": false,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-04-21T21:53:53.075Z",
-                                                  "isLatestPath": false,
-                                                  "child": {
-                                                    "id": "n124",
-                                                    "ivrSpeech": "Thank you for calling Wells Fargo. My name is Emma. May I start with your account or card number, please?",
-                                                    "children": [
-                                                      {
-                                                        "aiAction": {
-                                                          "action": "speak",
-                                                          "speech": "representative",
-                                                          "reason": "",
-                                                          "detected": {
-                                                            "isIVRMenu": false,
-                                                            "menuOptions": [],
-                                                            "isMenuComplete": false,
-                                                            "loopDetected": false,
-                                                            "shouldTerminate": false,
-                                                            "transferRequested": false
-                                                          }
-                                                        },
-                                                        "recordedAt": "2026-04-21T21:53:53.075Z",
-                                                        "isLatestPath": false,
-                                                        "child": {
-                                                          "id": "n125",
-                                                          "ivrSpeech": "Caller, are you there?",
-                                                          "children": [
-                                                            {
-                                                              "aiAction": {
-                                                                "action": "speak",
-                                                                "speech": "representative",
-                                                                "reason": "",
-                                                                "detected": {
-                                                                  "isIVRMenu": false,
-                                                                  "menuOptions": [],
-                                                                  "isMenuComplete": false,
-                                                                  "loopDetected": false,
-                                                                  "shouldTerminate": false,
-                                                                  "transferRequested": false
-                                                                }
-                                                              },
-                                                              "recordedAt": "2026-04-21T21:53:53.075Z",
-                                                              "isLatestPath": false,
-                                                              "child": {
-                                                                "id": "n126",
-                                                                "ivrSpeech": "Caller, are you there?",
-                                                                "children": [
-                                                                  {
-                                                                    "aiAction": {
-                                                                      "action": "speak",
-                                                                      "speech": "I need help.",
-                                                                      "reason": "",
-                                                                      "detected": {
-                                                                        "isIVRMenu": false,
-                                                                        "menuOptions": [],
-                                                                        "isMenuComplete": false,
-                                                                        "loopDetected": false,
-                                                                        "shouldTerminate": false,
-                                                                        "transferRequested": false
-                                                                      }
-                                                                    },
-                                                                    "recordedAt": "2026-04-21T21:53:53.075Z",
-                                                                    "isLatestPath": false,
-                                                                    "child": {
-                                                                      "id": "n127",
-                                                                      "ivrSpeech": "Hello?",
-                                                                      "children": [
-                                                                        {
-                                                                          "aiAction": {
-                                                                            "action": "speak",
-                                                                            "speech": "Hi, am I speaking with a live agent?",
-                                                                            "reason": "",
-                                                                            "detected": {
-                                                                              "isIVRMenu": false,
-                                                                              "menuOptions": [],
-                                                                              "isMenuComplete": false,
-                                                                              "loopDetected": false,
-                                                                              "shouldTerminate": false,
-                                                                              "transferRequested": false
-                                                                            }
-                                                                          },
-                                                                          "recordedAt": "2026-04-21T21:53:53.075Z",
-                                                                          "isLatestPath": false,
-                                                                          "child": {
-                                                                            "terminal": true,
-                                                                            "finalStatus": "initiated",
-                                                                            "durationSeconds": 180,
-                                                                            "reachedHuman": true,
-                                                                            "dtmfDigits": [
-                                                                              "1",
-                                                                              "1",
-                                                                              "1"
-                                                                            ]
-                                                                          }
-                                                                        }
-                                                                      ]
-                                                                    }
-                                                                  }
-                                                                ]
-                                                              }
-                                                            }
-                                                          ]
-                                                        }
-                                                      }
-                                                    ]
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
-                                      }
-                                    }
-                                  ]
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 111,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": ["1", "1"]
                                 }
                               }
                             ]

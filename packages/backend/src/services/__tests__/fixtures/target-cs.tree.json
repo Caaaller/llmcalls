@@ -2,7 +2,7 @@
   "version": 2,
   "id": "target-cs",
   "testCaseId": "target-cs",
-  "lastRecordedAt": "2026-04-21T21:53:02.903Z",
+  "lastRecordedAt": "2026-04-23T02:13:14.987Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -679,7 +679,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T21:53:02.902Z",
+        "recordedAt": "2026-04-23T02:13:14.987Z",
         "isLatestPath": true,
         "child": {
           "id": "n17",
@@ -699,7 +699,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-21T21:53:02.903Z",
+              "recordedAt": "2026-04-23T02:13:14.987Z",
               "isLatestPath": true,
               "child": {
                 "id": "n22",
@@ -719,7 +719,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-21T21:53:02.903Z",
+                    "recordedAt": "2026-04-23T02:13:14.987Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n23",
@@ -739,37 +739,14 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-21T21:53:02.903Z",
-                          "isLatestPath": true,
+                          "recordedAt": "2026-04-23T01:16:42.491Z",
+                          "isLatestPath": false,
                           "child": {
-                            "id": "n34",
-                            "ivrSpeech": "Thanks for calling Target guest relations. This is Chris. Hello?",
-                            "children": [
-                              {
-                                "aiAction": {
-                                  "action": "speak",
-                                  "speech": "Hi, am I speaking with a live agent?",
-                                  "reason": "",
-                                  "detected": {
-                                    "isIVRMenu": false,
-                                    "menuOptions": [],
-                                    "isMenuComplete": false,
-                                    "loopDetected": false,
-                                    "shouldTerminate": false,
-                                    "transferRequested": false
-                                  }
-                                },
-                                "recordedAt": "2026-04-21T21:53:02.903Z",
-                                "isLatestPath": true,
-                                "child": {
-                                  "terminal": true,
-                                  "finalStatus": "initiated",
-                                  "durationSeconds": 132,
-                                  "reachedHuman": false,
-                                  "dtmfDigits": ["1", "1", "1"]
-                                }
-                              }
-                            ]
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 145,
+                            "reachedHuman": true,
+                            "dtmfDigits": ["1", "1", "1"]
                           }
                         },
                         {
@@ -979,6 +956,52 @@
                                   "durationSeconds": 120,
                                   "reachedHuman": true,
                                   "dtmfDigits": ["1", "1", "*"]
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "wait",
+                            "reason": "No action before next speech",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-23T02:13:14.987Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n34",
+                            "ivrSpeech": "Hello. This is Tina with guest relations. How can I help you?",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "press_digit",
+                                  "digit": "1",
+                                  "reason": "AI selected: The system is repeating the same menu options, and I need to select the best option for my call purpose.",
+                                  "detected": {
+                                    "isIVRMenu": true,
+                                    "menuOptions": [],
+                                    "isMenuComplete": true,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-23T02:13:14.987Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 137,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": ["1", "1", "1"]
                                 }
                               }
                             ]

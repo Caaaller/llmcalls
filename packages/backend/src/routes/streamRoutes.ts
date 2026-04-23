@@ -16,6 +16,14 @@ import { shouldBargeIn } from '../services/bargeInService';
 import telnyxService from '../services/telnyxService';
 import { toError } from '../utils/errorUtils';
 
+// Endpointing dropped from 1800 → 500ms to shrink the "user stopped → Deepgram
+// declares speech_final" window. Combined with a semantic completeness check
+// (isIncompleteUtterance) + a 1000ms post-suppression safety dispatch, we keep
+// mid-sentence protection without eating ~1300ms per turn.
+//
+// utterance_end_ms stays at 1800 as a safety net — if speech_final repeatedly
+// gets suppressed and the safety timer also misses, UtteranceEnd will still
+// flush the pending transcript ~1800ms after the last final word.
 const DEEPGRAM_URL =
   'wss://api.deepgram.com/v1/listen' +
   '?model=nova-2-phonecall' +
@@ -24,10 +32,16 @@ const DEEPGRAM_URL =
   '&channels=1' +
   '&language=en-US' +
   '&smart_format=true' +
-  '&endpointing=1800' +
+  '&endpointing=500' +
   '&utterance_end_ms=1800' +
   '&interim_results=true' +
   '&vad_events=true';
+
+// Max time to wait for more speech after we suppress a speech_final as
+// semantically incomplete. If no additional fragments arrive within this
+// window, we force-dispatch the buffered transcript anyway so the user doesn't
+// sit in silence waiting for a turn that's already done.
+const SEMANTIC_WAIT_MAX_MS = 1000;
 
 interface DeepgramResult {
   type: 'Results';
@@ -48,10 +62,36 @@ interface DeepgramSpeechStarted {
   timestamp: number;
 }
 
-const INCOMPLETE_TRAILING_WORDS = new Set([
+// Filler / hedge words — if the transcript trails off on one of these, the
+// user is almost certainly still thinking and hasn't handed the turn over.
+const FILLER_TRAILING_WORDS = new Set([
+  'um',
+  'uh',
+  'umm',
+  'uhh',
+  'hmm',
+  'like',
+  'well',
+  'so',
+  'and',
+  'or',
+  'but',
+  'because',
+  'cause',
+]);
+
+// Dangling connectives / preps / determiners. These almost always expect a
+// following noun phrase — chopping here cuts the user off mid-clause.
+const CONNECTIVE_TRAILING_WORDS = new Set([
   'press',
   'to',
   'for',
+  'with',
+  'of',
+  'in',
+  'on',
+  'at',
+  'by',
   'select',
   'enter',
   'say',
@@ -59,10 +99,15 @@ const INCOMPLETE_TRAILING_WORDS = new Set([
   'the',
   'a',
   'an',
-  'or',
-  'and',
+  'you',
+  'know',
 ]);
 
+/**
+ * Decide whether a transcript looks like a complete thought the user intends
+ * to hand over. Conservative — a false "incomplete" only delays dispatch by
+ * up to SEMANTIC_WAIT_MAX_MS, but a false "complete" cuts the user off.
+ */
 function isIncompleteUtterance(text: string): boolean {
   const trimmed = text.trim();
   if (!trimmed) return true;
@@ -72,7 +117,19 @@ function isIncompleteUtterance(text: string): boolean {
     .toLowerCase()
     .replace(/[^a-z']/g, '');
   const endsWithTerminal = /[.!?]$/.test(trimmed);
-  if (!endsWithTerminal && INCOMPLETE_TRAILING_WORDS.has(lastWord)) return true;
+
+  // Trailing filler — always treat as incomplete, even with punctuation (the
+  // smart_format comma/period can appear after "um").
+  if (FILLER_TRAILING_WORDS.has(lastWord)) return true;
+
+  if (!endsWithTerminal) {
+    // Connectives / determiners that clearly demand more content.
+    if (CONNECTIVE_TRAILING_WORDS.has(lastWord)) return true;
+    // Dangling numeric — e.g. "my account number is 3" (Deepgram chopped too
+    // early on a digit sequence).
+    if (/^\d+$/.test(lastWord)) return true;
+  }
+
   return false;
 }
 
@@ -118,6 +175,10 @@ interface StreamState {
   reconnectGiveUp: boolean;
   expectedClose: boolean;
   onUtterance: ((text: string) => Promise<void>) | null;
+  // Semantic-wait safety timer. Armed when speech_final fires on a
+  // transcript flagged as incomplete; fires after SEMANTIC_WAIT_MAX_MS
+  // to force-dispatch whatever's accumulated so far.
+  semanticWaitTimer: ReturnType<typeof setTimeout> | null;
 }
 
 // Reconnect configuration — exponential backoff with max 3 attempts.
@@ -268,6 +329,13 @@ function openDeepgram(
         );
         state.transcript += (state.transcript ? ' ' : '') + text;
 
+        // Any new is_final fragment arrived → user kept talking, so a
+        // previously-armed safety timer should start over with fresh text.
+        if (state.semanticWaitTimer) {
+          clearTimeout(state.semanticWaitTimer);
+          state.semanticWaitTimer = null;
+        }
+
         // Fire on speech_final (faster than waiting for UtteranceEnd)
         if (r.speech_final) {
           const fullText = state.transcript.trim();
@@ -275,7 +343,24 @@ function openDeepgram(
             console.log(
               `[DG] speech_final suppressed (incomplete): "${fullText.substring(0, 80)}"`
             );
-            // Keep transcript & do not set speechFired — let UtteranceEnd handle it
+            // Arm a safety timer so we don't sit forever if Deepgram never
+            // fires another speech_final / UtteranceEnd (e.g. user went silent
+            // mid-sentence but their last word was a connective).
+            state.semanticWaitTimer = setTimeout(() => {
+              if (!state) return;
+              const pending = state.transcript.trim();
+              state.semanticWaitTimer = null;
+              if (!pending || state.speechFired) return;
+              state.transcript = '';
+              state.speechFired = true;
+              console.log(
+                `[DG] semantic wait expired (${SEMANTIC_WAIT_MAX_MS}ms) → force-firing: "${pending.substring(0, 80)}"`
+              );
+              void onUtterance(pending);
+              setTimeout(() => {
+                if (state) state.speechFired = false;
+              }, 2000);
+            }, SEMANTIC_WAIT_MAX_MS);
             return;
           }
           state.transcript = '';
@@ -292,6 +377,10 @@ function openDeepgram(
         }
       }
     } else if (msg.type === 'UtteranceEnd') {
+      if (state.semanticWaitTimer) {
+        clearTimeout(state.semanticWaitTimer);
+        state.semanticWaitTimer = null;
+      }
       const text = state.transcript.trim();
       console.log(
         `[DG] UtteranceEnd last_word=${msg.last_word_end?.toFixed(2)}s transcript="${text.substring(0, 80)}" speechFired=${state.speechFired}`
@@ -423,6 +512,7 @@ export function attachStreamServer(httpServer: Server): void {
           reconnectGiveUp: false,
           expectedClose: false,
           onUtterance: null,
+          semanticWaitTimer: null,
         };
         activeStreamStates.set(callControlId, state);
 
@@ -527,6 +617,7 @@ export function attachStreamServer(httpServer: Server): void {
           }
         }
         if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
+        if (state.semanticWaitTimer) clearTimeout(state.semanticWaitTimer);
         silentHoldResetters.delete(state.callControlId);
         silentHoldTimers.delete(state.callControlId);
         state.expectedClose = true;
@@ -552,6 +643,7 @@ export function attachStreamServer(httpServer: Server): void {
         silentHoldResetters.delete(state.callControlId);
         silentHoldTimers.delete(state.callControlId);
         if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
+        if (state.semanticWaitTimer) clearTimeout(state.semanticWaitTimer);
         state.expectedClose = true;
         if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
         void flushReconnectTelemetry(state);

@@ -2,7 +2,7 @@
   "version": 2,
   "id": "att-cs",
   "testCaseId": "att-cs",
-  "lastRecordedAt": "2026-04-18T20:48:59.809Z",
+  "lastRecordedAt": "2026-04-23T01:16:46.492Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-18T20:48:59.808Z",
+        "recordedAt": "2026-04-23T01:16:46.492Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -43,7 +43,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-18T20:48:59.808Z",
+              "recordedAt": "2026-04-23T01:16:46.492Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -63,7 +63,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-18T20:48:59.808Z",
+                    "recordedAt": "2026-04-23T01:16:46.492Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n3",
@@ -83,7 +83,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-18T20:48:59.808Z",
+                          "recordedAt": "2026-04-23T01:16:46.492Z",
                           "isLatestPath": true,
                           "child": {
                             "id": "n156",
@@ -242,7 +242,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-18T20:48:59.808Z",
+                                "recordedAt": "2026-04-23T01:16:46.492Z",
                                 "isLatestPath": true,
                                 "child": {
                                   "id": "n161",
@@ -262,7 +262,7 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-18T20:48:59.808Z",
+                                      "recordedAt": "2026-04-23T01:16:46.492Z",
                                       "isLatestPath": true,
                                       "child": {
                                         "id": "n162",
@@ -282,37 +282,14 @@
                                                 "transferRequested": false
                                               }
                                             },
-                                            "recordedAt": "2026-04-18T20:48:59.808Z",
+                                            "recordedAt": "2026-04-23T01:16:46.492Z",
                                             "isLatestPath": true,
                                             "child": {
-                                              "id": "n172",
-                                              "ivrSpeech": "Sorry. I was unable to hear anything. I'll end the call for now. Visit att.com/support for 247 access to a variety of resources, including billing and payments, troubleshooting, appointment, and account support.",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "speak",
-                                                    "speech": "pay my bill",
-                                                    "reason": "",
-                                                    "detected": {
-                                                      "isIVRMenu": false,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": false,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-04-18T20:48:59.809Z",
-                                                  "isLatestPath": true,
-                                                  "child": {
-                                                    "terminal": true,
-                                                    "finalStatus": "initiated",
-                                                    "durationSeconds": 107,
-                                                    "reachedHuman": false,
-                                                    "dtmfDigits": []
-                                                  }
-                                                }
-                                              ]
+                                              "terminal": true,
+                                              "finalStatus": "initiated",
+                                              "durationSeconds": 100,
+                                              "reachedHuman": true,
+                                              "dtmfDigits": []
                                             }
                                           }
                                         ]

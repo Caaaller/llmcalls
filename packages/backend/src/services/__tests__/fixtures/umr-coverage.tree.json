@@ -2,7 +2,7 @@
   "version": 2,
   "id": "umr-coverage",
   "testCaseId": "umr-coverage",
-  "lastRecordedAt": "2026-04-18T20:49:00.657Z",
+  "lastRecordedAt": "2026-04-23T01:17:01.304Z",
   "config": {
     "callPurpose": "Coverage question"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-18T20:49:00.656Z",
+        "recordedAt": "2026-04-23T01:17:01.304Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -43,7 +43,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-18T20:49:00.656Z",
+              "recordedAt": "2026-04-23T01:17:01.304Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -63,7 +63,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-18T20:49:00.656Z",
+                    "recordedAt": "2026-04-23T01:17:01.304Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n3",
@@ -83,7 +83,7 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-18T20:49:00.656Z",
+                          "recordedAt": "2026-04-23T01:17:01.304Z",
                           "isLatestPath": true,
                           "child": {
                             "id": "n4",
@@ -103,7 +103,7 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-18T20:49:00.656Z",
+                                "recordedAt": "2026-04-23T01:17:01.304Z",
                                 "isLatestPath": true,
                                 "child": {
                                   "id": "n5",
@@ -123,7 +123,7 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-18T20:49:00.657Z",
+                                      "recordedAt": "2026-04-23T01:17:01.304Z",
                                       "isLatestPath": true,
                                       "child": {
                                         "id": "n6",
@@ -144,7 +144,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-18T20:49:00.657Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n7",
                                               "ivrSpeech": "I'm sorry. I didn't hear anything. I can help you with your ID cards, other insurance, accident details, flexible spending, nurse line, and prior authorization. Tell me, what are you calling about today?",
@@ -164,7 +164,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-18T20:49:00.657Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n8",
                                                     "ivrSpeech": "No. I'm not human. I'm a virtual assistant. Created to understand and help answer questions. So please tell me how can I help you today?",
@@ -345,7 +345,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-04-18T20:49:00.657Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n37",
                                                           "ivrSpeech": "Would you be willing to take a survey at the end of this call?",
@@ -365,7 +365,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-04-18T20:49:00.657Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "id": "n38",
                                                                 "ivrSpeech": "Please note that payment is subject to plan provisions, limitations, and eligibility on the date services are rendered. The information provided does not guarantee payment or represent a treatment decision. Treatment decisions are made between the patient and their physician.",
@@ -385,7 +385,7 @@
                                                                       }
                                                                     },
                                                                     "recordedAt": "2026-04-18T20:49:00.657Z",
-                                                                    "isLatestPath": true,
+                                                                    "isLatestPath": false,
                                                                     "child": {
                                                                       "id": "n39",
                                                                       "ivrSpeech": "Hello. Thank you so much for",
@@ -404,7 +404,7 @@
                                                                             }
                                                                           },
                                                                           "recordedAt": "2026-04-18T20:49:00.657Z",
-                                                                          "isLatestPath": true,
+                                                                          "isLatestPath": false,
                                                                           "child": {
                                                                             "terminal": true,
                                                                             "finalStatus": "initiated",
@@ -423,6 +423,52 @@
                                                         }
                                                       }
                                                     ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-23T01:17:01.304Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n40",
+                                              "ivrSpeech": "Got it. Before moving on, I wanted to let you know about the UMR mobile app. It's designed to help make it easier to use your health plan and I can send you a one time text with a link to download it. Message and data rates may apply, and accepting the text means you agree to the texting terms at uhc.care/app.sms terms? Do you consent to me sending you that link at the phone number ending in 8171?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "no",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-23T01:17:01.304Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "terminal": true,
+                                                    "finalStatus": "initiated",
+                                                    "durationSeconds": 161,
+                                                    "reachedHuman": true,
+                                                    "dtmfDigits": []
                                                   }
                                                 }
                                               ]

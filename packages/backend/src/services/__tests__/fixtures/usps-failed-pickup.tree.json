@@ -2,7 +2,7 @@
   "version": 2,
   "id": "usps-failed-pickup",
   "testCaseId": "usps-failed-pickup",
-  "lastRecordedAt": "2026-04-22T01:47:45.991Z",
+  "lastRecordedAt": "2026-04-23T01:16:59.929Z",
   "config": {
     "callPurpose": "Failed package pickup. Pickup request EMC717292788 was marked as completed even though it didn't actually happen"
   },
@@ -23,8 +23,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-21T22:10:40.621Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-23T01:16:59.929Z",
+        "isLatestPath": true,
         "child": {
           "id": "n1",
           "ivrSpeech": "To hear our privacy policy, press 2.",
@@ -259,6 +259,52 @@
                   }
                 ]
               }
+            },
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-23T01:16:59.929Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n268",
+                "ivrSpeech": "You have reached us after normal business hours of Monday through",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "Thank you. Goodbye.",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-23T01:16:59.929Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "terminal": true,
+                      "finalStatus": "initiated",
+                      "durationSeconds": 31,
+                      "reachedHuman": true,
+                      "dtmfDigits": []
+                    }
+                  }
+                ]
+              }
             }
           ]
         }
@@ -278,7 +324,7 @@
           }
         },
         "recordedAt": "2026-04-22T01:47:45.991Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "terminal": true,
           "finalStatus": "initiated",

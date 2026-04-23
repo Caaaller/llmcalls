@@ -2,7 +2,7 @@
   "version": 2,
   "id": "loop-test-720",
   "testCaseId": "loop-test-720",
-  "lastRecordedAt": "2026-04-18T20:49:00.209Z",
+  "lastRecordedAt": "2026-04-23T01:16:59.349Z",
   "config": {
     "callPurpose": "speak with a representative",
     "customInstructions": "This is a Costco warehouse. Navigate the IVR menu to reach a human (administrative staff is the best option). Use DTMF when prompted."
@@ -25,7 +25,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-18T20:49:00.209Z",
+        "recordedAt": "2026-04-23T01:16:59.349Z",
         "isLatestPath": true,
         "child": {
           "terminal": true,
