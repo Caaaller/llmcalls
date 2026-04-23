@@ -450,10 +450,23 @@ export async function processSpeech({
         // user actually hears audio start. Without this, the timestamp ends up
         // ~1-2s late (post-stream-complete wall clock) and clicking it in the
         // UI seeks the recording past the start of the AI response.
+        // Prefer ttsSpeakStartedAt (captured on call.speak.started webhook —
+        // the actual moment Telnyx begins playing audio in the recording).
+        // Fall back to firstSentenceDispatchedAt + ~900ms (measured median
+        // Telnyx pipeline delay) when the speak.started webhook hasn't
+        // arrived yet. Both beat the prior default (end-of-stream wall
+        // clock, ~1-2s LATE) AND the interim firstSentenceDispatchedAt fix
+        // (which was ~900ms EARLY, the other direction).
         const cs = callStateManager.getCallState(callSid);
-        const aiTimestamp = cs.firstSentenceDispatchedAt
-          ? new Date(cs.firstSentenceDispatchedAt)
-          : null;
+        const TELNYX_PIPELINE_OFFSET_MS = 900;
+        let aiTimestamp: Date | null = null;
+        if (cs.lastSpeakStartedAt) {
+          aiTimestamp = new Date(cs.lastSpeakStartedAt);
+        } else if (cs.firstSentenceDispatchedAt) {
+          aiTimestamp = new Date(
+            cs.firstSentenceDispatchedAt + TELNYX_PIPELINE_OFFSET_MS
+          );
+        }
         callHistoryService
           .addConversation(callSid, 'ai', streamedText, aiTimestamp)
           .catch(err => console.error('Error adding conversation:', err));
