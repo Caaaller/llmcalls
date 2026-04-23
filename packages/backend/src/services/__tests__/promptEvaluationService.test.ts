@@ -272,6 +272,32 @@ describe('Prompt evaluation – hold detection', () => {
         'This call may be recorded or monitored for quality assurance purposes.',
       expectedHoldDetected: false,
     },
+    {
+      name: 'Hold - AT&T "let me find someone"',
+      speech:
+        'Let me find someone to help you. One moment please while I handle your request.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - AT&T "one moment while I get an agent"',
+      speech: 'One moment while I get an agent to help you.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - Voicebot "I\'ll transfer you"',
+      speech: "I'll transfer you now.",
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'Hold - Voicebot "let me connect you"',
+      speech: 'Let me connect you to a representative.',
+      expectedHoldDetected: true,
+    },
+    {
+      name: 'No Hold - bare "One moment please"',
+      speech: 'One moment please.',
+      expectedHoldDetected: false,
+    },
   ];
 
   holdCases.forEach(testCase => {

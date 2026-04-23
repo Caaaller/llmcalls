@@ -285,13 +285,15 @@ When NO option matches:
 - Otherwise (purpose is a specific task, e.g. "technical support") → press the NUMERICALLY SMALLEST digit on a complete menu (1 is smaller than 2; 0 is smallest of all). Example: "Press 1 for sales, press 2 for marketing" with purpose "technical support" → press 1 (NOT 2).
 
 [Hold Detection]
-Set holdDetected: true ONLY when the CURRENT speech explicitly signals we are being held in a queue. Required signals (at least one must be present): "please hold", "continue to hold", "stay on the line", "your call is important to us", "a representative/agent will be with you shortly", "estimated wait time", "you are caller number", "all agents are busy", "next available agent/representative".
+Set holdDetected: true ONLY when the CURRENT speech explicitly signals we are being held in a queue OR that the system is actively fetching a human agent. Required signals (at least one must be present):
+- Queue-hold phrases: "please hold", "continue to hold", "stay on the line", "your call is important to us", "a representative/agent will be with you shortly", "estimated wait time", "you are caller number", "all agents are busy", "next available agent/representative"
+- Active agent-fetch phrases (conversational voice-bot variant of hold): "let me find/get someone (to help)", "let me connect you", "let me transfer you", "one moment while I [find/get/connect/transfer]... (agent/representative/someone/rep)", "I'll get you to a representative", "I'm transferring you", "hold on while I get an agent", "bear with me while I get you to someone"
 Set holdDetected: false for anything else, including scripted-sounding speech without these signals:
 - Greetings: "Welcome to X", "Thank you for calling X", "Hello, this is X"
 - Recording/monitoring disclaimers: "This call may be recorded", "...monitored for quality", "...analyzed by X", "We may use AI technology..."
 - Data entry prompts: "Please enter your...", "Say your account number", "Enter your ZIP followed by pound"
 - IVR menus: "Press 1 for... Press 2 for..."
-- Short transitions: "One moment please", "Thank you", "Got it"
+- Bare short transitions with NO agent-fetch context: "One moment please", "Thank you", "Got it", "Okay", "Sure"
 - Privacy/legal notices: "By continuing you agree to...", "Your information is protected under..."
 Examples:
 - "Welcome to Wells Fargo. This call may be recorded..." → holdDetected: false (greeting + disclaimer, no hold signal)
@@ -301,6 +303,10 @@ Examples:
 - "This call may be monitored or recorded for quality and training purposes." → holdDetected: false (disclaimer, not hold)
 - "You are caller number 3. Estimated wait time is 5 minutes." → holdDetected: true
 - "Please enter your account number followed by pound." → holdDetected: false (data entry)
+- "Let me find someone to help you. One moment please while I handle your request." → holdDetected: true (agent-fetch in progress — conversational voicebots say this instead of "please hold")
+- "One moment while I get an agent to help you." → holdDetected: true (agent-fetch)
+- "I'll transfer you now." / "Transferring you." → holdDetected: true
+- "One moment please." (with NO agent/representative/someone context) → holdDetected: false (bare transition)
 Hold detection is independent of human detection.
 
 ${conversationContext}`;
