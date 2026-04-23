@@ -286,9 +286,13 @@ describe('Live call evaluations', () => {
         timedOut: false,
       }));
 
+      // Default to localhost for the testrun status POST — the test harness
+      // runs on the same machine as the backend, so routing through ngrok
+      // is pointless and has broken us before when the ngrok URL was stale.
+      // Override via TESTRUN_API_URL if running tests from a different host.
       const baseUrl =
-        process.env.BASE_URL ||
-        (process.env.TELNYX_WEBHOOK_URL || '').replace(/\/voice\/?$/, '');
+        process.env.TESTRUN_API_URL ||
+        `http://localhost:${process.env.PORT || '8068'}`;
 
       function buildSkippedResults() {
         const ranIds = new Set(testCaseResults.map(tc => tc.testCaseId));
