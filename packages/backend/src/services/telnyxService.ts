@@ -6,6 +6,7 @@
 import Telnyx from 'telnyx';
 import { toError } from '../utils/errorUtils';
 import callStateManager from './callStateManager';
+import { encodeBridgeClientState } from '../types/telnyx';
 
 function toE164(phone: string): string | null {
   const digits = phone.replace(/\D/g, '');
@@ -208,6 +209,69 @@ class TelnyxService {
       await this.client.calls.actions.transfer(callControlId, {
         to: e164 ?? to,
         from: from || undefined,
+      });
+    });
+  }
+
+  /**
+   * Bridge-based transfer. Instead of `actions.transfer` (which leaves the
+   * original leg active in the bridge — producing 3-way calls where our AI
+   * is still on the line with the user + agent), this dials the user as a
+   * SEPARATE outbound call and then bridges the two call_control_ids. After
+   * the bridge, Telnyx routes audio A↔C directly and our backend drops out
+   * of the media path. When either side hangs up, Telnyx tears down the
+   * bridge and the other leg hangs up (default behavior).
+   *
+   * Returns the new C-leg's call_control_id. The webhook handler is
+   * responsible for calling `bridgeCalls(sourceId, cId)` once the C leg
+   * answers — we mark it for bridge routing via client_state.
+   */
+  async dialForBridge(args: {
+    sourceCallControlId: string;
+    userPhone: string;
+    webhookUrl?: string;
+  }): Promise<string> {
+    const { sourceCallControlId, userPhone, webhookUrl } = args;
+    const e164 = toE164(userPhone);
+    const from = process.env.TELNYX_PHONE_NUMBER;
+    const connectionId = process.env.TELNYX_CONNECTION_ID;
+    if (!connectionId) throw new Error('TELNYX_CONNECTION_ID must be set');
+
+    // Embed source leg id in client_state so our webhook handler can find it
+    // on call.answered and issue the bridge action.
+    const clientState = encodeBridgeClientState({
+      bridgeSourceCallControlId: sourceCallControlId,
+    });
+
+    console.log(
+      `🔀 Dialing user ${e164 ?? userPhone} to bridge with ${sourceCallControlId.slice(-20)}`
+    );
+    const response = await this.client.calls.dial({
+      connection_id: connectionId,
+      to: e164 ?? userPhone,
+      from: from || '',
+      client_state: clientState,
+      ...(webhookUrl && { webhook_url: webhookUrl }),
+    });
+    const data = response.data as { call_control_id?: string };
+    const newId = data.call_control_id ?? '';
+    console.log(`🔀 Bridge-target leg created: ${newId.slice(-20)}`);
+    return newId;
+  }
+
+  /**
+   * Bridges two existing call_control_ids. After this succeeds, audio flows
+   * directly between the two legs and our backend is no longer in the media
+   * path. Default behavior: when either leg hangs up, the other is also
+   * hung up (clean teardown).
+   */
+  async bridgeCalls(sourceId: string, targetId: string): Promise<void> {
+    await this.guardedAction(sourceId, 'bridge', async () => {
+      console.log(
+        `🔗 Bridging ${sourceId.slice(-20)} ↔ ${targetId.slice(-20)}`
+      );
+      await this.client.calls.actions.bridge(sourceId, {
+        call_control_id_to_bridge_with: targetId,
       });
     });
   }

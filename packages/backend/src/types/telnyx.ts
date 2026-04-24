@@ -90,3 +90,39 @@ export function decodeClientState(
     return null;
   }
 }
+
+/**
+ * Client-state payload written by `telnyxService.dialForBridge` on the
+ * user-facing leg of a blind transfer. When the webhook sees `call.answered`
+ * on a leg carrying this payload, it bridges that leg to the original source
+ * call so audio flows A↔C directly and the AI drops out of the media path.
+ */
+export interface BridgeClientState {
+  bridgeSourceCallControlId: string;
+}
+
+export function encodeBridgeClientState(state: BridgeClientState): string {
+  return Buffer.from(JSON.stringify(state)).toString('base64');
+}
+
+export function decodeBridgeSourceFromClientState(
+  clientState: string | undefined
+): string | null {
+  if (!clientState) return null;
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(clientState, 'base64').toString('utf8')
+    );
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof parsed.bridgeSourceCallControlId === 'string' &&
+      parsed.bridgeSourceCallControlId.length > 0
+    ) {
+      return parsed.bridgeSourceCallControlId;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

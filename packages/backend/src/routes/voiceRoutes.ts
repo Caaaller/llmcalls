@@ -8,6 +8,7 @@ import {
   TelnyxWebhookBody,
   TelnyxWebhookPayload,
   decodeClientState,
+  decodeBridgeSourceFromClientState,
 } from '../types/telnyx';
 import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
@@ -173,6 +174,27 @@ async function handleCallAnswered(
     console.log(
       `[SIM] call.answered on simulator leg ${callControlId.slice(-20)} — skipping AI caller pipeline`
     );
+    return;
+  }
+
+  // Bridge-transfer target leg: when we dialed the user (via dialForBridge)
+  // as part of a human-detected transfer, that new leg carries a
+  // bridgeSourceCallControlId in client_state. On answer, bridge the two
+  // legs so audio flows directly A↔C and our AI drops out of the media.
+  const bridgeSource = decodeBridgeSourceFromClientState(payload?.client_state);
+  if (bridgeSource) {
+    console.log(
+      `🔗 call.answered on bridge-target ${callControlId.slice(-20)} — bridging to ${bridgeSource.slice(-20)}`
+    );
+    try {
+      await telnyxService.bridgeCalls(bridgeSource, callControlId);
+      logOnError(
+        callHistoryService.updateTransferStatus(bridgeSource, true),
+        'Error marking transfer success on bridge'
+      );
+    } catch (err) {
+      console.error('Bridge action failed:', err);
+    }
     return;
   }
 

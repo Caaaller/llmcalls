@@ -646,8 +646,18 @@ export async function processSpeech({
         const { stopSilentHoldTimer } = await import('../routes/streamRoutes');
         stopSilentHoldTimer(callSid);
 
-        // Transfer immediately — no speech delay, the human agent hangs up within seconds
-        await telnyxService.transfer(callSid, config.transferNumber);
+        // Blind transfer via dial+bridge (not actions.transfer, which leaves
+        // our leg in the bridge as a 3-way call). Dial the user as a NEW
+        // outbound leg carrying bridgeSourceCallControlId in client_state;
+        // the webhook bridges A↔C on call.answered, at which point our
+        // backend drops out of the media path.
+        const webhookUrl =
+          process.env.TELNYX_WEBHOOK_URL || process.env.BASE_URL || undefined;
+        await telnyxService.dialForBridge({
+          sourceCallControlId: callSid,
+          userPhone: config.transferNumber,
+          webhookUrl,
+        });
       }
       return {
         twiml: '',
