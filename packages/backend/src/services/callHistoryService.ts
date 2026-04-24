@@ -576,7 +576,7 @@ class CallHistoryService {
       e =>
         e.eventType === 'conversation' &&
         (e as { type?: string }).type === 'ai' &&
-        /application error has occurred/.test(
+        /application error has occurred|having some trouble on my end/.test(
           ((e as { text?: string }).text as string) || ''
         )
     );

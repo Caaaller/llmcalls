@@ -30,6 +30,49 @@ const DIGIT_WORD_MAP: Record<string, Array<string>> = {
   '#': ['pound', 'hash'],
 };
 
+/**
+ * Extract the first balanced, string-aware JSON object from `content`.
+ * Returns null if no complete object is found. Unlike /\{[\s\S]*\}/ this
+ * stops at the matching closing brace, so trailing prose (including prose
+ * containing additional `}` characters) does not break JSON.parse.
+ */
+export function extractFirstJsonObject(content: string): string | null {
+  const start = content.indexOf('{');
+  if (start === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < content.length; i++) {
+    const ch = content[i];
+
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (ch === '\\') {
+        escape = true;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+    } else if (ch === '{') {
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+      if (depth === 0) {
+        return content.slice(start, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
 function transcriptContainsDigit(transcript: string, digit: string): boolean {
   const lower = transcript.toLowerCase();
   if (lower.includes(digit)) return true;
@@ -518,12 +561,15 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       awaitingHumanClarification,
     } = ctx;
 
-    // Extract JSON from response (Claude may wrap it in markdown code fences)
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
+    // Extract the first complete top-level JSON object. Greedy /\{[\s\S]*\}/
+    // breaks when Claude appends prose containing braces after the JSON
+    // (observed live: "Unexpected non-whitespace character after JSON at
+    // position 1002"). Brace-count with string-awareness instead.
+    const extracted = extractFirstJsonObject(content);
+    if (!extracted) {
       throw new Error(`Could not parse JSON from AI response: ${content}`);
     }
-    const action = JSON.parse(jsonMatch[0]) as CallAction;
+    const action = JSON.parse(extracted) as CallAction;
 
     // Normalize menu options to lowercase
     if (action.detected?.menuOptions) {

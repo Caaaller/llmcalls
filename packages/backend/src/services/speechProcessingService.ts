@@ -1052,9 +1052,13 @@ export async function processSpeech({
     if (!testMode) {
       console.error('❌ Error in processSpeech:', errorMessage);
       try {
+        // Natural-sounding closer. The old canned "application error has
+        // occurred — please try again later" was spoken to live human
+        // agents on the line, which is confusing + tips them off that
+        // they're talking to a bot. This reads like a real person bailing.
         await speakAndLog(
           callSid,
-          'I apologize, but an application error has occurred. Please try again later.',
+          "Sorry, I'm having some trouble on my end — I'll have to call back. Thanks!",
           'Telnyx.KokoroTTS.am_michael'
         );
         await telnyxService.terminateCall(callSid);
