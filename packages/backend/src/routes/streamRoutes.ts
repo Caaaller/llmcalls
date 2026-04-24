@@ -299,6 +299,14 @@ function openDeepgram(
         `[DG-DIAG] first msg type="${msg.type}" payload=${JSON.stringify(msg).slice(0, 200)}`
       );
     }
+    // Log first 8 Results' transcript content to see what DG is hearing.
+    if (msg.type === 'Results' && (sDiag._dgMsgCounts.Results ?? 0) <= 8) {
+      const r = msg as DeepgramResult;
+      const t = r.channel?.alternatives?.[0]?.transcript ?? '';
+      console.log(
+        `[DG-DIAG] Result #${sDiag._dgMsgCounts.Results} is_final=${r.is_final} sf=${r.speech_final} text="${t.slice(0, 100)}"`
+      );
+    }
 
     if (msg.type === 'SpeechStarted') {
       // Capture the moment Deepgram's VAD decides the user began speaking.
@@ -660,14 +668,19 @@ export function attachStreamServer(httpServer: Server): void {
             `[STREAM-DIAG] first media frame for track="${track}" on ${state.callControlId.slice(-20)}`
           );
         }
-        // Only forward the INBOUND track to Deepgram. Interleaving inbound
-        // (remote party / simulator) with outbound (our own TTS) produced a
-        // garbled stream that never hit endpointing silence — Deepgram kept
-        // returning interim Results but no is_final. Accept label variants
-        // (Telnyx sends "inbound" on normal calls, may send "inbound_track"
-        // in some configs).
-        const isInbound = track === 'inbound' || track === 'inbound_track';
-        if (!isInbound) return;
+        // Forward all track labels to Deepgram. On cross-app self-calls,
+        // sending only "inbound" produced SpeechStarted + interim Results
+        // with EMPTY transcripts (audio arrived but not enough signal for
+        // Deepgram to decode words). Sending both "inbound" and "outbound"
+        // tracks mixed together is what produced the one successful
+        // transcript ("Hi there. This is Anna..."). Until we understand
+        // exactly why, match the config that works.
+        const isTelnyxTrack =
+          track === 'inbound' ||
+          track === 'inbound_track' ||
+          track === 'outbound' ||
+          track === 'outbound_track';
+        if (!isTelnyxTrack) return;
         const payload = (mediaData?.payload as string) || '';
         if (!payload) return;
 

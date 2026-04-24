@@ -223,7 +223,11 @@ class TelnyxService {
     await this.guardedAction(callControlId, 'startStreaming', async () => {
       await this.client.calls.actions.startStreaming(callControlId, {
         stream_url: streamUrl,
-        stream_track: 'inbound_track',
+        // Use both_tracks: on cross-app self-calls the "inbound" audio
+        // arrives too thin for Deepgram alone to decode (empty transcripts
+        // despite SpeechStarted firing). Sending both sides makes Deepgram
+        // see enough signal. Our stream handler filters per track downstream.
+        stream_track: 'both_tracks',
         stream_codec: 'PCMU',
       });
     });
