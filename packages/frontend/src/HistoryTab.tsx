@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import './TestRunsTab.css';
 import './HistoryTab.css';
@@ -287,8 +287,42 @@ function CallDetailView({ call, onCallInitiated }: CallDetailViewProps) {
   );
 }
 
+const CALL_QUERY_PARAM = 'call';
+
+function readCallFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get(CALL_QUERY_PARAM);
+}
+
+function writeCallToUrl(callSid: string | null) {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  if (callSid) {
+    url.searchParams.set(CALL_QUERY_PARAM, callSid);
+  } else {
+    url.searchParams.delete(CALL_QUERY_PARAM);
+  }
+  // replaceState so refreshes keep the selection but we don't spam history.
+  window.history.replaceState(null, '', url.toString());
+}
+
 function HistoryTab() {
-  const [selectedCallSid, setSelectedCallSid] = useState<string | null>(null);
+  const [selectedCallSid, setSelectedCallSidState] = useState<string | null>(
+    () => readCallFromUrl()
+  );
+
+  const setSelectedCallSid = useCallback((sid: string | null) => {
+    setSelectedCallSidState(sid);
+    writeCallToUrl(sid);
+  }, []);
+
+  useEffect(() => {
+    function onPopState() {
+      setSelectedCallSidState(readCallFromUrl());
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   const {
     data: historyData,
