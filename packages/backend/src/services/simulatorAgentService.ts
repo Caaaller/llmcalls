@@ -15,18 +15,18 @@
 import telnyxService from './telnyxService';
 import { toError } from '../utils/errorUtils';
 
-// AWS Polly Neural voices sound more conversational/human than Kokoro's
-// polished podcast delivery. Randomized per call so the AI gets a variety
-// of speakers over a test run. Males + females, US accents, all Neural.
+// Kokoro voices render reliably through Telnyx's cross-app bridge + PCMU
+// codec → Deepgram pipeline. Some Polly Neural voices were rendering in a
+// way Deepgram couldn't transcribe (0 is_final events despite 500+ audio
+// frames received). Sticking with Kokoro until we can isolate which Polly
+// voices work and which don't. Variety within Kokoro's male/female range
+// still exists, and filler prefixes + script variance carry most of the
+// "not robotic" feel.
 const SIM_VOICES = [
-  'AWS.Polly.Joanna-Neural',
-  'AWS.Polly.Matthew-Neural',
-  'AWS.Polly.Ruth-Neural',
-  'AWS.Polly.Stephen-Neural',
-  'AWS.Polly.Kendra-Neural',
-  'AWS.Polly.Kevin-Neural',
-  'AWS.Polly.Joey-Neural',
-  'AWS.Polly.Salli-Neural',
+  'Telnyx.KokoroTTS.am_michael',
+  'Telnyx.KokoroTTS.af_bella',
+  'Telnyx.KokoroTTS.am_adam',
+  'Telnyx.KokoroTTS.af_jessica',
 ];
 
 const AGENT_NAMES = [
