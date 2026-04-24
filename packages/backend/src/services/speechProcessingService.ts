@@ -680,6 +680,15 @@ export async function processSpeech({
       });
 
       if (!testMode) {
+        // The streaming schema emits `speech` before `action`, so the LLM's
+        // chosen phrase is already being TTS'd by the time we know the
+        // action is maybe_human. The prompt tells the LLM to emit empty
+        // speech for maybe_human, but observed live (Target call,
+        // 2026-04-24): it spoke "question about a recent in-store purchase"
+        // to a live human agent before our canned confirmation question
+        // could start. Cancel the in-flight TTS so the human hears ONLY
+        // "Am I speaking with a live agent?" — not the purpose statement.
+        await telnyxService.stopSpeak(callSid);
         await speakAndLog(
           callSid,
           'Hi, am I speaking with a live agent?',
@@ -708,6 +717,9 @@ export async function processSpeech({
       });
 
       if (!testMode) {
+        // Same streaming race as maybe_human — cancel any LLM-chosen speech
+        // in flight so the human hears only the clarification question.
+        await telnyxService.stopSpeak(callSid);
         await speakAndLog(
           callSid,
           "I'm sorry, are you a human or an automated message?",
