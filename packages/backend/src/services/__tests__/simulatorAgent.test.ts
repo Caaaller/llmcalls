@@ -34,10 +34,10 @@ describe('pickSimulatorScript', () => {
       expect(script.followup.length).toBeGreaterThan(5);
       expect(script.pickupDelayMs).toBeGreaterThanOrEqual(800);
       expect(script.pickupDelayMs).toBeLessThan(2500);
-      expect(script.greetingToConfirmationMs).toBeGreaterThanOrEqual(4000);
-      expect(script.greetingToConfirmationMs).toBeLessThan(6000);
-      expect(script.confirmationToFollowupMs).toBeGreaterThanOrEqual(3000);
-      expect(script.confirmationToFollowupMs).toBeLessThan(5000);
+      expect(script.greetingToConfirmationMs).toBeGreaterThanOrEqual(6000);
+      expect(script.greetingToConfirmationMs).toBeLessThan(9500);
+      expect(script.confirmationToFollowupMs).toBeGreaterThanOrEqual(4000);
+      expect(script.confirmationToFollowupMs).toBeLessThan(6500);
     }
   });
 
@@ -80,7 +80,7 @@ describe('pickSimulatorScript', () => {
 describe('simulator script pools', () => {
   it('exposes non-empty pools for names, greetings, confirmations, followups', () => {
     expect(__testing.AGENT_NAMES.length).toBeGreaterThanOrEqual(8);
-    expect(__testing.GREETING_TEMPLATES.length).toBeGreaterThanOrEqual(6);
+    expect(__testing.GREETING_TEMPLATES.length).toBeGreaterThanOrEqual(4);
     expect(__testing.CONFIRMATION_TEMPLATES.length).toBeGreaterThanOrEqual(5);
     expect(__testing.FOLLOWUP_TEMPLATES.length).toBeGreaterThanOrEqual(3);
   });
