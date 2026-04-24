@@ -163,6 +163,19 @@ async function handleCallAnswered(
   callControlId: string,
   payload: TelnyxWebhookPayload | undefined
 ): Promise<void> {
+  // Skip the entire AI caller pipeline for inbound simulator legs. They
+  // arrive on a separate Telnyx Call Control app and are driven by the
+  // simulator service directly — starting Deepgram + the AI caller
+  // handler on them would (a) compete for Deepgram sockets with the
+  // real outbound leg and (b) transcribe our own TTS. Both are bad.
+  const simConnectionId = process.env.TELNYX_SIMULATOR_CONNECTION_ID;
+  if (simConnectionId && payload?.connection_id === simConnectionId) {
+    console.log(
+      `[SIM] call.answered on simulator leg ${callControlId.slice(-20)} — skipping AI caller pipeline`
+    );
+    return;
+  }
+
   const clientConfig = decodeClientState(payload?.client_state);
 
   const config = transferConfig.createConfig({
