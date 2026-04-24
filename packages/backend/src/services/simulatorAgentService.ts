@@ -153,9 +153,14 @@ export function pickSimulatorScript(): SimulatorScript {
     ),
     confirmation: withFiller(confirmation),
     followup: withFiller(followup),
-    pickupDelayMs: randomBetween(800, 2500),
-    greetingToConfirmationMs: randomBetween(4000, 6000),
-    confirmationToFollowupMs: randomBetween(3000, 5000),
+    pickupDelayMs: randomBetween(800, 2000),
+    // Give the AI time to hear the greeting, run through its pipeline,
+    // speak its "am I speaking with a live agent?" question, and have the
+    // sim's confirmation land before the AI's listen window closes. The
+    // AI's turn roughly: ~800ms endpointing + ~2000ms LLM + ~1000ms TTS
+    // pipeline = ~4s minimum. Pad to 6-9s so we're clearly past that.
+    greetingToConfirmationMs: randomBetween(6000, 9000),
+    confirmationToFollowupMs: randomBetween(4000, 6000),
   };
 }
 
@@ -178,7 +183,7 @@ function sleep(ms: number): Promise<void> {
 export async function runSimulatorFlow(callControlId: string): Promise<void> {
   const script = pickSimulatorScript();
   const startedAt = Date.now();
-  const HARD_CAP_MS = 25_000;
+  const HARD_CAP_MS = 45_000;
 
   console.log(
     `[SIM] Starting simulator flow for ${callControlId.slice(-20)} ` +

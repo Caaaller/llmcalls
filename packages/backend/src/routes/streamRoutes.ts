@@ -631,7 +631,28 @@ export function attachStreamServer(httpServer: Server): void {
       } else if (event === 'media' && state) {
         const mediaData = msg.media as Record<string, unknown> | undefined;
         const track = (mediaData?.track as string) || '';
-        if (track !== 'inbound') return;
+        // TEMP DIAG: log first media frame per track so we can see what
+        // Telnyx is actually sending. Remove once self-call transcripts work.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const s: any = state;
+        if (!s._seenTracks) s._seenTracks = new Set();
+        if (!s._mediaCounts) s._mediaCounts = {};
+        s._mediaCounts[track] = (s._mediaCounts[track] || 0) + 1;
+        if (!s._seenTracks.has(track)) {
+          s._seenTracks.add(track);
+          console.log(
+            `[STREAM-DIAG] first media frame for track="${track}" on ${state.callControlId.slice(-20)}`
+          );
+        }
+        // Accept inbound, outbound, and "both" labels — Telnyx's naming
+        // differs slightly across call types (inbound_track vs inbound).
+        const isInboundLike =
+          track === 'inbound' ||
+          track === 'inbound_track' ||
+          track === 'outbound' ||
+          track === 'outbound_track' ||
+          track === 'both_tracks';
+        if (!isInboundLike) return;
         const payload = (mediaData?.payload as string) || '';
         if (!payload) return;
 
@@ -642,6 +663,11 @@ export function attachStreamServer(httpServer: Server): void {
           state.audioBuffer.push(pcmuBytes);
         }
       } else if (event === 'stop' && state) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const s: any = state;
+        console.log(
+          `[STREAM-DIAG] stop on ${state.callControlId.slice(-20)} — media counts: ${JSON.stringify(s._mediaCounts || {})}`
+        );
         // Flush any accumulated transcript that Deepgram hasn't sent UtteranceEnd for
         const remaining = state.transcript.trim();
         if (remaining) {
