@@ -493,6 +493,21 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       case 'call.hangup':
         handleCallHangup(callControlId, payload);
         break;
+      case 'call.bridged': {
+        // Fires when our transferred-to leg (the user's phone) answers and
+        // Telnyx bridges it to the original call (the human agent leg).
+        // Before this, the transfer event in MongoDB sits at success=false
+        // (the initial record we write when initiating transfer). Flip it
+        // to true so the UI shows "Transfer OK" instead of "Transfer failed".
+        console.log(
+          `🔗 call.bridged on ${callControlId.slice(-20)} — marking transfer success`
+        );
+        logOnError(
+          callHistoryService.updateTransferStatus(callControlId, true),
+          'Error updating transfer status on bridge'
+        );
+        break;
+      }
       case 'call.recording.saved':
         await handleRecordingSaved(callControlId, payload);
         break;
