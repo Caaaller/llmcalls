@@ -223,12 +223,7 @@ class TelnyxService {
     await this.guardedAction(callControlId, 'startStreaming', async () => {
       await this.client.calls.actions.startStreaming(callControlId, {
         stream_url: streamUrl,
-        // both_tracks covers cross-app self-call where "inbound" labeling
-        // may not map the way we expect; on normal calls the extra track
-        // is just the AI's own TTS which Deepgram can tolerate without
-        // mis-transcribing (our own audio is predictable and comes in
-        // distinct enough windows).
-        stream_track: 'both_tracks',
+        stream_track: 'inbound_track',
         stream_codec: 'PCMU',
       });
     });
