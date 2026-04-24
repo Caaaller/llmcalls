@@ -62,15 +62,13 @@ const FILLER_PREFIXES = [
 ];
 
 const GREETING_TEMPLATES = [
-  'Hi, this is {name} with customer service, how can I help you today?',
-  'Thanks for calling, this is {name}, what can I do for you?',
-  '{name} speaking, how may I assist?',
-  "Hello, you've reached customer support, {name} here. What's going on?",
-  'Hey, {name} with support — what can I help you with?',
-  'Good {timeOfDay}, {name} here. How can I help?',
-  "Hi there, this is {name}. What's going on today?",
-  "Hey, {name} from the support team. What's up?",
-  "{name} here — tell me what's going on.",
+  // Longer single-utterance greetings help Deepgram lock onto an
+  // is_final with real text. Short greetings like "{name} speaking"
+  // were getting chopped by endpointing=500 before words solidified.
+  'Hi, thanks for calling customer service, this is {name} speaking, how can I help you today?',
+  "Hello, you've reached our support team, {name} here on the line, what can I do for you today?",
+  'Hey, thanks for calling in today, this is {name} with the support team, how can I help you?',
+  'Good {timeOfDay}, thanks for reaching out, this is {name} speaking, what can I help you with today?',
 ];
 
 const CONFIRMATION_TEMPLATES = [
