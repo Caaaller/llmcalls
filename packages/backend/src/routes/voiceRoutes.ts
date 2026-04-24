@@ -32,9 +32,18 @@ function isSimulatorInboundCall(
   payload: TelnyxWebhookPayload | undefined
 ): boolean {
   const simNumber = process.env.TELNYX_SIMULATOR_NUMBER;
+  const simConnectionId = process.env.TELNYX_SIMULATOR_CONNECTION_ID;
   if (!simNumber) return false;
   if (!payload) return false;
-  return payload.direction === 'incoming' && payload.to === simNumber;
+  if (payload.to !== simNumber) return false;
+  // When a self-call goes through (outbound leg on llmcalls app → inbound
+  // leg on llmcalls-simulator app), BOTH legs share `to=+simNumber`. We
+  // must distinguish by the Telnyx call control application the event
+  // came from. Only the inbound leg comes from the simulator connection.
+  if (simConnectionId && payload.connection_id !== simConnectionId) {
+    return false;
+  }
+  return payload.direction === 'incoming';
 }
 
 function getTelnyxVoice(config: TransferConfigType): string {
