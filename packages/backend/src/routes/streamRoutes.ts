@@ -288,6 +288,18 @@ function openDeepgram(
       return;
     }
 
+    // TEMP DIAG — log Deepgram message types to diagnose silent STT
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sDiag: any = state;
+    if (!sDiag._dgMsgCounts) sDiag._dgMsgCounts = {};
+    sDiag._dgMsgCounts[msg.type] = (sDiag._dgMsgCounts[msg.type] || 0) + 1;
+    if (!sDiag._dgFirstMsgSeen) {
+      sDiag._dgFirstMsgSeen = true;
+      console.log(
+        `[DG-DIAG] first msg type="${msg.type}" payload=${JSON.stringify(msg).slice(0, 200)}`
+      );
+    }
+
     if (msg.type === 'SpeechStarted') {
       // Capture the moment Deepgram's VAD decides the user began speaking.
       // Only update if a turn isn't already being timed — otherwise mid-turn
@@ -455,7 +467,11 @@ function openDeepgram(
   });
 
   dgWs.on('close', (code: number) => {
-    console.log(`[STREAM-STT] Deepgram WS closed (code=${code})`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sDiag: any = state;
+    console.log(
+      `[STREAM-STT] Deepgram WS closed (code=${code}) msg_counts=${JSON.stringify(sDiag._dgMsgCounts || {})}`
+    );
     // Clear pointer so media frames start buffering instead of blindly sending.
     if (state.dgWs === dgWs) state.dgWs = null;
 
@@ -644,15 +660,14 @@ export function attachStreamServer(httpServer: Server): void {
             `[STREAM-DIAG] first media frame for track="${track}" on ${state.callControlId.slice(-20)}`
           );
         }
-        // Accept inbound, outbound, and "both" labels — Telnyx's naming
-        // differs slightly across call types (inbound_track vs inbound).
-        const isInboundLike =
-          track === 'inbound' ||
-          track === 'inbound_track' ||
-          track === 'outbound' ||
-          track === 'outbound_track' ||
-          track === 'both_tracks';
-        if (!isInboundLike) return;
+        // Only forward the INBOUND track to Deepgram. Interleaving inbound
+        // (remote party / simulator) with outbound (our own TTS) produced a
+        // garbled stream that never hit endpointing silence — Deepgram kept
+        // returning interim Results but no is_final. Accept label variants
+        // (Telnyx sends "inbound" on normal calls, may send "inbound_track"
+        // in some configs).
+        const isInbound = track === 'inbound' || track === 'inbound_track';
+        if (!isInbound) return;
         const payload = (mediaData?.payload as string) || '';
         if (!payload) return;
 
