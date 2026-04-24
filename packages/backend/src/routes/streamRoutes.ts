@@ -668,19 +668,16 @@ export function attachStreamServer(httpServer: Server): void {
             `[STREAM-DIAG] first media frame for track="${track}" on ${state.callControlId.slice(-20)}`
           );
         }
-        // Forward all track labels to Deepgram. On cross-app self-calls,
-        // sending only "inbound" produced SpeechStarted + interim Results
-        // with EMPTY transcripts (audio arrived but not enough signal for
-        // Deepgram to decode words). Sending both "inbound" and "outbound"
-        // tracks mixed together is what produced the one successful
-        // transcript ("Hi there. This is Anna..."). Until we understand
-        // exactly why, match the config that works.
-        const isTelnyxTrack =
-          track === 'inbound' ||
-          track === 'inbound_track' ||
-          track === 'outbound' ||
-          track === 'outbound_track';
-        if (!isTelnyxTrack) return;
+        // Only forward INBOUND-track frames to Deepgram. both_tracks on
+        // Telnyx sends BOTH inbound + outbound as separate messages with
+        // track labels. If we forwarded both, Deepgram sees an interleaved
+        // stream (sim voice + our own AI TTS every 20ms) that decodes to
+        // empty text after the first utterance — that's exactly what
+        // diagnostic runs showed: first utterance transcribed cleanly,
+        // then outbound frames started arriving and subsequent results
+        // went empty. Inbound-only = clean remote-party audio.
+        const isInbound = track === 'inbound' || track === 'inbound_track';
+        if (!isInbound) return;
         const payload = (mediaData?.payload as string) || '';
         if (!payload) return;
 
