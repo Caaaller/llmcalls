@@ -288,26 +288,6 @@ function openDeepgram(
       return;
     }
 
-    // TEMP DIAG — log Deepgram message types to diagnose silent STT
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sDiag: any = state;
-    if (!sDiag._dgMsgCounts) sDiag._dgMsgCounts = {};
-    sDiag._dgMsgCounts[msg.type] = (sDiag._dgMsgCounts[msg.type] || 0) + 1;
-    if (!sDiag._dgFirstMsgSeen) {
-      sDiag._dgFirstMsgSeen = true;
-      console.log(
-        `[DG-DIAG] first msg type="${msg.type}" payload=${JSON.stringify(msg).slice(0, 200)}`
-      );
-    }
-    // Log first 8 Results' transcript content to see what DG is hearing.
-    if (msg.type === 'Results' && (sDiag._dgMsgCounts.Results ?? 0) <= 8) {
-      const r = msg as DeepgramResult;
-      const t = r.channel?.alternatives?.[0]?.transcript ?? '';
-      console.log(
-        `[DG-DIAG] Result #${sDiag._dgMsgCounts.Results} is_final=${r.is_final} sf=${r.speech_final} text="${t.slice(0, 100)}"`
-      );
-    }
-
     if (msg.type === 'SpeechStarted') {
       // Capture the moment Deepgram's VAD decides the user began speaking.
       // Only update if a turn isn't already being timed — otherwise mid-turn
@@ -475,11 +455,7 @@ function openDeepgram(
   });
 
   dgWs.on('close', (code: number) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sDiag: any = state;
-    console.log(
-      `[STREAM-STT] Deepgram WS closed (code=${code}) msg_counts=${JSON.stringify(sDiag._dgMsgCounts || {})}`
-    );
+    console.log(`[STREAM-STT] Deepgram WS closed (code=${code})`);
     // Clear pointer so media frames start buffering instead of blindly sending.
     if (state.dgWs === dgWs) state.dgWs = null;
 
@@ -655,19 +631,6 @@ export function attachStreamServer(httpServer: Server): void {
       } else if (event === 'media' && state) {
         const mediaData = msg.media as Record<string, unknown> | undefined;
         const track = (mediaData?.track as string) || '';
-        // TEMP DIAG: log first media frame per track so we can see what
-        // Telnyx is actually sending. Remove once self-call transcripts work.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const s: any = state;
-        if (!s._seenTracks) s._seenTracks = new Set();
-        if (!s._mediaCounts) s._mediaCounts = {};
-        s._mediaCounts[track] = (s._mediaCounts[track] || 0) + 1;
-        if (!s._seenTracks.has(track)) {
-          s._seenTracks.add(track);
-          console.log(
-            `[STREAM-DIAG] first media frame for track="${track}" on ${state.callControlId.slice(-20)}`
-          );
-        }
         // Only forward INBOUND-track frames to Deepgram. both_tracks on
         // Telnyx sends BOTH inbound + outbound as separate messages with
         // track labels. If we forwarded both, Deepgram sees an interleaved
@@ -688,11 +651,6 @@ export function attachStreamServer(httpServer: Server): void {
           state.audioBuffer.push(pcmuBytes);
         }
       } else if (event === 'stop' && state) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const s: any = state;
-        console.log(
-          `[STREAM-DIAG] stop on ${state.callControlId.slice(-20)} — media counts: ${JSON.stringify(s._mediaCounts || {})}`
-        );
         // Flush any accumulated transcript that Deepgram hasn't sent UtteranceEnd for
         const remaining = state.transcript.trim();
         if (remaining) {
