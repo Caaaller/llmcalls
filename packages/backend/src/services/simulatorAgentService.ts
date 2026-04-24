@@ -15,18 +15,16 @@
 import telnyxService from './telnyxService';
 import { toError } from '../utils/errorUtils';
 
-// Kokoro voices render reliably through Telnyx's cross-app bridge + PCMU
-// codec → Deepgram pipeline. Some Polly Neural voices were rendering in a
-// way Deepgram couldn't transcribe (0 is_final events despite 500+ audio
-// frames received). Sticking with Kokoro until we can isolate which Polly
-// voices work and which don't. Variety within Kokoro's male/female range
-// still exists, and filler prefixes + script variance carry most of the
-// "not robotic" feel.
+// AWS Polly Neural voices. Paradoxically, the ONE run that produced a
+// successful transcript on the cross-app self-call was with Polly, not
+// Kokoro — even though we expected Kokoro to be more reliable through
+// Telnyx's PCMU pipeline. Matching the known-good config until we can
+// isolate why.
 const SIM_VOICES = [
-  'Telnyx.KokoroTTS.am_michael',
-  'Telnyx.KokoroTTS.af_bella',
-  'Telnyx.KokoroTTS.am_adam',
-  'Telnyx.KokoroTTS.af_jessica',
+  'AWS.Polly.Joanna-Neural',
+  'AWS.Polly.Matthew-Neural',
+  'AWS.Polly.Ruth-Neural',
+  'AWS.Polly.Stephen-Neural',
 ];
 
 const AGENT_NAMES = [
