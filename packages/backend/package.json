@@ -12,6 +12,7 @@
     "test:live": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=liveCallEval",
     "test:live:record": "RECORD_CALLS=1 jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=liveCallEval",
     "verify:testrun": "ts-node src/scripts/verifyLatestTestRun.ts",
+    "eval:timestamps": "ts-node src/scripts/evaluateTimestamps.ts",
     "test:replay": "REPLAY_EVAL_CONCURRENCY=1 jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=replayCallEval",
     "test:replay-or-live": "TEST_MODE=replay-or-live jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=replayCallEval",
     "test:stt": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=sttEval",
