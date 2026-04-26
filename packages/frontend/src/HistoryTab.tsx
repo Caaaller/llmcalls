@@ -12,9 +12,9 @@ import {
   type InitiateCallPayload,
   type InitiateCallResponse,
 } from './api/client';
-import { useCallRecording, getSeekSeconds } from './hooks/useCallRecording';
+import { useCallRecording } from './hooks/useCallRecording';
 import { CallRecordingPlayer } from './components/CallRecordingPlayer';
-import CallEventRow from './components/CallEventRow';
+import CallEventTimeline from './components/CallEventTimeline';
 import { formatDateTime, formatDurationMs } from './utils/callFormatting';
 
 interface StatusBadgeMeta {
@@ -240,49 +240,19 @@ function CallDetailView({ call, onCallInitiated }: CallDetailViewProps) {
         </div>
       )}
 
-      {call.events &&
-        call.events.length > 0 &&
-        (() => {
-          // Internal diagnostic events (turn_timing sub-timestamps) are stored
-          // alongside transcript events but should not render in the timeline —
-          // they have no text body so they showed up as empty rows.
-          const visibleEvents = call.events.filter(
-            e => e.eventType !== 'turn_timing'
-          );
-          if (visibleEvents.length === 0) return null;
-          return (
-            <div className="test-cases-section">
-              <div className="section-label">
-                Event Timeline ({visibleEvents.length} events)
-              </div>
-              {visibleEvents.map((event, idx) => {
-                const seekSec = getSeekSeconds(event.timestamp, call.startTime);
-                const nextEvent = visibleEvents[idx + 1];
-                const nextSeekSec = nextEvent
-                  ? getSeekSeconds(nextEvent.timestamp, call.startTime)
-                  : Infinity;
-                const isActive =
-                  !!recordingUrl &&
-                  !!audioRef.current &&
-                  !audioRef.current.paused &&
-                  audioCurrentTime >= seekSec &&
-                  audioCurrentTime < nextSeekSec;
-                return (
-                  <CallEventRow
-                    key={idx}
-                    event={event}
-                    isActive={isActive}
-                    isSeekable={!!recordingUrl}
-                    seekSeconds={seekSec}
-                    onSeek={() =>
-                      handleSeekToEvent(event.timestamp, call.startTime)
-                    }
-                  />
-                );
-              })}
-            </div>
-          );
-        })()}
+      {call.events && call.events.length > 0 && (
+        <CallEventTimeline
+          events={call.events}
+          startTime={call.startTime}
+          endTime={call.endTime}
+          recordingUrl={recordingUrl}
+          audioRef={audioRef}
+          audioCurrentTime={audioCurrentTime}
+          onSeek={handleSeekToEvent}
+          showHangupMarker
+          sectionLabel={`Event Timeline (${call.events.filter(e => e.eventType !== 'turn_timing').length} events)`}
+        />
+      )}
     </div>
   );
 }
