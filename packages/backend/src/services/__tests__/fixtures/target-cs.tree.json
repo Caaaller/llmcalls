@@ -2,7 +2,7 @@
   "version": 2,
   "id": "target-cs",
   "testCaseId": "target-cs",
-  "lastRecordedAt": "2026-04-23T02:13:14.987Z",
+  "lastRecordedAt": "2026-04-26T05:16:28.320Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,8 +23,8 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-16T22:16:31.297Z",
-        "isLatestPath": false,
+        "recordedAt": "2026-04-26T05:16:28.319Z",
+        "isLatestPath": true,
         "child": {
           "id": "n1",
           "ivrSpeech": "In store purchase,",
@@ -465,8 +465,8 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-16T22:16:31.297Z",
-              "isLatestPath": false,
+              "recordedAt": "2026-04-26T05:16:28.320Z",
+              "isLatestPath": true,
               "child": {
                 "id": "n16",
                 "ivrSpeech": "Sorry. We didn't get that. Please try again. In store purchase, experience, or merchandise, Target store experience, press 1.",
@@ -611,6 +611,121 @@
                       "reachedHuman": true,
                       "dtmfDigits": ["1", "2"]
                     }
+                  },
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-26T05:16:28.320Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n35",
+                      "ivrSpeech": "press 2. Safety, property damage, injury, injury, or illness concern",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "1",
+                            "reason": "AI selected: Loop detected. The system is repeating the same menu options from Turn 2 (Menu 1 and Menu 2 are identical). The speech is garbled but contains the same menu structure: 'Press 1 for in store purchase, experience, or merchandise' repeated multiple times. Since we've already heard this menu and pressed 1 once, and the system says 'Sorry. We didn't get that. Please try again,' this indicates our previous DTMF (1) was not recognized. However, the menu IS complete (we've seen it before in PREVIOUS MENUS SEEN). The call purpose is 'question about a recent in-store purchase,' which matches 'Press 1 for in store purchase, experience, or merchandise.' We must press 1 again, more clearly, as the first attempt failed to register.",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-26T05:16:28.320Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n36",
+                            "ivrSpeech": "Sorry. We didn't get that. Please try again. Target store experience, press 1. Price adjustments or Target circle, press 2. Safety, property damage, injury, or illness concern with a product",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-26T05:09:34.650Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 74,
+                                  "reachedHuman": false,
+                                  "dtmfDigits": ["1", "1"]
+                                }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "press_digit",
+                                  "digit": "1",
+                                  "reason": "AI selected: Menu is complete (seen in previous turns). Current menu has 4 options: Press 1 for price adjustments or Target Circle, Press 2 for safety/property/injury/illness, Press 3 for quality concern, Press 4 (incomplete). Call purpose is 'question about a recent in-store purchase' — this best matches option 1 (price adjustments or Target Circle, which are in-store purchase-related). Pressing 1.",
+                                  "detected": {
+                                    "isIVRMenu": true,
+                                    "menuOptions": [],
+                                    "isMenuComplete": true,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-26T05:16:28.320Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n37",
+                                  "ivrSpeech": "Sorry we missed you. We're closed for the night. But you can try us again tomorrow. In the meantime,",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "Thank you. Goodbye.",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-26T05:16:28.320Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 300,
+                                        "reachedHuman": false,
+                                        "dtmfDigits": ["1", "1", "1"]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
                   }
                 ]
               }
@@ -680,7 +795,7 @@
           }
         },
         "recordedAt": "2026-04-23T02:13:14.987Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n17",
           "ivrSpeech": "In store purchase, experience, or merchandise, press 1. Gift registry, press 2.",
@@ -700,7 +815,7 @@
                 }
               },
               "recordedAt": "2026-04-23T02:13:14.987Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n22",
                 "ivrSpeech": "Sorry. We didn't get that. Please try again. In Target store experience, press 1. Price adjustments or Target Circle, press 2. Safety, property damage, injury, or illness concern with a product, press 3. Quality concern with a product, press 4. Recalls, press 5. To return to the main menu, press star.",
@@ -720,7 +835,7 @@
                       }
                     },
                     "recordedAt": "2026-04-23T02:13:14.987Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n23",
                       "ivrSpeech": "Sorry. We didn't get that. Please try again. Target store experience, press 1. Price",
@@ -975,7 +1090,7 @@
                             }
                           },
                           "recordedAt": "2026-04-23T02:13:14.987Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n34",
                             "ivrSpeech": "Hello. This is Tina with guest relations. How can I help you?",
@@ -995,7 +1110,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-23T02:13:14.987Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "terminal": true,
                                   "finalStatus": "initiated",

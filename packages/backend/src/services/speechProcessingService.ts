@@ -404,6 +404,13 @@ export async function processSpeech({
       callHistoryService
         .addConversation(callSid, 'user', speechResult, userTimestamp)
         .catch(err => console.error('Error adding conversation:', err));
+      // Clear the speech-start anchor now that we've consumed it. Otherwise
+      // DTMF-only turns (where AI never speaks → recordTurnTiming never fires)
+      // leave the anchor stuck at turn 1's value, and every subsequent user
+      // event inherits that timestamp.
+      callStateManager.updateCallState(callSid, {
+        userSpeechStartedAt: undefined,
+      });
     }
 
     const actionHistory = callState.actionHistory || [];
