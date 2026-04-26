@@ -7,7 +7,7 @@
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "dev:watch": "nodemon --watch src --exec ts-node src/server.ts",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --forceExit",
     "test:info-request": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=infoRequest",
     "test:live": "jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=liveCallEval",
     "test:live:record": "RECORD_CALLS=1 jest --runInBand --forceExit --testPathIgnorePatterns=/node_modules/ --testPathPatterns=liveCallEval",

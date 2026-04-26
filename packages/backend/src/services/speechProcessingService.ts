@@ -297,10 +297,13 @@ async function speakAndLog(
 ): Promise<void> {
   // The call-ended short-circuit lives in telnyxService.guardedAction now —
   // single source of truth. speakText will no-op if the call is tombstoned.
-  callHistoryService
-    .addConversation(callSid, 'ai', text)
-    .catch(err => console.error('Error adding conversation:', err));
+  // Stamp at dispatch time as a placeholder; recordTurnTiming will update
+  // this entry's timestamp to the real ttsSpeakStartedAt once the
+  // call.speak.started webhook arrives.
   const dispatchedAt = Date.now();
+  callHistoryService
+    .addConversation(callSid, 'ai', text, new Date(dispatchedAt))
+    .catch(err => console.error('Error adding conversation:', err));
   const prev = callStateManager.getCallState(callSid);
   callStateManager.updateCallState(callSid, {
     isSpeaking: true,
@@ -391,9 +394,23 @@ export async function processSpeech({
     }
 
     if (!testMode) {
+      // Stamp the user-conversation event at the moment Deepgram VAD detected
+      // speech start, NOT at persist-time. Without this, the event timestamp
+      // ends up many seconds late (after STT finalizes + AI thinks + persist),
+      // making the recording-jump-to-event UX broken (mean drift was -11s).
+      const userTimestamp = callState.userSpeechStartedAt
+        ? new Date(callState.userSpeechStartedAt)
+        : null;
       callHistoryService
-        .addConversation(callSid, 'user', speechResult)
+        .addConversation(callSid, 'user', speechResult, userTimestamp)
         .catch(err => console.error('Error adding conversation:', err));
+      // Clear the speech-start anchor now that we've consumed it. Otherwise
+      // DTMF-only turns (where AI never speaks → recordTurnTiming never fires)
+      // leave the anchor stuck at turn 1's value, and every subsequent user
+      // event inherits that timestamp.
+      callStateManager.updateCallState(callSid, {
+        userSpeechStartedAt: undefined,
+      });
     }
 
     const actionHistory = callState.actionHistory || [];
@@ -986,8 +1003,15 @@ export async function processSpeech({
             type: 'ai',
             text: `[Spoken digits: ${dtmfDigits}]`,
           });
+          // Stamp at dispatch time as a placeholder; recordTurnTiming will
+          // update to true ttsSpeakStartedAt when call.speak.started arrives.
           callHistoryService
-            .addConversation(callSid, 'ai', formatDigitsForSpeech(dtmfDigits))
+            .addConversation(
+              callSid,
+              'ai',
+              formatDigitsForSpeech(dtmfDigits),
+              new Date()
+            )
             .catch(err => console.error('Error adding conversation:', err));
 
           callStateManager.updateCallState(callSid, { isSpeaking: true });
