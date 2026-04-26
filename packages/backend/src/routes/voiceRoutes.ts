@@ -348,6 +348,18 @@ function recordTurnTiming(callControlId: string): void {
     }),
     'Error persisting turn_timing event'
   );
+
+  // Re-stamp the most recent AI conversation event with the true
+  // ttsSpeakStartedAt — the moment Telnyx actually started playing audio.
+  // The event was originally written at dispatch time (best estimate
+  // available pre-webhook), which runs ~1-3s ahead of audible playback.
+  logOnError(
+    callHistoryService.updateLastAIConversationTimestamp(
+      callControlId,
+      new Date(ttsSpeakStartedAt)
+    ),
+    'Error updating AI conversation timestamp'
+  );
 }
 
 function percentile(sorted: number[], p: number): number {

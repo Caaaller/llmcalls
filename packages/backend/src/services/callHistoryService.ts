@@ -117,6 +117,61 @@ class CallHistoryService {
   }
 
   /**
+   * Re-stamp the most recent AI conversation event's timestamp.
+   *
+   * Called from the call.speak.started webhook handler so the event reflects
+   * the moment audio actually started playing (the true anchor in the
+   * recording) rather than the dispatch-time placeholder it was written with.
+   * Updates BOTH the `events[]` and the legacy `conversation[]` entry to
+   * keep them in sync.
+   */
+  async updateLastAIConversationTimestamp(
+    callSid: string,
+    timestamp: Date
+  ): Promise<void> {
+    if (!isMongoAvailable()) return;
+
+    try {
+      const call = await CallHistory.findOne({ callSid });
+      if (!call) return;
+
+      // Find the most recent conversation/ai event by index.
+      let lastEventIdx = -1;
+      for (let i = (call.events?.length ?? 0) - 1; i >= 0; i--) {
+        const e = call.events![i];
+        if (e.eventType === 'conversation' && e.type === 'ai') {
+          lastEventIdx = i;
+          break;
+        }
+      }
+
+      let lastConvIdx = -1;
+      for (let i = (call.conversation?.length ?? 0) - 1; i >= 0; i--) {
+        if (call.conversation![i].type === 'ai') {
+          lastConvIdx = i;
+          break;
+        }
+      }
+
+      const update: Record<string, Date> = {};
+      if (lastEventIdx >= 0) {
+        update[`events.${lastEventIdx}.timestamp`] = timestamp;
+      }
+      if (lastConvIdx >= 0) {
+        update[`conversation.${lastConvIdx}.timestamp`] = timestamp;
+      }
+      if (Object.keys(update).length === 0) return;
+
+      await CallHistory.findOneAndUpdate({ callSid }, { $set: update });
+    } catch (error: unknown) {
+      console.error(
+        '❌ Error updating AI conversation timestamp:',
+        getErrorMessage(error)
+      );
+    }
+  }
+
+  /**
    * Record a DTMF press
    */
   async addDTMF(
