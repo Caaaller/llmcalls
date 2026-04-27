@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "id": "directv-cs",
+  "testCaseId": "directv-cs",
+  "lastRecordedAt": "2026-04-27T03:47:27.904Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "Thank you for calling DIRECTV.",
+    "children": [
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-27T03:47:27.904Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "This call is being recorded for quality assurance.",
+          "children": [
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-27T03:47:27.904Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "Would you like to speak with a sales agent to establish a new DIRECTV account? Please say yes or no.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "yes",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-27T03:47:27.904Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "terminal": true,
+                      "finalStatus": "initiated",
+                      "durationSeconds": 47,
+                      "reachedHuman": false,
+                      "dtmfDigits": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

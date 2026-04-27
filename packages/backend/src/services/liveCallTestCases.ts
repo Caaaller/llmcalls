@@ -192,6 +192,75 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
       maxDurationSeconds: 600,
     },
   },
+  {
+    id: 'hulu-cs',
+    name: 'Hulu CS — straight-to-hold streaming support',
+    description:
+      'Hulu has no menu — the line goes straight to a hold queue for a representative. Validates the simple "wait for human" path with no DTMF or speech navigation.',
+    phoneNumber: '+18774858411',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'tmobile-cs',
+    name: 'T-Mobile CS — conversational IVR + DTMF menu to reach a human',
+    description:
+      'T-Mobile starts with conversational AI ("how can I help today?"), then a DTMF menu without a "representative" option (Home Internet / prepaid / business / new service). AI must navigate the menu and reach a hold queue. Original directory tip said "spam #" but the IVR has been redesigned — assertion intentionally does not pin specific digits.',
+    phoneNumber: '+18774531304',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'optimum-cs',
+    name: 'Optimum (Cablevision) CS — language select then account-phone lookup',
+    description:
+      'Optimum requires language selection up front, then asks for the account phone number before routing to a human. Tests language-selection mechanic plus account-phone entry.',
+    phoneNumber: '+18662183025',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'directv-cs',
+    name: 'DirecTV CS — pure speech yes/no IVR',
+    description:
+      'DirecTV uses a speech-only IVR — the AI must say "Yes" and wait. No DTMF available. Different from UMR (keyword Q&A) and Walmart (conversational AI bypass).',
+    phoneNumber: '+18887772454',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'lg-cs',
+    name: 'LG CS — multi-stage speech routing',
+    description:
+      'LG asks for "customer service" via speech, then a device name (e.g. "TV", "phone") via speech. Tests multi-stage speech-to-speech routing.',
+    phoneNumber: '+18002430000',
+    callPurpose: 'speak with a representative about a TV',
+    customInstructions:
+      'When asked what kind of product, say "TV". Use short keyword answers throughout.',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  // valve-voicemail removed 2026-04-26: number +14258899642 no longer answers
+  // (Telnyx call ended is_alive=false, no MongoDB record, no recording). The
+  // negative-test assertion (`!transferred && !onHold`) false-passes on
+  // inactivity, indistinguishable from real voicemail detection. A negative
+  // test needs (a) a target that reliably answers with voicemail, and (b) a
+  // positive signal in the assertion (e.g. AI emitted a "voicemail_detected"
+  // termination event). Until both are in place, no negative test.
 ];
 
 export const LONG_TEST_CASES: LiveCallTestCase[] = [
