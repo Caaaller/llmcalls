@@ -250,12 +250,24 @@
   margin-bottom: 4px;
 }
 
-.summary-card-value.total { color: #1a1d2e; }
-.summary-card-value.passed { color: #28a745; }
-.summary-card-value.failed { color: #dc3545; }
-.summary-card-value.closed { color: #d4a017; }
-.summary-card-value.skipped { color: #6c757d; }
-.summary-card-value.duration { color: #667eea; }
+.summary-card-value.total {
+  color: #1a1d2e;
+}
+.summary-card-value.passed {
+  color: #28a745;
+}
+.summary-card-value.failed {
+  color: #dc3545;
+}
+.summary-card-value.closed {
+  color: #d4a017;
+}
+.summary-card-value.skipped {
+  color: #6c757d;
+}
+.summary-card-value.duration {
+  color: #667eea;
+}
 
 .summary-card-label {
   font-size: 11px;

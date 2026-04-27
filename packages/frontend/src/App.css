@@ -39,8 +39,12 @@ body {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── App Layout ── */
@@ -281,7 +285,9 @@ body {
   padding: 4px 6px;
   border-radius: 4px;
   font-size: 0.85rem;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .icon-btn:hover {
@@ -318,7 +324,9 @@ body {
   border-radius: 6px;
   font-size: 0.88rem;
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -384,7 +392,9 @@ body {
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 500;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .logout-btn:hover {
