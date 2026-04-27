@@ -26,39 +26,31 @@ export interface LiveCallTestCase {
 /**
  * Self-call simulator case.
  *
- * BLOCKED by Known Issue #D: Telnyx's cross-app stream fork delivers
- * garbage audio (constant-energy noise, not the actual call audio). The
- * recording pipeline works but the WebSocket stream pipeline doesn't —
- * confirmed via ffprobe + Deepgram HTTP comparison on a downloaded
- * failed call. Audio analysis: stream dump RMS 3647-4705 uniform across
- * 9s, recording RMS 1 in pauses / 1179-2309 during speech.
+ * Issue #D RESOLVED 2026-04-27 by Workaround A (PR #29): both DIDs now
+ * share the single `llmcalls` Call Control App, bypassing Telnyx's
+ * cross-app SIP bridge that was corrupting stream-fork audio. Verified
+ * RMS dynamic range 72.8 dB on live call vs broken ~2 dB uniform.
  *
- * Equivalent pipeline validation is now done by
- * `humanDetectionPipeline.test.ts` (synthetic transcripts → processSpeech
- * → state machine assertions) with zero Telnyx dependency.
- *
- * This live fixture is gated off by default. Re-enable with
- * `ENABLE_SELF_CALL_SIMULATOR=1` only when testing Telnyx fixes.
+ * Test runs when `TELNYX_SIMULATOR_NUMBER` is set — the env var IS the
+ * opt-in. No separate enable-flag.
  */
-const SIMULATOR_CASES: LiveCallTestCase[] =
-  process.env.TELNYX_SIMULATOR_NUMBER &&
-  process.env.ENABLE_SELF_CALL_SIMULATOR === '1'
-    ? [
-        {
-          id: 'self-call-human-greeting',
-          name: 'Self-call simulator — AI detects human greeting and confirms',
-          description:
-            'Places a call to our own simulator DID which auto-answers with a randomized "human agent" greeting. BLOCKED by Telnyx cross-app stream-fork audio corruption — see Known Issue #D in CHANGES-LOG. Use humanDetectionPipeline.test.ts for equivalent state-machine validation without the Telnyx dependency.',
-          phoneNumber: process.env.TELNYX_SIMULATOR_NUMBER as string,
-          callPurpose: 'Test call to the simulator agent',
-          expectedOutcome: {
-            shouldReachHuman: true,
-            requireConfirmedTransfer: true,
-            maxDurationSeconds: 60,
-          },
+const SIMULATOR_CASES: LiveCallTestCase[] = process.env.TELNYX_SIMULATOR_NUMBER
+  ? [
+      {
+        id: 'self-call-human-greeting',
+        name: 'Self-call simulator — AI detects human greeting and confirms',
+        description:
+          'Places a call to our own simulator DID which auto-answers with a randomized "human agent" greeting. Validates the full maybe_human → confirmation → human_detected pipeline against real Telnyx audio.',
+        phoneNumber: process.env.TELNYX_SIMULATOR_NUMBER as string,
+        callPurpose: 'Test call to the simulator agent',
+        expectedOutcome: {
+          shouldReachHuman: true,
+          requireConfirmedTransfer: true,
+          maxDurationSeconds: 60,
         },
-      ]
-    : [];
+      },
+    ]
+  : [];
 
 export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   ...SIMULATOR_CASES,
