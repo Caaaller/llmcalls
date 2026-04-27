@@ -1,0 +1,126 @@
+{
+  "version": 2,
+  "id": "hulu-cs",
+  "testCaseId": "hulu-cs",
+  "lastRecordedAt": "2026-04-27T03:47:27.233Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "Calling Hulu.",
+    "children": [
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-27T03:47:27.233Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "Phone calls may be recorded, including for quality assurance or training purposes.",
+          "children": [
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-27T03:47:27.233Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "If you have questions about your plan, including bundle options, or need help signing up,",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-27T03:47:27.233Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n3",
+                      "ivrSpeech": "press 1. For questions about your bill, including switching plans, managing your add ons, updating your payment information, or canceling your account. Press 2. If you have general questions about Hulu, can't log in, or need help with your devices or home network,",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "wait",
+                            "reason": "No action before next speech",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-27T03:47:27.233Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n4",
+                            "ivrSpeech": "press 3. For help with playback errors buffering, crashing, or freezing videos, press 4. If you're having trouble loading Hulu, navigating the app, or using features like My Stuff or Cloud DVR, press 5. To learn more about the shows and movies on Hulu, including live TV and premium add ons,",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-27T03:47:27.233Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "terminal": true,
+                                  "finalStatus": "initiated",
+                                  "durationSeconds": 77,
+                                  "reachedHuman": true,
+                                  "dtmfDigits": []
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

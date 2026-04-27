@@ -206,14 +206,13 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
   },
   {
     id: 'tmobile-cs',
-    name: 'T-Mobile CS — spam # to bypass to a human',
+    name: 'T-Mobile CS — conversational IVR + DTMF menu to reach a human',
     description:
-      'T-Mobile bypass is a sequence of # presses (# → # → #), unlike most IVRs that use 0. Tests pure-# bypass pattern.',
+      'T-Mobile starts with conversational AI ("how can I help today?"), then a DTMF menu without a "representative" option (Home Internet / prepaid / business / new service). AI must navigate the menu and reach a hold queue. Original directory tip said "spam #" but the IVR has been redesigned — assertion intentionally does not pin specific digits.',
     phoneNumber: '+18774531304',
     callPurpose: 'speak with a representative',
     expectedOutcome: {
       shouldReachHuman: true,
-      expectedDigits: ['#'],
       maxDurationSeconds: 300,
     },
   },
@@ -255,19 +254,13 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
       maxDurationSeconds: 300,
     },
   },
-  {
-    id: 'valve-voicemail',
-    name: 'Valve CS — voicemail/callback flow (negative human test)',
-    description:
-      'Valve answers with a voicemail prompt asking the caller to leave a message for a callback. AI must NOT detect this as a human and must end the call gracefully without transfer. Negative-path coverage for the human-detection state machine.',
-    phoneNumber: '+14258899642',
-    callPurpose: 'speak with a representative',
-    expectedOutcome: {
-      shouldReachHuman: false,
-      requireConfirmedTransfer: false,
-      maxDurationSeconds: 120,
-    },
-  },
+  // valve-voicemail removed 2026-04-26: number +14258899642 no longer answers
+  // (Telnyx call ended is_alive=false, no MongoDB record, no recording). The
+  // negative-test assertion (`!transferred && !onHold`) false-passes on
+  // inactivity, indistinguishable from real voicemail detection. A negative
+  // test needs (a) a target that reliably answers with voicemail, and (b) a
+  // positive signal in the assertion (e.g. AI emitted a "voicemail_detected"
+  // termination event). Until both are in place, no negative test.
 ];
 
 export const LONG_TEST_CASES: LiveCallTestCase[] = [

@@ -1,0 +1,335 @@
+{
+  "version": 2,
+  "id": "optimum-cs",
+  "testCaseId": "optimum-cs",
+  "lastRecordedAt": "2026-04-27T03:47:27.725Z",
+  "config": {
+    "callPurpose": "speak with a representative"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "This call may be recorded.",
+    "children": [
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-27T03:47:27.725Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "To get started, please say or enter the 10 digit phone number on your account. Or say use my account number. You can also say become a customer.",
+          "children": [
+            {
+              "aiAction": {
+                "action": "speak",
+                "speech": "representative",
+                "reason": "",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-27T03:47:27.725Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "Sorry. Please say or enter the 10 digit phone number on your account, or say use my account number. You can also say become a customer.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "speak",
+                      "speech": "representative",
+                      "reason": "",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-27T03:47:27.725Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n3",
+                      "ivrSpeech": "Sorry. I still didn't get that. Please say or enter the phone number associated with your account. Starting with the area code. To try a different way, you can say use my account number or press 1. If you're calling to start service with us, say become a customer or press 2.",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "speak",
+                            "speech": "use my account number",
+                            "reason": "",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-27T03:47:27.725Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n4",
+                            "ivrSpeech": "Sure. Please say or enter your account number. If you need a moment to find it, say hold on.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "speak",
+                                  "speech": "I don't have that information",
+                                  "reason": "",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-27T03:47:27.725Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n5",
+                                  "ivrSpeech": "You don't have the account number. Right?",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "speak",
+                                        "speech": "yes",
+                                        "reason": "",
+                                        "detected": {
+                                          "isIVRMenu": false,
+                                          "menuOptions": [],
+                                          "isMenuComplete": false,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-27T03:47:27.725Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n6",
+                                        "ivrSpeech": "Alright. I couldn't find your account. But I may be able to help you anyway. Let's continue.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-27T03:47:27.725Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n7",
+                                              "ivrSpeech": "Is this for your home or business?",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "home",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-27T03:47:27.725Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "id": "n8",
+                                                    "ivrSpeech": "Please tell me the ZIP code associated with your account.",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "speak",
+                                                          "speech": "I don't have that information",
+                                                          "reason": "",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-27T03:47:27.725Z",
+                                                        "isLatestPath": true,
+                                                        "child": {
+                                                          "id": "n9",
+                                                          "ivrSpeech": "You don't know it. Right?",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "speak",
+                                                                "speech": "yes",
+                                                                "reason": "",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-27T03:47:27.725Z",
+                                                              "isLatestPath": true,
+                                                              "child": {
+                                                                "id": "n10",
+                                                                "ivrSpeech": "Alright.",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "wait",
+                                                                      "reason": "No action before next speech",
+                                                                      "detected": {
+                                                                        "isIVRMenu": false,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": false,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-27T03:47:27.725Z",
+                                                                    "isLatestPath": true,
+                                                                    "child": {
+                                                                      "id": "n11",
+                                                                      "ivrSpeech": "How can I help you today?",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "speak",
+                                                                            "speech": "representative",
+                                                                            "reason": "",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-27T03:47:27.725Z",
+                                                                          "isLatestPath": true,
+                                                                          "child": {
+                                                                            "id": "n12",
+                                                                            "ivrSpeech": "I'll make sure you're connected to the right place. I just need you to say something like make a payment, talk about a bill start, or upgrade service, or technical support.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "speak",
+                                                                                  "speech": "representative",
+                                                                                  "reason": "",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-27T03:47:27.725Z",
+                                                                                "isLatestPath": true,
+                                                                                "child": {
+                                                                                  "id": "n13",
+                                                                                  "ivrSpeech": "Sure. In order to get you to the right agent, I just need you to say something like make a payment. Talk about a bill start, or upgrade service, remove a service or technical support,",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "speak",
+                                                                                        "speech": "technical support",
+                                                                                        "reason": "",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": false,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": false,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-27T03:47:27.725Z",
+                                                                                      "isLatestPath": true,
+                                                                                      "child": {
+                                                                                        "terminal": true,
+                                                                                        "finalStatus": "initiated",
+                                                                                        "durationSeconds": 179,
+                                                                                        "reachedHuman": true,
+                                                                                        "dtmfDigits": []
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
