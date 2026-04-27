@@ -22,7 +22,13 @@ jest.mock('telnyx', () => {
 process.env.TELNYX_API_KEY = 'test';
 process.env.TELNYX_PHONE_NUMBER = '+15555551212';
 
-import { pickSimulatorScript, __testing } from '../simulatorAgentService';
+import {
+  pickSimulatorScript,
+  matchesConfirmationQuestion,
+  isActiveSimulatorCall,
+  handleSimulatorTranscript,
+  __testing,
+} from '../simulatorAgentService';
 
 describe('pickSimulatorScript', () => {
   it('returns a script with all required fields populated across 100 calls', () => {
@@ -83,5 +89,126 @@ describe('simulator script pools', () => {
     expect(__testing.GREETING_TEMPLATES.length).toBeGreaterThanOrEqual(4);
     expect(__testing.CONFIRMATION_TEMPLATES.length).toBeGreaterThanOrEqual(5);
     expect(__testing.FOLLOWUP_TEMPLATES.length).toBeGreaterThanOrEqual(3);
+    expect(__testing.CONFIRMATION_KEYWORDS.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+describe('matchesConfirmationQuestion', () => {
+  const positives = [
+    'Hi, am I speaking with a live agent?',
+    'Am I speaking with a real person?',
+    'Are you a real human?',
+    'Is this a real human or a bot?',
+    'Hi there, are you human?',
+    'Just confirming — am I speaking to a live rep?',
+    'Quick check, are you real?',
+    'Sorry to ask — is this a person or an automated system?',
+    'Hi there! Live agent or bot?',
+    'Bot or human?',
+  ];
+
+  const negatives = [
+    'Hi, thanks for calling customer service, this is Jamie speaking, how can I help you today?',
+    "Hello, you've reached our support team.",
+    'Please hold while I connect you.',
+    'Your call is important to us.',
+    '',
+    "What's the issue you're calling about today?",
+  ];
+
+  it.each(positives)('matches confirmation phrase: %s', phrase => {
+    expect(matchesConfirmationQuestion(phrase)).toBe(true);
+  });
+
+  it.each(negatives)('does NOT match non-confirmation phrase: %s', phrase => {
+    expect(matchesConfirmationQuestion(phrase)).toBe(false);
+  });
+
+  it('is case-insensitive', () => {
+    expect(
+      matchesConfirmationQuestion('AM I SPEAKING WITH A LIVE AGENT?')
+    ).toBe(true);
+    expect(matchesConfirmationQuestion('Are You A Real Person')).toBe(true);
+  });
+});
+
+describe('handleSimulatorTranscript', () => {
+  const callControlId = 'test-sim-call-1';
+
+  beforeEach(() => {
+    __testing.activeSimulatorCalls.clear();
+  });
+
+  it('is a no-op for unknown call ids', () => {
+    expect(isActiveSimulatorCall(callControlId)).toBe(false);
+    expect(() =>
+      handleSimulatorTranscript(callControlId, 'are you a real person?')
+    ).not.toThrow();
+  });
+
+  it('triggers the confirmation when a keyword matches and stage is awaiting', () => {
+    let triggered = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'awaiting-confirmation-question',
+      confirmationTriggered: () => {
+        triggered = true;
+      },
+      awaitConfirmation: Promise.resolve(),
+    });
+
+    handleSimulatorTranscript(
+      callControlId,
+      'Hi there, am I speaking with a live agent?'
+    );
+    expect(triggered).toBe(true);
+  });
+
+  it('does NOT trigger when stage is past awaiting-confirmation', () => {
+    let triggered = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'confirmation-spoken',
+      confirmationTriggered: () => {
+        triggered = true;
+      },
+      awaitConfirmation: Promise.resolve(),
+    });
+
+    handleSimulatorTranscript(
+      callControlId,
+      'Hi there, am I speaking with a live agent?'
+    );
+    expect(triggered).toBe(false);
+  });
+
+  it('does NOT trigger on a non-matching transcript', () => {
+    let triggered = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'awaiting-confirmation-question',
+      confirmationTriggered: () => {
+        triggered = true;
+      },
+      awaitConfirmation: Promise.resolve(),
+    });
+
+    handleSimulatorTranscript(callControlId, 'Please hold for one moment.');
+    expect(triggered).toBe(false);
+  });
+
+  it('reports active simulator calls correctly', () => {
+    expect(isActiveSimulatorCall(callControlId)).toBe(false);
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'awaiting-confirmation-question',
+      confirmationTriggered: () => {},
+      awaitConfirmation: Promise.resolve(),
+    });
+    expect(isActiveSimulatorCall(callControlId)).toBe(true);
   });
 });

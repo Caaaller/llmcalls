@@ -18,6 +18,10 @@ import callStateManager from '../services/callStateManager';
 import { processSpeech } from '../services/speechProcessingService';
 import { shouldBargeIn } from '../services/bargeInService';
 import telnyxService from '../services/telnyxService';
+import {
+  isActiveSimulatorCall,
+  handleSimulatorTranscript,
+} from '../services/simulatorAgentService';
 import { toError } from '../utils/errorUtils';
 import {
   appendInterim,
@@ -593,6 +597,18 @@ export function attachStreamServer(httpServer: Server): void {
         silentHoldResetters.set(callControlId, resetSilentHoldTimer);
 
         openDeepgram(state, async text => {
+          // Simulator inbound legs reuse the generic Deepgram pipeline but
+          // must NOT run through processSpeech — that's the AI-caller logic
+          // and would try to navigate IVR menus on our own scripted agent.
+          // Route the transcript to the simulator's keyword detector instead.
+          if (isActiveSimulatorCall(callControlId)) {
+            console.log(
+              `[STREAM-STT][SIM] "${text.slice(0, 80)}" (${callControlId.slice(-20)})`
+            );
+            handleSimulatorTranscript(callControlId, text);
+            return;
+          }
+
           // Silent-hold timer only starts AFTER we've made at least one action —
           // before that, silence is just initial IVR greeting/intro gaps (Target scenario).
           const cs = callStateManager.getCallState(callControlId);
@@ -656,24 +672,30 @@ export function attachStreamServer(httpServer: Server): void {
         if (remaining) {
           console.log(`[STREAM-STT] Flushing on stop: "${remaining}"`);
           const callControlId = state.callControlId;
-          const callState = callStateManager.getCallState(callControlId);
-          if (!callState.isSpeaking) {
-            processSpeech({
-              callSid: callControlId,
-              speechResult: remaining,
-              isFirstCall: false,
-              baseUrl: '',
-              transferNumber: callState.transferConfig?.transferNumber,
-              callPurpose: callState.transferConfig?.callPurpose,
-              customInstructions: callState.customInstructions,
-              userPhone: callState.userPhone,
-              skipInfoRequests: callState.skipInfoRequests,
-            }).catch(err =>
-              console.error(
-                '[STREAM-STT] flush processSpeech error:',
-                toError(err).message
-              )
-            );
+          // Simulator legs: route the flushed transcript to the keyword
+          // detector, never through processSpeech.
+          if (isActiveSimulatorCall(callControlId)) {
+            handleSimulatorTranscript(callControlId, remaining);
+          } else {
+            const callState = callStateManager.getCallState(callControlId);
+            if (!callState.isSpeaking) {
+              processSpeech({
+                callSid: callControlId,
+                speechResult: remaining,
+                isFirstCall: false,
+                baseUrl: '',
+                transferNumber: callState.transferConfig?.transferNumber,
+                callPurpose: callState.transferConfig?.callPurpose,
+                customInstructions: callState.customInstructions,
+                userPhone: callState.userPhone,
+                skipInfoRequests: callState.skipInfoRequests,
+              }).catch(err =>
+                console.error(
+                  '[STREAM-STT] flush processSpeech error:',
+                  toError(err).message
+                )
+              );
+            }
           }
         }
         if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
