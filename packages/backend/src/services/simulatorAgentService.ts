@@ -10,6 +10,14 @@
  * Script elements are randomized per call — names, greetings, confirmations,
  * followups, and pause durations all vary. Each call should legitimately
  * differ so we're not just re-running the same stimulus.
+ *
+ * The flow is keyword-driven, not pure-timing: after the simulator speaks
+ * its greeting, it listens (via the streamRoutes Deepgram pipeline routed
+ * through `handleSimulatorTranscript`) for the AI caller's confirmation
+ * question ("am I speaking with a live agent?") and only then speaks its
+ * affirmative response. A timing-based fallback fires the confirmation if
+ * no keyword match arrives within the expected window — so this still
+ * works if Deepgram drops or the AI phrases the question oddly.
  */
 
 import telnyxService from './telnyxService';
@@ -90,6 +98,31 @@ const FOLLOWUP_TEMPLATES = [
   'What can I do for you?',
 ];
 
+// Phrases the AI caller is likely to use when verifying a human picked up.
+// Tolerant keyword set, not exact-string — the AI may phrase this many ways:
+// "Am I speaking with a live agent?", "Is this a real person?", "Are you a
+// human?", etc. Match if the transcript contains ANY of these substrings.
+const CONFIRMATION_KEYWORDS = [
+  'live agent',
+  'live person',
+  'live rep',
+  'real person',
+  'real human',
+  'real agent',
+  'a human',
+  'an actual human',
+  'speaking with',
+  'speaking to',
+  'is this a person',
+  'are you a person',
+  'are you human',
+  'are you a human',
+  'are you real',
+  'a bot or',
+  'bot or human',
+  'human or',
+];
+
 export interface SimulatorScript {
   agentName: string;
   voice: string;
@@ -118,6 +151,21 @@ function currentTimeOfDay(now: Date = new Date()): string {
 
 function fillTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => vars[key] ?? '');
+}
+
+/**
+ * True if the given transcript looks like the AI caller's confirmation
+ * question. Lowercase + substring match against `CONFIRMATION_KEYWORDS`.
+ *
+ * Tolerant on purpose: small set of high-signal substrings, not exact
+ * phrases. The AI phrases its confirmation question many ways and we'd
+ * rather over-trigger on a friendly "speaking with" than miss a confirm
+ * that uses "real person".
+ */
+export function matchesConfirmationQuestion(transcript: string): boolean {
+  if (!transcript) return false;
+  const lower = transcript.toLowerCase();
+  return CONFIRMATION_KEYWORDS.some(kw => lower.includes(kw));
 }
 
 /**
@@ -150,11 +198,10 @@ export function pickSimulatorScript(): SimulatorScript {
     confirmation: withFiller(confirmation),
     followup: withFiller(followup),
     pickupDelayMs: randomBetween(800, 2000),
-    // Give the AI time to hear the greeting, run through its pipeline,
-    // speak its "am I speaking with a live agent?" question, and have the
-    // sim's confirmation land before the AI's listen window closes. The
-    // AI's turn roughly: ~800ms endpointing + ~2000ms LLM + ~1000ms TTS
-    // pipeline = ~4s minimum. Pad to 6-9s so we're clearly past that.
+    // Fallback timer: if we never see a confirmation-question keyword in
+    // the AI caller's transcript, dispatch the confirmation anyway after
+    // this window so the test still completes the pipeline. Padded to
+    // cover greeting playback + AI's full turn (STT + LLM + TTS).
     greetingToConfirmationMs: randomBetween(6000, 9000),
     confirmationToFollowupMs: randomBetween(4000, 6000),
   };
@@ -165,14 +212,69 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Runtime state for one in-flight simulator call. Tracks the script + the
+ * stage the orchestrator is in, so an incoming transcript can decide
+ * whether to fast-forward the confirmation reply or ignore the line.
+ */
+interface SimulatorCallState {
+  script: SimulatorScript;
+  startedAt: number;
+  stage: 'awaiting-confirmation-question' | 'confirmation-spoken' | 'finished';
+  /** Resolves when a confirmation-question keyword is matched OR the fallback timer fires. */
+  confirmationTriggered: () => void;
+  /** Promise that resolves once `confirmationTriggered` has been called. */
+  awaitConfirmation: Promise<void>;
+}
+
+const activeSimulatorCalls = new Map<string, SimulatorCallState>();
+
+/**
+ * Returns true if `callControlId` is the inbound leg of an active simulator
+ * call. streamRoutes uses this to skip `processSpeech` (the AI-caller
+ * pipeline) and instead route transcripts to `handleSimulatorTranscript`.
+ */
+export function isActiveSimulatorCall(callControlId: string): boolean {
+  return activeSimulatorCalls.has(callControlId);
+}
+
+/**
+ * Feed a transcript heard on the simulator's inbound leg into the
+ * keyword-detection path. If it matches a confirmation question and the
+ * simulator is still waiting for one, trigger the confirmation reply
+ * immediately (skipping the fallback timer).
+ *
+ * No-op if the call isn't an active simulator call or if the simulator is
+ * already past the confirmation stage. Safe to call from streamRoutes for
+ * every utterance.
+ */
+export function handleSimulatorTranscript(
+  callControlId: string,
+  transcript: string
+): void {
+  const state = activeSimulatorCalls.get(callControlId);
+  if (!state) return;
+  if (state.stage !== 'awaiting-confirmation-question') return;
+  if (!matchesConfirmationQuestion(transcript)) return;
+
+  console.log(
+    `[SIM] Confirmation keyword matched on ${callControlId.slice(-20)}: "${transcript.slice(0, 80)}"`
+  );
+  state.confirmationTriggered();
+}
+
+/**
  * Orchestrates the scripted human-agent flow on an inbound call leg.
- * - Answer the call
- * - Pause (pick-up delay)
- * - Speak greeting
- * - Pause (listening for the AI's "am I speaking with a live agent?" prompt)
- * - Speak confirmation
- * - Pause, speak a short followup so the AI has something to react to
- * - Hang up after a hard cap (~25s from answer)
+ *
+ *   1. Answer the call
+ *   2. Pause (pick-up delay)
+ *   3. Speak greeting
+ *   4. Wait for the AI caller's confirmation question (keyword-matched
+ *      via `handleSimulatorTranscript`) OR until the fallback timer fires
+ *   5. Speak confirmation
+ *   6. Pause briefly so the AI can fire `human_detected` + initiate the
+ *      transfer attempt
+ *   7. Speak a short followup
+ *   8. Hang up after a hard cap (~45s from answer)
  *
  * Fire-and-forget — the webhook handler should not await this.
  */
@@ -180,6 +282,20 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
   const script = pickSimulatorScript();
   const startedAt = Date.now();
   const HARD_CAP_MS = 45_000;
+
+  let confirmationTriggered = () => {};
+  const awaitConfirmation = new Promise<void>(resolve => {
+    confirmationTriggered = resolve;
+  });
+
+  const state: SimulatorCallState = {
+    script,
+    startedAt,
+    stage: 'awaiting-confirmation-question',
+    confirmationTriggered,
+    awaitConfirmation,
+  };
+  activeSimulatorCalls.set(callControlId, state);
 
   console.log(
     `[SIM] Starting simulator flow for ${callControlId.slice(-20)} ` +
@@ -193,14 +309,24 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     if (Date.now() - startedAt > HARD_CAP_MS) return;
     await telnyxService.speakText(callControlId, script.greeting, script.voice);
 
-    await sleep(script.greetingToConfirmationMs);
+    // Race the keyword-match path against a fallback timer. Whichever
+    // resolves first wins. The fallback ensures we still complete the
+    // pipeline if Deepgram drops, the stream isn't wired, or the AI
+    // phrases its confirmation in a way no keyword catches.
+    await raceWithTimeout(awaitConfirmation, script.greetingToConfirmationMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
+
+    state.stage = 'confirmation-spoken';
     await telnyxService.speakText(
       callControlId,
       script.confirmation,
       script.voice
     );
 
+    // Give the AI ~5-7s to react: fire human_detected → kick off the
+    // bridge transfer. The transfer logic dials a third leg; once that
+    // happens, our hangup below cleanly tears down the simulator side
+    // without disrupting the bridge.
     await sleep(script.confirmationToFollowupMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
     await telnyxService.speakText(callControlId, script.followup, script.voice);
@@ -214,6 +340,8 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
       toError(err).message
     );
   } finally {
+    state.stage = 'finished';
+    activeSimulatorCalls.delete(callControlId);
     try {
       await telnyxService.terminateCall(callControlId);
     } catch {
@@ -223,10 +351,32 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
   }
 }
 
+/**
+ * Resolves when `promise` resolves OR after `timeoutMs` elapses, whichever
+ * comes first. Never rejects. Used to race the keyword-detection path
+ * against the fallback timer in the simulator flow.
+ */
+async function raceWithTimeout(
+  promise: Promise<void>,
+  timeoutMs: number
+): Promise<void> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<void>(resolve => {
+    timer = setTimeout(resolve, timeoutMs);
+  });
+  try {
+    await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 // Exposed for unit testing — do not use from production code.
 export const __testing = {
   AGENT_NAMES,
   GREETING_TEMPLATES,
   CONFIRMATION_TEMPLATES,
   FOLLOWUP_TEMPLATES,
+  CONFIRMATION_KEYWORDS,
+  activeSimulatorCalls,
 };
