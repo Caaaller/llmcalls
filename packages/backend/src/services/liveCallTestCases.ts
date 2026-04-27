@@ -192,6 +192,82 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
       maxDurationSeconds: 600,
     },
   },
+  {
+    id: 'hulu-cs',
+    name: 'Hulu CS — straight-to-hold streaming support',
+    description:
+      'Hulu has no menu — the line goes straight to a hold queue for a representative. Validates the simple "wait for human" path with no DTMF or speech navigation.',
+    phoneNumber: '+18774858411',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'tmobile-cs',
+    name: 'T-Mobile CS — spam # to bypass to a human',
+    description:
+      'T-Mobile bypass is a sequence of # presses (# → # → #), unlike most IVRs that use 0. Tests pure-# bypass pattern.',
+    phoneNumber: '+18774531304',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      expectedDigits: ['#'],
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'optimum-cs',
+    name: 'Optimum (Cablevision) CS — language select then account-phone lookup',
+    description:
+      'Optimum requires language selection up front, then asks for the account phone number before routing to a human. Tests language-selection mechanic plus account-phone entry.',
+    phoneNumber: '+18662183025',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'directv-cs',
+    name: 'DirecTV CS — pure speech yes/no IVR',
+    description:
+      'DirecTV uses a speech-only IVR — the AI must say "Yes" and wait. No DTMF available. Different from UMR (keyword Q&A) and Walmart (conversational AI bypass).',
+    phoneNumber: '+18887772454',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'lg-cs',
+    name: 'LG CS — multi-stage speech routing',
+    description:
+      'LG asks for "customer service" via speech, then a device name (e.g. "TV", "phone") via speech. Tests multi-stage speech-to-speech routing.',
+    phoneNumber: '+18002430000',
+    callPurpose: 'speak with a representative about a TV',
+    customInstructions:
+      'When asked what kind of product, say "TV". Use short keyword answers throughout.',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      maxDurationSeconds: 300,
+    },
+  },
+  {
+    id: 'valve-voicemail',
+    name: 'Valve CS — voicemail/callback flow (negative human test)',
+    description:
+      'Valve answers with a voicemail prompt asking the caller to leave a message for a callback. AI must NOT detect this as a human and must end the call gracefully without transfer. Negative-path coverage for the human-detection state machine.',
+    phoneNumber: '+14258899642',
+    callPurpose: 'speak with a representative',
+    expectedOutcome: {
+      shouldReachHuman: false,
+      requireConfirmedTransfer: false,
+      maxDurationSeconds: 120,
+    },
+  },
 ];
 
 export const LONG_TEST_CASES: LiveCallTestCase[] = [
