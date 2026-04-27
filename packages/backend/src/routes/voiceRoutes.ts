@@ -28,22 +28,20 @@ const STALL_TIMEOUT_MS = 2 * 60 * 1000;
  * Check if a `call.initiated` event belongs to our self-call simulator DID.
  * Returns false (skip) if `TELNYX_SIMULATOR_NUMBER` is unset so we never
  * accidentally activate the simulator in a prod-like env.
+ *
+ * Single-app topology (Workaround A for Issue #D): both the outbound caller
+ * leg and the inbound simulator leg ride the SAME Call Control App. We
+ * discriminate by `direction` + `to` — only the inbound simulator leg has
+ * `direction === 'incoming'` AND `to === simNumber`. The outbound leg has
+ * `direction === 'outgoing'`, so it never matches here.
  */
 function isSimulatorInboundCall(
   payload: TelnyxWebhookPayload | undefined
 ): boolean {
   const simNumber = process.env.TELNYX_SIMULATOR_NUMBER;
-  const simConnectionId = process.env.TELNYX_SIMULATOR_CONNECTION_ID;
   if (!simNumber) return false;
   if (!payload) return false;
   if (payload.to !== simNumber) return false;
-  // When a self-call goes through (outbound leg on llmcalls app → inbound
-  // leg on llmcalls-simulator app), BOTH legs share `to=+simNumber`. We
-  // must distinguish by the Telnyx call control application the event
-  // came from. Only the inbound leg comes from the simulator connection.
-  if (simConnectionId && payload.connection_id !== simConnectionId) {
-    return false;
-  }
   return payload.direction === 'incoming';
 }
 
@@ -165,14 +163,23 @@ async function handleCallAnswered(
   payload: TelnyxWebhookPayload | undefined
 ): Promise<void> {
   // Skip the entire AI caller pipeline for inbound simulator legs. They
-  // arrive on a separate Telnyx Call Control app and are driven by the
-  // simulator service directly — starting Deepgram + the AI caller
-  // handler on them would (a) compete for Deepgram sockets with the
-  // real outbound leg and (b) transcribe our own TTS. Both are bad.
-  const simConnectionId = process.env.TELNYX_SIMULATOR_CONNECTION_ID;
-  if (simConnectionId && payload?.connection_id === simConnectionId) {
+  // are driven by the simulator service directly — starting Deepgram +
+  // the AI caller handler on them would (a) compete for Deepgram sockets
+  // with the real outbound leg and (b) transcribe our own TTS.
+  //
+  // Single-app topology: discriminator is `direction === 'incoming'` AND
+  // `to === TELNYX_SIMULATOR_NUMBER`. The outbound caller leg has
+  // `direction === 'outgoing'` so it falls through to the normal
+  // pipeline. (Pre-Workaround-A this was keyed on connection_id, but
+  // both legs now share the `llmcalls` connection.)
+  const simNumber = process.env.TELNYX_SIMULATOR_NUMBER;
+  if (
+    simNumber &&
+    payload?.direction === 'incoming' &&
+    payload?.to === simNumber
+  ) {
     console.log(
-      `[SIM] call.answered on simulator leg ${callControlId.slice(-20)} — skipping AI caller pipeline`
+      `[SIM] call.answered on simulator inbound leg ${callControlId.slice(-20)} — skipping AI caller pipeline`
     );
     return;
   }
