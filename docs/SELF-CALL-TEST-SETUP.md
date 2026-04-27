@@ -27,6 +27,21 @@ Agent names, greeting templates, confirmation templates, followup
 templates, and all pause durations are randomized per call so we're not
 just re-running the same stimulus.
 
+## Topology — single Call Control App
+
+Both the outbound caller leg AND the inbound simulator leg ride the SAME
+Telnyx Call Control Application (`llmcalls`, connection ID
+`2925946576717219034`). This is **Workaround A** for Issue #D —
+cross-app stream forks deliver corrupted audio (constant-RMS uniform
+noise) on the bridged leg, while same-app stream forks should work
+because the SIP bridge is bypassed entirely.
+
+Routing discriminator: `voiceRoutes.ts/isSimulatorInboundCall` keys on
+`direction === 'incoming'` AND `to === TELNYX_SIMULATOR_NUMBER`. The
+outbound caller leg has `direction === 'outgoing'` so it never matches
+the simulator handler, and the simulator inbound leg never reaches the
+AI caller pipeline. No `connection_id` discriminator is needed.
+
 ## Purchase + configure the simulator DID
 
 The same webhook (already pointing at our ngrok URL via the call-control
@@ -54,6 +69,24 @@ curl -X PATCH "https://api.telnyx.com/v2/phone_numbers/+1XXXXXXXXXX" \
 
 # 4. Set TELNYX_SIMULATOR_NUMBER=+1XXXXXXXXXX in .env and restart backend
 ```
+
+### Migrating an existing simulator DID from `llmcalls-simulator` → `llmcalls`
+
+If the DID was originally provisioned on a separate `llmcalls-simulator`
+Call Control App (the pre-Workaround-A topology), reassign it to the
+main `llmcalls` connection:
+
+```bash
+curl -X PATCH "https://api.telnyx.com/v2/phone_numbers/+1XXXXXXXXXX" \
+  -H "Authorization: Bearer $TELNYX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"connection_id": "2925946576717219034"}'
+```
+
+Or via the Telnyx dashboard: Numbers → My Numbers → click the simulator
+DID → Voice settings → set Connection to `llmcalls` → Save. After
+reassignment, no `TELNYX_SIMULATOR_CONNECTION_ID` env var is needed —
+the routing discriminator is `direction` + `to` only.
 
 ## Safety
 
