@@ -158,6 +158,7 @@ describe('handleSimulatorTranscript', () => {
       },
       awaitConfirmation: Promise.resolve(),
       pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
 
     handleSimulatorTranscript(
@@ -178,6 +179,7 @@ describe('handleSimulatorTranscript', () => {
       },
       awaitConfirmation: Promise.resolve(),
       pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
 
     handleSimulatorTranscript(
@@ -198,6 +200,7 @@ describe('handleSimulatorTranscript', () => {
       },
       awaitConfirmation: Promise.resolve(),
       pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
 
     handleSimulatorTranscript(callControlId, 'Please hold for one moment.');
@@ -215,6 +218,7 @@ describe('handleSimulatorTranscript', () => {
       pendingSpeakEnded: () => {
         resolved = true;
       },
+      aiLegSpeaking: false,
     });
     handleSimulatorSpeakEnded(callControlId);
     expect(resolved).toBe(true);
@@ -231,6 +235,7 @@ describe('handleSimulatorTranscript', () => {
       confirmationTriggered: () => {},
       awaitConfirmation: Promise.resolve(),
       pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
     expect(() => handleSimulatorSpeakEnded(callControlId)).not.toThrow();
   });
@@ -250,6 +255,7 @@ describe('handleSimulatorTranscript', () => {
       },
       awaitConfirmation: Promise.resolve(),
       pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
     // A `call.speak.ended` from a DIFFERENT call_control_id (the AI-caller
     // leg of the same self-call pair) should trigger confirmation.
@@ -268,6 +274,7 @@ describe('handleSimulatorTranscript', () => {
       },
       awaitConfirmation: Promise.resolve(),
       pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
     handleSimulatorSpeakEnded('other-leg-id');
     expect(triggered).toBe(false);
@@ -282,6 +289,7 @@ describe('handleSimulatorTranscript', () => {
       confirmationTriggered: () => {},
       awaitConfirmation: Promise.resolve(),
       pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
     expect(isActiveSimulatorCall(callControlId)).toBe(true);
   });

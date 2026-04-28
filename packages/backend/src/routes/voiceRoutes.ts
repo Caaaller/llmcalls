@@ -17,6 +17,8 @@ import telnyxService from '../services/telnyxService';
 import {
   runSimulatorFlow,
   handleSimulatorSpeakEnded,
+  handleSimulatorAILegSpeakStarted,
+  isActiveSimulatorCall,
 } from '../services/simulatorAgentService';
 import transferConfig from '../config/transfer-config';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
@@ -175,12 +177,14 @@ async function handleCallAnswered(
   // `direction === 'outgoing'` so it falls through to the normal
   // pipeline. (Pre-Workaround-A this was keyed on connection_id, but
   // both legs now share the `llmcalls` connection.)
-  const simNumber = process.env.TELNYX_SIMULATOR_NUMBER;
-  if (
-    simNumber &&
-    payload?.direction === 'incoming' &&
-    payload?.to === simNumber
-  ) {
+  // Discriminate the simulator inbound leg from the AI-caller outbound leg.
+  // `payload.direction` is undefined on call.answered for self-calls within
+  // the same Call Control App (Telnyx omits it), so we instead check the
+  // simulator service's own activeSimulatorCalls map — runSimulatorFlow is
+  // launched on call.initiated for the inbound leg and registers its
+  // call_control_id immediately, so by the time call.answered fires here
+  // the lookup is reliable.
+  if (isActiveSimulatorCall(callControlId)) {
     console.log(
       `[SIM] call.answered on simulator inbound leg ${callControlId.slice(-20)} — skipping AI caller pipeline`
     );
@@ -558,6 +562,9 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       case 'call.speak.started': {
         callStateManager.updateCallState(callControlId, { isSpeaking: true });
         recordTurnTiming(callControlId);
+        // If a simulator call is active and this speak is on the AI-leg,
+        // pause the simulator's fallback timer until the AI's TTS ends.
+        handleSimulatorAILegSpeakStarted(callControlId);
         break;
       }
       case 'call.speak.ended': {

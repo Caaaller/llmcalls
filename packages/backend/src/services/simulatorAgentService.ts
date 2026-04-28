@@ -251,6 +251,13 @@ interface SimulatorCallState {
    * future awaiter for a different phase).
    */
   pendingSpeakEnded: (() => void) | null;
+  /**
+   * True while the AI-caller leg has an active TTS playing (i.e. we saw
+   * its `call.speak.started` and haven't seen the matching speak.ended
+   * yet). Used to suppress the fallback confirmation-timer so the
+   * simulator's confirmation doesn't talk over the AI's question.
+   */
+  aiLegSpeaking: boolean;
 }
 
 const activeSimulatorCalls = new Map<string, SimulatorCallState>();
@@ -262,6 +269,15 @@ const activeSimulatorCalls = new Map<string, SimulatorCallState>();
  */
 export function isActiveSimulatorCall(callControlId: string): boolean {
   return activeSimulatorCalls.has(callControlId);
+}
+
+/**
+ * Returns true if ANY simulator call is currently active anywhere in the
+ * process. Coarse signal used by streamRoutes to relax track-filtering on
+ * self-call legs whose audio routing differs from external calls.
+ */
+export function anySimulatorCallActive(): boolean {
+  return activeSimulatorCalls.size > 0;
 }
 
 /**
@@ -287,6 +303,26 @@ export function handleSimulatorTranscript(
     `[SIM] Confirmation keyword matched on ${callControlId.slice(-20)}: "${transcript.slice(0, 80)}"`
   );
   state.confirmationTriggered();
+}
+
+/**
+ * Notify the simulator that the AI-caller leg's TTS has STARTED. We use
+ * this to suppress the fallback confirmation-timer once the AI is
+ * audibly responding — without this, the timer can fire mid-AI-speech
+ * and the simulator's confirmation talks over the AI's question.
+ */
+export function handleSimulatorAILegSpeakStarted(callControlId: string): void {
+  // Ignore speak.started on the simulator's own leg — that's our own
+  // greeting/confirmation/followup TTS.
+  if (activeSimulatorCalls.has(callControlId)) return;
+  for (const [, simState] of activeSimulatorCalls) {
+    if (simState.stage === 'awaiting-confirmation-question') {
+      simState.aiLegSpeaking = true;
+      console.log(
+        `[SIM] AI-leg speak.started — pausing fallback timer until AI speak.ended`
+      );
+    }
+  }
 }
 
 /**
@@ -330,6 +366,9 @@ export function handleSimulatorSpeakEnded(callControlId: string): void {
   // ends, that's our high-signal cue that the AI just finished asking
   // its confirmation question.
   for (const [, simState] of activeSimulatorCalls) {
+    // Always clear the speaking flag — even if we're past awaiting,
+    // staleness shouldn't linger.
+    simState.aiLegSpeaking = false;
     if (simState.stage === 'awaiting-confirmation-question') {
       console.log(
         `[SIM] AI-leg speak.ended detected (${callControlId.slice(-20)}) — ` +
@@ -373,6 +412,7 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     confirmationTriggered,
     awaitConfirmation,
     pendingSpeakEnded: null,
+    aiLegSpeaking: false,
   };
   activeSimulatorCalls.set(callControlId, state);
 
@@ -423,12 +463,30 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     await speakAndAwait(script.greeting, script.voice, 12_000);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
 
-    // Race the keyword-match path against a fallback timer. Whichever
-    // resolves first wins. The fallback ensures we still complete the
-    // pipeline if Deepgram drops, the stream isn't wired, or the AI
-    // phrases its confirmation in a way no keyword catches.
-    await raceWithTimeout(awaitConfirmation, script.greetingToConfirmationMs);
-    if (Date.now() - startedAt > HARD_CAP_MS) return;
+    // Race the keyword-match / cross-leg-speak.ended path against a
+    // fallback timer. Whichever resolves first wins. The fallback
+    // ensures we still complete the pipeline if every webhook-driven
+    // signal is missed.
+    //
+    // Important: if `aiLegSpeaking` becomes true (we observed the AI's
+    // `call.speak.started`), the timer is REARMED until the AI's
+    // speak.ended fires. Otherwise the simulator's confirmation can
+    // talk over the AI's still-playing question.
+    while (true) {
+      const timerWon = await raceWithTimeoutFlag(
+        awaitConfirmation,
+        script.greetingToConfirmationMs
+      );
+      if (Date.now() - startedAt > HARD_CAP_MS) return;
+      if (!timerWon) break; // confirmation triggered via signal
+      if (!state.aiLegSpeaking) break; // timer won and AI isn't speaking → proceed
+      // AI is mid-speech. Wait for the next loop iteration; the
+      // speak.ended cross-leg trigger will resolve awaitConfirmation
+      // (and hence break the loop) the moment AI finishes.
+      console.log(
+        '[SIM] Fallback timer fired but AI-leg is still speaking — waiting'
+      );
+    }
 
     state.stage = 'confirmation-spoken';
     // Wait for confirmation playback to actually finish so the AI hears
@@ -480,6 +538,28 @@ async function raceWithTimeout(
   });
   try {
     await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/**
+ * Like `raceWithTimeout`, but returns true if the timer expired first
+ * (so the caller can decide whether to retry). Returns false if the
+ * promise resolved first.
+ */
+async function raceWithTimeoutFlag(
+  promise: Promise<void>,
+  timeoutMs: number
+): Promise<boolean> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<'timer'>(resolve => {
+    timer = setTimeout(() => resolve('timer'), timeoutMs);
+  });
+  const promiseResult = promise.then((): 'promise' => 'promise');
+  try {
+    const winner = await Promise.race([promiseResult, timeout]);
+    return winner === 'timer';
   } finally {
     if (timer) clearTimeout(timer);
   }

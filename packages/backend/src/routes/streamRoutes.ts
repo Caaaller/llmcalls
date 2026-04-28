@@ -21,6 +21,7 @@ import telnyxService from '../services/telnyxService';
 import {
   isActiveSimulatorCall,
   handleSimulatorTranscript,
+  anySimulatorCallActive,
 } from '../services/simulatorAgentService';
 import { toError } from '../utils/errorUtils';
 import {
@@ -192,6 +193,10 @@ interface StreamState {
   // transcript flagged as incomplete; fires after SEMANTIC_WAIT_MAX_MS
   // to force-dispatch whatever's accumulated so far.
   semanticWaitTimer: ReturnType<typeof setTimeout> | null;
+  // Diagnostic: which Telnyx media `track` labels we've seen for this
+  // call, so the first frame on each unique track logs once. Helps
+  // diagnose self-call audio-routing weirdness without flooding logs.
+  tracksSeen?: Set<string>;
 }
 
 // Reconnect configuration — exponential backoff with max 3 attempts.
@@ -655,8 +660,34 @@ export function attachStreamServer(httpServer: Server): void {
         // diagnostic runs showed: first utterance transcribed cleanly,
         // then outbound frames started arriving and subsequent results
         // went empty. Inbound-only = clean remote-party audio.
+        //
+        // EXCEPTION for active simulator calls: same-app self-calls have
+        // a Telnyx audio-routing quirk where the AI-caller leg's
+        // "inbound" track delivers audio that Deepgram cannot lock onto
+        // (constant mu-law silence frames in between speech, no
+        // speech_final fires). Forwarding both tracks for the AI leg of
+        // a self-call gives DG a continuous-audio reference that
+        // restores speech_final detection. The simulator's own TTS
+        // (which would otherwise pollute the stream as outbound on the
+        // AI leg) is silent on the AI leg's outbound track because the
+        // AI hasn't spoken yet, so the interleaving concern doesn't
+        // apply during the greeting phase.
+        // True when ANY simulator call is active anywhere in the process —
+        // a coarse signal that this stream is part of a self-call pair.
+        const isSimulatorPair = anySimulatorCallActive();
         const isInbound = track === 'inbound' || track === 'inbound_track';
-        if (!isInbound) return;
+        const shouldForward = isInbound || isSimulatorPair;
+        // Debug counter: log first frame seen per track per call so we can
+        // diagnose self-call audio-routing problems where the remote party's
+        // voice arrives on an unexpected track.
+        if (!state.tracksSeen) state.tracksSeen = new Set();
+        if (!state.tracksSeen.has(track)) {
+          state.tracksSeen.add(track);
+          console.log(
+            `[STREAM] First media frame seen on track="${track}" for ${state.callControlId.slice(-20)} (forwarding=${shouldForward}, simPair=${isSimulatorPair})`
+          );
+        }
+        if (!shouldForward) return;
         const payload = (mediaData?.payload as string) || '';
         if (!payload) return;
 
