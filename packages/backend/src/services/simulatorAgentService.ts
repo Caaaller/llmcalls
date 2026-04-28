@@ -211,8 +211,13 @@ export function pickSimulatorScript(): SimulatorScript {
     // Fallback timer: if we never see a confirmation-question keyword in
     // the AI caller's transcript, dispatch the confirmation anyway after
     // this window so the test still completes the pipeline. Padded to
-    // cover greeting playback + AI's full turn (STT + LLM + TTS).
-    greetingToConfirmationMs: randomBetween(6000, 9000),
+    // cover the full AI-side turn AFTER the greeting playback finishes:
+    // Deepgram endpointing (~1-2s) + occasional WS reconnect (~0.5-2s)
+    // + LLM decision (~3s) + TTS dispatch (~1s) = up to ~8s under
+    // realistic conditions. We start the timer AFTER `call.speak.ended`
+    // for the greeting (see speakAndAwait), so 9-13s is the actual
+    // post-greeting window the AI has to ask its confirmation question.
+    greetingToConfirmationMs: randomBetween(9000, 13000),
     confirmationToFollowupMs: randomBetween(4000, 6000),
   };
 }

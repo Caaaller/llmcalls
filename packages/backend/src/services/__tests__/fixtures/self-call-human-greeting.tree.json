@@ -2,7 +2,7 @@
   "version": 2,
   "id": "self-call-human-greeting",
   "testCaseId": "self-call-human-greeting",
-  "lastRecordedAt": "2026-04-28T21:15:46.119Z",
+  "lastRecordedAt": "2026-04-28T22:36:41.553Z",
   "config": {
     "callPurpose": "Test call to the simulator agent"
   },
@@ -24,12 +24,12 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-28T21:15:46.119Z",
+        "recordedAt": "2026-04-28T22:36:41.553Z",
         "isLatestPath": true,
         "child": {
           "terminal": true,
           "finalStatus": "initiated",
-          "durationSeconds": 29,
+          "durationSeconds": 36,
           "reachedHuman": false,
           "dtmfDigits": []
         }
