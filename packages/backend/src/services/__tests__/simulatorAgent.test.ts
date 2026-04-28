@@ -19,6 +19,15 @@ jest.mock('telnyx', () => {
   }));
 });
 
+const mockFindAiLegForSimulator = jest.fn();
+const mockInjectSyntheticTranscript = jest.fn();
+jest.mock('../../routes/streamRoutes', () => ({
+  findAiLegForSimulator: (...args: unknown[]) =>
+    mockFindAiLegForSimulator(...args),
+  injectSyntheticTranscript: (...args: unknown[]) =>
+    mockInjectSyntheticTranscript(...args),
+}));
+
 process.env.TELNYX_API_KEY = 'test';
 process.env.TELNYX_PHONE_NUMBER = '+15555551212';
 
@@ -278,6 +287,36 @@ describe('handleSimulatorTranscript', () => {
     });
     handleSimulatorSpeakEnded('other-leg-id');
     expect(triggered).toBe(false);
+  });
+
+  describe('dispatchSyntheticConfirmationToAiLeg', () => {
+    beforeEach(() => {
+      mockFindAiLegForSimulator.mockReset();
+      mockInjectSyntheticTranscript.mockReset();
+    });
+
+    it('injects the confirmation text onto the AI-leg stream when one is found', async () => {
+      mockFindAiLegForSimulator.mockReturnValue('ai-leg-id');
+      mockInjectSyntheticTranscript.mockReturnValue(true);
+      await __testing.dispatchSyntheticConfirmationToAiLeg(
+        'sim-leg-id',
+        "Yes, I'm a real person."
+      );
+      expect(mockFindAiLegForSimulator).toHaveBeenCalledWith('sim-leg-id');
+      expect(mockInjectSyntheticTranscript).toHaveBeenCalledWith(
+        'ai-leg-id',
+        "Yes, I'm a real person."
+      );
+    });
+
+    it('skips injection when no AI-leg stream is registered', async () => {
+      mockFindAiLegForSimulator.mockReturnValue(null);
+      await __testing.dispatchSyntheticConfirmationToAiLeg(
+        'sim-leg-id',
+        'irrelevant text'
+      );
+      expect(mockInjectSyntheticTranscript).not.toHaveBeenCalled();
+    });
   });
 
   it('reports active simulator calls correctly', () => {

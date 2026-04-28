@@ -496,6 +496,23 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     // and the AI's human_detected → transfer turn races our followup.
     await speakAndAwait(script.confirmation, script.voice, 8_000);
 
+    // Synthetic-transcript bypass for the simulator → AI direction.
+    // Deepgram on the AI-caller leg intermittently fails to transcribe
+    // the simulator's confirmation in same-app self-call topology
+    // (see Issue #D). We know exactly what text the simulator spoke —
+    // it's `script.confirmation` — so inject it onto the AI leg's
+    // pipeline as if Deepgram had emitted an `is_final` for it. This is
+    // the mirror of fix #3 (which dispatched the confirmation reply on
+    // AI-leg speak.ended without depending on Deepgram); here we feed
+    // the AI the confirmation TEXT without depending on Deepgram.
+    //
+    // Gated on isActiveSimulatorCall so this code path is dead outside
+    // simulator runs — no production path can synthesize transcripts.
+    await dispatchSyntheticConfirmationToAiLeg(
+      callControlId,
+      script.confirmation
+    );
+
     // Give the AI ~5-7s to react: fire human_detected → kick off the
     // bridge transfer. The transfer logic dials a third leg; once that
     // happens, our hangup below cleanly tears down the simulator side
@@ -522,6 +539,55 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
       // just log from inside terminateCall itself.
     }
   }
+}
+
+/**
+ * Inject the simulator's confirmation text onto the AI-caller leg's
+ * speech pipeline as a synthetic Deepgram `is_final` transcript. This
+ * sidesteps Deepgram on the simulator → AI direction entirely.
+ *
+ * Resolves the AI leg id by querying streamRoutes for the OTHER active
+ * stream (the one that isn't this simulator leg). If that lookup fails
+ * (no AI-leg stream registered, or multiple, or the stream has no
+ * onUtterance wired yet) we log and skip rather than guess — the
+ * keyword-match / confirmation-question fallback paths still apply for
+ * downstream behavior.
+ *
+ * This function only fires for active simulator calls; the gate is the
+ * `isActiveSimulatorCall` check in the caller's flow plus the absence
+ * of any other call site for the helpers it uses.
+ *
+ * Dynamic import is intentional — streamRoutes already imports from this
+ * module (handleSimulatorTranscript, etc.), so a static import here
+ * would form a cycle.
+ */
+async function dispatchSyntheticConfirmationToAiLeg(
+  simulatorCallControlId: string,
+  confirmationText: string
+): Promise<void> {
+  const streamRoutes = await import('../routes/streamRoutes');
+  const aiLegId = streamRoutes.findAiLegForSimulator(simulatorCallControlId);
+  if (!aiLegId) {
+    console.log(
+      `[SIM] Synthetic confirmation skipped — no AI-leg stream found for ` +
+        `${simulatorCallControlId.slice(-20)}`
+    );
+    return;
+  }
+  const fired = streamRoutes.injectSyntheticTranscript(
+    aiLegId,
+    confirmationText
+  );
+  if (!fired) {
+    console.log(
+      `[SIM] Synthetic confirmation injection failed on ${aiLegId.slice(-20)}`
+    );
+    return;
+  }
+  console.log(
+    `[SIM] Synthetic confirmation injected on AI leg ${aiLegId.slice(-20)}: ` +
+      `"${confirmationText.slice(0, 80)}"`
+  );
 }
 
 /**
@@ -574,4 +640,5 @@ export const __testing = {
   FOLLOWUP_TEMPLATES,
   CONFIRMATION_KEYWORDS,
   activeSimulatorCalls,
+  dispatchSyntheticConfirmationToAiLeg,
 };

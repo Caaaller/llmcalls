@@ -229,6 +229,71 @@ export function killDeepgramWsForCall(callSid: string): boolean {
 }
 
 /**
+ * Inject a synthetic transcript onto a tracked stream's pipeline as if
+ * Deepgram had emitted an `is_final` for `text`. Routes through the same
+ * `onUtterance` callback that real Deepgram finals use, so downstream
+ * (processSpeech for AI legs, simulator keyword detector for sim legs)
+ * is unchanged.
+ *
+ * Used by the self-call simulator to bypass Deepgram on the simulator-leg
+ * → AI-caller-leg direction. The simulator knows exactly what text it
+ * spoke (it passed it to TTS itself), so there is no transcription
+ * ambiguity — and same-app self-calls have a Telnyx audio-routing quirk
+ * where Deepgram on the AI leg intermittently fails to transcribe the
+ * simulator's confirmation. Synthetic injection sidesteps the issue
+ * entirely for that one cross-leg signal.
+ *
+ * Returns true if a matching stream was found and `onUtterance` fired.
+ * Callers that depend on the injection landing should check the return
+ * value rather than assuming success.
+ */
+export function injectSyntheticTranscript(
+  callSid: string,
+  text: string
+): boolean {
+  const state = activeStreamStates.get(callSid);
+  if (!state || !state.onUtterance) return false;
+  console.log(
+    `[STREAM-STT][SYNTHETIC] "${text.slice(0, 80)}" → ${callSid.slice(-20)}`
+  );
+  // Treat as a fresh utterance: clear any in-flight transcript buffer and
+  // mark speechFired so a real DG speech_final arriving moments later
+  // doesn't double-fire the same content.
+  state.transcript = '';
+  state.speechFired = true;
+  void state.onUtterance(text);
+  // Match the real-final path: clear speechFired after a short delay so
+  // subsequent utterances aren't deafened.
+  setTimeout(() => {
+    if (state) state.speechFired = false;
+  }, 2000);
+  return true;
+}
+
+/**
+ * Find the call_control_id of the AI-caller leg in a self-call simulator
+ * pair. Same-app self-calls run two streams concurrently — the simulator
+ * leg (whose id `excludeSimulatorId` is) and the AI-caller leg. Returns
+ * the id of the OTHER active stream, or null if not found / ambiguous.
+ *
+ * Used by the simulator service to know where to route synthetic
+ * transcripts.
+ */
+export function findAiLegForSimulator(
+  excludeSimulatorId: string
+): string | null {
+  const others: string[] = [];
+  for (const id of activeStreamStates.keys()) {
+    if (id !== excludeSimulatorId) others.push(id);
+  }
+  // Exactly one other active stream is the well-formed case. In the
+  // pathological "0 or >1 other streams" case we return null and let the
+  // caller treat it as a hard skip rather than guessing.
+  if (others.length !== 1) return null;
+  return others[0];
+}
+
+/**
  * Read the reconnect telemetry for this callSid.
  * Returns null if no stream is currently tracked for this call.
  */
