@@ -21,6 +21,7 @@ import telnyxService from '../services/telnyxService';
 import {
   isActiveSimulatorCall,
   handleSimulatorTranscript,
+  anySimulatorCallActive,
 } from '../services/simulatorAgentService';
 import { toError } from '../utils/errorUtils';
 import {
@@ -192,6 +193,10 @@ interface StreamState {
   // transcript flagged as incomplete; fires after SEMANTIC_WAIT_MAX_MS
   // to force-dispatch whatever's accumulated so far.
   semanticWaitTimer: ReturnType<typeof setTimeout> | null;
+  // Diagnostic: which Telnyx media `track` labels we've seen for this
+  // call, so the first frame on each unique track logs once. Helps
+  // diagnose self-call audio-routing weirdness without flooding logs.
+  tracksSeen?: Set<string>;
 }
 
 // Reconnect configuration — exponential backoff with max 3 attempts.
@@ -221,6 +226,71 @@ export function killDeepgramWsForCall(callSid: string): boolean {
   // terminate() emits 'close' with code 1006 (Abnormal Closure)
   state.dgWs.terminate();
   return true;
+}
+
+/**
+ * Inject a synthetic transcript onto a tracked stream's pipeline as if
+ * Deepgram had emitted an `is_final` for `text`. Routes through the same
+ * `onUtterance` callback that real Deepgram finals use, so downstream
+ * (processSpeech for AI legs, simulator keyword detector for sim legs)
+ * is unchanged.
+ *
+ * Used by the self-call simulator to bypass Deepgram on the simulator-leg
+ * → AI-caller-leg direction. The simulator knows exactly what text it
+ * spoke (it passed it to TTS itself), so there is no transcription
+ * ambiguity — and same-app self-calls have a Telnyx audio-routing quirk
+ * where Deepgram on the AI leg intermittently fails to transcribe the
+ * simulator's confirmation. Synthetic injection sidesteps the issue
+ * entirely for that one cross-leg signal.
+ *
+ * Returns true if a matching stream was found and `onUtterance` fired.
+ * Callers that depend on the injection landing should check the return
+ * value rather than assuming success.
+ */
+export function injectSyntheticTranscript(
+  callSid: string,
+  text: string
+): boolean {
+  const state = activeStreamStates.get(callSid);
+  if (!state || !state.onUtterance) return false;
+  console.log(
+    `[STREAM-STT][SYNTHETIC] "${text.slice(0, 80)}" → ${callSid.slice(-20)}`
+  );
+  // Treat as a fresh utterance: clear any in-flight transcript buffer and
+  // mark speechFired so a real DG speech_final arriving moments later
+  // doesn't double-fire the same content.
+  state.transcript = '';
+  state.speechFired = true;
+  void state.onUtterance(text);
+  // Match the real-final path: clear speechFired after a short delay so
+  // subsequent utterances aren't deafened.
+  setTimeout(() => {
+    if (state) state.speechFired = false;
+  }, 2000);
+  return true;
+}
+
+/**
+ * Find the call_control_id of the AI-caller leg in a self-call simulator
+ * pair. Same-app self-calls run two streams concurrently — the simulator
+ * leg (whose id `excludeSimulatorId` is) and the AI-caller leg. Returns
+ * the id of the OTHER active stream, or null if not found / ambiguous.
+ *
+ * Used by the simulator service to know where to route synthetic
+ * transcripts.
+ */
+export function findAiLegForSimulator(
+  excludeSimulatorId: string
+): string | null {
+  const others: string[] = [];
+  for (const id of activeStreamStates.keys()) {
+    if (id !== excludeSimulatorId) others.push(id);
+  }
+  // Exactly one other active stream is the well-formed case. In the
+  // pathological "0 or >1 other streams" case we return null and let the
+  // caller treat it as a hard skip rather than guessing.
+  if (others.length !== 1) return null;
+  return others[0];
 }
 
 /**
@@ -655,8 +725,34 @@ export function attachStreamServer(httpServer: Server): void {
         // diagnostic runs showed: first utterance transcribed cleanly,
         // then outbound frames started arriving and subsequent results
         // went empty. Inbound-only = clean remote-party audio.
+        //
+        // EXCEPTION for active simulator calls: same-app self-calls have
+        // a Telnyx audio-routing quirk where the AI-caller leg's
+        // "inbound" track delivers audio that Deepgram cannot lock onto
+        // (constant mu-law silence frames in between speech, no
+        // speech_final fires). Forwarding both tracks for the AI leg of
+        // a self-call gives DG a continuous-audio reference that
+        // restores speech_final detection. The simulator's own TTS
+        // (which would otherwise pollute the stream as outbound on the
+        // AI leg) is silent on the AI leg's outbound track because the
+        // AI hasn't spoken yet, so the interleaving concern doesn't
+        // apply during the greeting phase.
+        // True when ANY simulator call is active anywhere in the process —
+        // a coarse signal that this stream is part of a self-call pair.
+        const isSimulatorPair = anySimulatorCallActive();
         const isInbound = track === 'inbound' || track === 'inbound_track';
-        if (!isInbound) return;
+        const shouldForward = isInbound || isSimulatorPair;
+        // Debug counter: log first frame seen per track per call so we can
+        // diagnose self-call audio-routing problems where the remote party's
+        // voice arrives on an unexpected track.
+        if (!state.tracksSeen) state.tracksSeen = new Set();
+        if (!state.tracksSeen.has(track)) {
+          state.tracksSeen.add(track);
+          console.log(
+            `[STREAM] First media frame seen on track="${track}" for ${state.callControlId.slice(-20)} (forwarding=${shouldForward}, simPair=${isSimulatorPair})`
+          );
+        }
+        if (!shouldForward) return;
         const payload = (mediaData?.payload as string) || '';
         if (!payload) return;
 

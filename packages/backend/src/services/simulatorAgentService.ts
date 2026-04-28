@@ -207,12 +207,23 @@ export function pickSimulatorScript(): SimulatorScript {
     ),
     confirmation: withFiller(confirmation),
     followup: withFiller(followup),
-    pickupDelayMs: randomBetween(800, 2000),
+    // Pickup delay also acts as the audio-bridge warmup. The AI-leg's
+    // Telnyx → Deepgram pipeline has a ~2-3s settle window during which
+    // it intermittently drops the WS with code=1011 — if the greeting
+    // plays during that window the AI never sees the transcript. Wait
+    // 3-4s before answering so the bridge stabilizes first.
+    pickupDelayMs: randomBetween(3000, 4500),
     // Fallback timer: if we never see a confirmation-question keyword in
-    // the AI caller's transcript, dispatch the confirmation anyway after
-    // this window so the test still completes the pipeline. Padded to
-    // cover greeting playback + AI's full turn (STT + LLM + TTS).
-    greetingToConfirmationMs: randomBetween(6000, 9000),
+    // the AI caller's transcript and never see the AI-leg's
+    // `call.speak.started`, dispatch the confirmation anyway after this
+    // window so the test still completes the pipeline. Live measurements:
+    // utterance_end_ms gating (~1.8s) + LLM decision (~3-4s) + streaming
+    // TTS dispatch + canned-question stopSpeak/speakAndLog (~3-5s) =
+    // 12-18s total post-greeting. The window also rearms while
+    // `aiLegSpeaking` is true (see runSimulatorFlow), so the timer is
+    // really only a last resort for cases where the AI never spoke at
+    // all. 18-25s gives plenty of slack without blowing the HARD_CAP.
+    greetingToConfirmationMs: randomBetween(18000, 25000),
     confirmationToFollowupMs: randomBetween(4000, 6000),
   };
 }
@@ -234,6 +245,20 @@ interface SimulatorCallState {
   confirmationTriggered: () => void;
   /** Promise that resolves once `confirmationTriggered` has been called. */
   awaitConfirmation: Promise<void>;
+  /**
+   * Set to a resolver while the orchestrator is waiting for a
+   * `call.speak.ended` webhook on this leg. Cleared once fired (so a
+   * second speak.ended later in the call can't accidentally unblock a
+   * future awaiter for a different phase).
+   */
+  pendingSpeakEnded: (() => void) | null;
+  /**
+   * True while the AI-caller leg has an active TTS playing (i.e. we saw
+   * its `call.speak.started` and haven't seen the matching speak.ended
+   * yet). Used to suppress the fallback confirmation-timer so the
+   * simulator's confirmation doesn't talk over the AI's question.
+   */
+  aiLegSpeaking: boolean;
 }
 
 const activeSimulatorCalls = new Map<string, SimulatorCallState>();
@@ -245,6 +270,15 @@ const activeSimulatorCalls = new Map<string, SimulatorCallState>();
  */
 export function isActiveSimulatorCall(callControlId: string): boolean {
   return activeSimulatorCalls.has(callControlId);
+}
+
+/**
+ * Returns true if ANY simulator call is currently active anywhere in the
+ * process. Coarse signal used by streamRoutes to relax track-filtering on
+ * self-call legs whose audio routing differs from external calls.
+ */
+export function anySimulatorCallActive(): boolean {
+  return activeSimulatorCalls.size > 0;
 }
 
 /**
@@ -273,6 +307,80 @@ export function handleSimulatorTranscript(
 }
 
 /**
+ * Notify the simulator that the AI-caller leg's TTS has STARTED. We use
+ * this to suppress the fallback confirmation-timer once the AI is
+ * audibly responding — without this, the timer can fire mid-AI-speech
+ * and the simulator's confirmation talks over the AI's question.
+ */
+export function handleSimulatorAILegSpeakStarted(callControlId: string): void {
+  // Ignore speak.started on the simulator's own leg — that's our own
+  // greeting/confirmation/followup TTS.
+  if (activeSimulatorCalls.has(callControlId)) return;
+  for (const [, simState] of activeSimulatorCalls) {
+    if (simState.stage === 'awaiting-confirmation-question') {
+      simState.aiLegSpeaking = true;
+      console.log(
+        `[SIM] AI-leg speak.started — pausing fallback timer until AI speak.ended`
+      );
+    }
+  }
+}
+
+/**
+ * Notify the simulator that Telnyx fired `call.speak.ended` for some call
+ * leg. Two distinct uses:
+ *
+ *  1. `call.speak.ended` on the SIMULATOR leg: resolves the orchestrator's
+ *     `pendingSpeakEnded` waiter so the next phase doesn't race ahead
+ *     while the previous TTS is still on the wire. (`speakText` itself
+ *     returns as soon as Telnyx accepts the request, not when playback
+ *     finishes.)
+ *
+ *  2. `call.speak.ended` on the AI-CALLER leg: when an active simulator
+ *     is still awaiting the confirmation question, treat the AI's TTS
+ *     completion as the signal. The AI just spoke — almost certainly the
+ *     "Am I speaking with a live agent?" prompt — and we can dispatch
+ *     the confirmation reply without depending on Deepgram transcribing
+ *     the AI's audio on the simulator leg. This is a structural signal
+ *     (Telnyx webhook) that's independent of STT reliability, which has
+ *     been intermittently failing with code=1011 closures during live
+ *     tests. The keyword-matched and fallback-timer paths still apply
+ *     for cases where this signal doesn't fire.
+ *
+ * No-op for ids unrelated to any active simulator call.
+ */
+export function handleSimulatorSpeakEnded(callControlId: string): void {
+  const state = activeSimulatorCalls.get(callControlId);
+  if (state) {
+    // Case 1: speak.ended on the simulator's own leg.
+    const resolver = state.pendingSpeakEnded;
+    if (resolver) {
+      state.pendingSpeakEnded = null;
+      resolver();
+    }
+    return;
+  }
+
+  // Case 2: speak.ended on a DIFFERENT leg while a simulator call is
+  // active and still awaiting the confirmation question. The "different
+  // leg" is the AI-caller leg of the same self-call pair — when its TTS
+  // ends, that's our high-signal cue that the AI just finished asking
+  // its confirmation question.
+  for (const [, simState] of activeSimulatorCalls) {
+    // Always clear the speaking flag — even if we're past awaiting,
+    // staleness shouldn't linger.
+    simState.aiLegSpeaking = false;
+    if (simState.stage === 'awaiting-confirmation-question') {
+      console.log(
+        `[SIM] AI-leg speak.ended detected (${callControlId.slice(-20)}) — ` +
+          `triggering confirmation on simulator awaiting-state`
+      );
+      simState.confirmationTriggered();
+    }
+  }
+}
+
+/**
  * Orchestrates the scripted human-agent flow on an inbound call leg.
  *
  *   1. Answer the call
@@ -291,7 +399,7 @@ export function handleSimulatorTranscript(
 export async function runSimulatorFlow(callControlId: string): Promise<void> {
   const script = pickSimulatorScript();
   const startedAt = Date.now();
-  const HARD_CAP_MS = 45_000;
+  const HARD_CAP_MS = 70_000;
 
   let confirmationTriggered = () => {};
   const awaitConfirmation = new Promise<void>(resolve => {
@@ -304,8 +412,40 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     stage: 'awaiting-confirmation-question',
     confirmationTriggered,
     awaitConfirmation,
+    pendingSpeakEnded: null,
+    aiLegSpeaking: false,
   };
   activeSimulatorCalls.set(callControlId, state);
+
+  /**
+   * Speaks `text` and resolves AFTER Telnyx fires `call.speak.ended` for
+   * this leg, OR after `maxWaitMs` has elapsed (whichever comes first).
+   * The Telnyx SDK's `speak` returns as soon as the request is accepted;
+   * if we don't wait for the actual playback to finish, the next phase
+   * (e.g. the confirmation timer) starts racing while the greeting is
+   * still on the wire and the AI hasn't even heard it yet.
+   *
+   * `maxWaitMs` is a safety net for cases where Telnyx never fires
+   * speak.ended (network blip, malformed TTS, etc.) — the simulator
+   * keeps moving so the test can complete.
+   */
+  const speakAndAwait = async (
+    text: string,
+    voice: string,
+    maxWaitMs: number
+  ): Promise<void> => {
+    let resolveSpeakEnded: () => void = () => {};
+    const speakEnded = new Promise<void>(r => {
+      resolveSpeakEnded = r;
+    });
+    state.pendingSpeakEnded = resolveSpeakEnded;
+    await telnyxService.speakText(callControlId, text, voice);
+    await raceWithTimeout(speakEnded, maxWaitMs);
+    // Clear in case the timeout won — a stale resolver could otherwise be
+    // kept alive in `pendingSpeakEnded` and absorb a later speak.ended
+    // event meant for the next phase.
+    state.pendingSpeakEnded = null;
+  };
 
   console.log(
     `[SIM] Starting simulator flow for ${callControlId.slice(-20)} ` +
@@ -317,20 +457,60 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
 
     await sleep(script.pickupDelayMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
-    await telnyxService.speakText(callControlId, script.greeting, script.voice);
-
-    // Race the keyword-match path against a fallback timer. Whichever
-    // resolves first wins. The fallback ensures we still complete the
-    // pipeline if Deepgram drops, the stream isn't wired, or the AI
-    // phrases its confirmation in a way no keyword catches.
-    await raceWithTimeout(awaitConfirmation, script.greetingToConfirmationMs);
+    // Wait for the greeting playback to actually finish before starting
+    // the confirmation timer — otherwise the timer fires while the
+    // greeting is still on the wire and the AI never hears it.
+    // Greetings cap around 6-8s of TTS; 12s is comfortable headroom.
+    await speakAndAwait(script.greeting, script.voice, 12_000);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
 
+    // Race the keyword-match / cross-leg-speak.ended path against a
+    // fallback timer. Whichever resolves first wins. The fallback
+    // ensures we still complete the pipeline if every webhook-driven
+    // signal is missed.
+    //
+    // Important: if `aiLegSpeaking` becomes true (we observed the AI's
+    // `call.speak.started`), the timer is REARMED until the AI's
+    // speak.ended fires. Otherwise the simulator's confirmation can
+    // talk over the AI's still-playing question.
+    while (true) {
+      const timerWon = await raceWithTimeoutFlag(
+        awaitConfirmation,
+        script.greetingToConfirmationMs
+      );
+      if (Date.now() - startedAt > HARD_CAP_MS) return;
+      if (!timerWon) break; // confirmation triggered via signal
+      if (!state.aiLegSpeaking) break; // timer won and AI isn't speaking → proceed
+      // AI is mid-speech. Wait for the next loop iteration; the
+      // speak.ended cross-leg trigger will resolve awaitConfirmation
+      // (and hence break the loop) the moment AI finishes.
+      console.log(
+        '[SIM] Fallback timer fired but AI-leg is still speaking — waiting'
+      );
+    }
+
     state.stage = 'confirmation-spoken';
-    await telnyxService.speakText(
+    // Wait for confirmation playback to actually finish so the AI hears
+    // the full "yes, I'm a real person" before we start the post-confirm
+    // pause. Without this we sleep on top of the still-playing audio
+    // and the AI's human_detected → transfer turn races our followup.
+    await speakAndAwait(script.confirmation, script.voice, 8_000);
+
+    // Synthetic-transcript bypass for the simulator → AI direction.
+    // Deepgram on the AI-caller leg intermittently fails to transcribe
+    // the simulator's confirmation in same-app self-call topology
+    // (see Issue #D). We know exactly what text the simulator spoke —
+    // it's `script.confirmation` — so inject it onto the AI leg's
+    // pipeline as if Deepgram had emitted an `is_final` for it. This is
+    // the mirror of fix #3 (which dispatched the confirmation reply on
+    // AI-leg speak.ended without depending on Deepgram); here we feed
+    // the AI the confirmation TEXT without depending on Deepgram.
+    //
+    // Gated on isActiveSimulatorCall so this code path is dead outside
+    // simulator runs — no production path can synthesize transcripts.
+    await dispatchSyntheticConfirmationToAiLeg(
       callControlId,
-      script.confirmation,
-      script.voice
+      script.confirmation
     );
 
     // Give the AI ~5-7s to react: fire human_detected → kick off the
@@ -339,7 +519,7 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     // without disrupting the bridge.
     await sleep(script.confirmationToFollowupMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
-    await telnyxService.speakText(callControlId, script.followup, script.voice);
+    await speakAndAwait(script.followup, script.voice, 6_000);
 
     // Let the followup play, then hang up if we're still within the cap.
     const remaining = HARD_CAP_MS - (Date.now() - startedAt);
@@ -362,6 +542,55 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
 }
 
 /**
+ * Inject the simulator's confirmation text onto the AI-caller leg's
+ * speech pipeline as a synthetic Deepgram `is_final` transcript. This
+ * sidesteps Deepgram on the simulator → AI direction entirely.
+ *
+ * Resolves the AI leg id by querying streamRoutes for the OTHER active
+ * stream (the one that isn't this simulator leg). If that lookup fails
+ * (no AI-leg stream registered, or multiple, or the stream has no
+ * onUtterance wired yet) we log and skip rather than guess — the
+ * keyword-match / confirmation-question fallback paths still apply for
+ * downstream behavior.
+ *
+ * This function only fires for active simulator calls; the gate is the
+ * `isActiveSimulatorCall` check in the caller's flow plus the absence
+ * of any other call site for the helpers it uses.
+ *
+ * Dynamic import is intentional — streamRoutes already imports from this
+ * module (handleSimulatorTranscript, etc.), so a static import here
+ * would form a cycle.
+ */
+async function dispatchSyntheticConfirmationToAiLeg(
+  simulatorCallControlId: string,
+  confirmationText: string
+): Promise<void> {
+  const streamRoutes = await import('../routes/streamRoutes');
+  const aiLegId = streamRoutes.findAiLegForSimulator(simulatorCallControlId);
+  if (!aiLegId) {
+    console.log(
+      `[SIM] Synthetic confirmation skipped — no AI-leg stream found for ` +
+        `${simulatorCallControlId.slice(-20)}`
+    );
+    return;
+  }
+  const fired = streamRoutes.injectSyntheticTranscript(
+    aiLegId,
+    confirmationText
+  );
+  if (!fired) {
+    console.log(
+      `[SIM] Synthetic confirmation injection failed on ${aiLegId.slice(-20)}`
+    );
+    return;
+  }
+  console.log(
+    `[SIM] Synthetic confirmation injected on AI leg ${aiLegId.slice(-20)}: ` +
+      `"${confirmationText.slice(0, 80)}"`
+  );
+}
+
+/**
  * Resolves when `promise` resolves OR after `timeoutMs` elapses, whichever
  * comes first. Never rejects. Used to race the keyword-detection path
  * against the fallback timer in the simulator flow.
@@ -381,6 +610,28 @@ async function raceWithTimeout(
   }
 }
 
+/**
+ * Like `raceWithTimeout`, but returns true if the timer expired first
+ * (so the caller can decide whether to retry). Returns false if the
+ * promise resolved first.
+ */
+async function raceWithTimeoutFlag(
+  promise: Promise<void>,
+  timeoutMs: number
+): Promise<boolean> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<'timer'>(resolve => {
+    timer = setTimeout(() => resolve('timer'), timeoutMs);
+  });
+  const promiseResult = promise.then((): 'promise' => 'promise');
+  try {
+    const winner = await Promise.race([promiseResult, timeout]);
+    return winner === 'timer';
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 // Exposed for unit testing — do not use from production code.
 export const __testing = {
   AGENT_NAMES,
@@ -389,4 +640,5 @@ export const __testing = {
   FOLLOWUP_TEMPLATES,
   CONFIRMATION_KEYWORDS,
   activeSimulatorCalls,
+  dispatchSyntheticConfirmationToAiLeg,
 };

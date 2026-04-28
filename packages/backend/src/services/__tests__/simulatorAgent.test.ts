@@ -19,6 +19,15 @@ jest.mock('telnyx', () => {
   }));
 });
 
+const mockFindAiLegForSimulator = jest.fn();
+const mockInjectSyntheticTranscript = jest.fn();
+jest.mock('../../routes/streamRoutes', () => ({
+  findAiLegForSimulator: (...args: unknown[]) =>
+    mockFindAiLegForSimulator(...args),
+  injectSyntheticTranscript: (...args: unknown[]) =>
+    mockInjectSyntheticTranscript(...args),
+}));
+
 process.env.TELNYX_API_KEY = 'test';
 process.env.TELNYX_PHONE_NUMBER = '+15555551212';
 
@@ -27,6 +36,7 @@ import {
   matchesConfirmationQuestion,
   isActiveSimulatorCall,
   handleSimulatorTranscript,
+  handleSimulatorSpeakEnded,
   __testing,
 } from '../simulatorAgentService';
 
@@ -38,10 +48,10 @@ describe('pickSimulatorScript', () => {
       expect(script.greeting.length).toBeGreaterThan(10);
       expect(script.confirmation.length).toBeGreaterThan(10);
       expect(script.followup.length).toBeGreaterThan(5);
-      expect(script.pickupDelayMs).toBeGreaterThanOrEqual(800);
-      expect(script.pickupDelayMs).toBeLessThan(2500);
-      expect(script.greetingToConfirmationMs).toBeGreaterThanOrEqual(6000);
-      expect(script.greetingToConfirmationMs).toBeLessThan(9500);
+      expect(script.pickupDelayMs).toBeGreaterThanOrEqual(3000);
+      expect(script.pickupDelayMs).toBeLessThan(5000);
+      expect(script.greetingToConfirmationMs).toBeGreaterThanOrEqual(18000);
+      expect(script.greetingToConfirmationMs).toBeLessThan(25500);
       expect(script.confirmationToFollowupMs).toBeGreaterThanOrEqual(4000);
       expect(script.confirmationToFollowupMs).toBeLessThan(6500);
     }
@@ -156,6 +166,8 @@ describe('handleSimulatorTranscript', () => {
         triggered = true;
       },
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
 
     handleSimulatorTranscript(
@@ -175,6 +187,8 @@ describe('handleSimulatorTranscript', () => {
         triggered = true;
       },
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
 
     handleSimulatorTranscript(
@@ -194,10 +208,115 @@ describe('handleSimulatorTranscript', () => {
         triggered = true;
       },
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
 
     handleSimulatorTranscript(callControlId, 'Please hold for one moment.');
     expect(triggered).toBe(false);
+  });
+
+  it('handleSimulatorSpeakEnded resolves a pending waiter and clears it', () => {
+    let resolved = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'awaiting-confirmation-question',
+      confirmationTriggered: () => {},
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: () => {
+        resolved = true;
+      },
+      aiLegSpeaking: false,
+    });
+    handleSimulatorSpeakEnded(callControlId);
+    expect(resolved).toBe(true);
+    expect(
+      __testing.activeSimulatorCalls.get(callControlId)?.pendingSpeakEnded
+    ).toBe(null);
+  });
+
+  it('handleSimulatorSpeakEnded is a no-op when no waiter pending', () => {
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'confirmation-spoken',
+      confirmationTriggered: () => {},
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+      aiLegSpeaking: false,
+    });
+    expect(() => handleSimulatorSpeakEnded(callControlId)).not.toThrow();
+  });
+
+  it('handleSimulatorSpeakEnded is a no-op for unknown call ids when no simulator is active', () => {
+    expect(() => handleSimulatorSpeakEnded('unknown-id')).not.toThrow();
+  });
+
+  it('handleSimulatorSpeakEnded on an UNRELATED leg triggers confirmation when sim is awaiting', () => {
+    let triggered = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'awaiting-confirmation-question',
+      confirmationTriggered: () => {
+        triggered = true;
+      },
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+      aiLegSpeaking: false,
+    });
+    // A `call.speak.ended` from a DIFFERENT call_control_id (the AI-caller
+    // leg of the same self-call pair) should trigger confirmation.
+    handleSimulatorSpeakEnded('other-leg-id');
+    expect(triggered).toBe(true);
+  });
+
+  it('handleSimulatorSpeakEnded on an UNRELATED leg is a no-op when sim is past awaiting', () => {
+    let triggered = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'confirmation-spoken',
+      confirmationTriggered: () => {
+        triggered = true;
+      },
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+      aiLegSpeaking: false,
+    });
+    handleSimulatorSpeakEnded('other-leg-id');
+    expect(triggered).toBe(false);
+  });
+
+  describe('dispatchSyntheticConfirmationToAiLeg', () => {
+    beforeEach(() => {
+      mockFindAiLegForSimulator.mockReset();
+      mockInjectSyntheticTranscript.mockReset();
+    });
+
+    it('injects the confirmation text onto the AI-leg stream when one is found', async () => {
+      mockFindAiLegForSimulator.mockReturnValue('ai-leg-id');
+      mockInjectSyntheticTranscript.mockReturnValue(true);
+      await __testing.dispatchSyntheticConfirmationToAiLeg(
+        'sim-leg-id',
+        "Yes, I'm a real person."
+      );
+      expect(mockFindAiLegForSimulator).toHaveBeenCalledWith('sim-leg-id');
+      expect(mockInjectSyntheticTranscript).toHaveBeenCalledWith(
+        'ai-leg-id',
+        "Yes, I'm a real person."
+      );
+    });
+
+    it('skips injection when no AI-leg stream is registered', async () => {
+      mockFindAiLegForSimulator.mockReturnValue(null);
+      await __testing.dispatchSyntheticConfirmationToAiLeg(
+        'sim-leg-id',
+        'irrelevant text'
+      );
+      expect(mockInjectSyntheticTranscript).not.toHaveBeenCalled();
+    });
   });
 
   it('reports active simulator calls correctly', () => {
@@ -208,6 +327,8 @@ describe('handleSimulatorTranscript', () => {
       stage: 'awaiting-confirmation-question',
       confirmationTriggered: () => {},
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+      aiLegSpeaking: false,
     });
     expect(isActiveSimulatorCall(callControlId)).toBe(true);
   });

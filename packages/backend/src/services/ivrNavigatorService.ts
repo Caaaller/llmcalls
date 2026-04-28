@@ -424,8 +424,12 @@ CURRENT IVR SPEECH:
 CALL PURPOSE: ${callPurpose || config.callPurpose || 'speak with a representative'}
 ${config.customInstructions ? `CUSTOM INSTRUCTIONS: ${config.customInstructions}` : ''}
 ${
-  awaitingHumanConfirmation
-    ? `⚠️ CRITICAL — awaitingHumanConfirmation=true: We already asked "Am I speaking with a live agent?" Default is human_detected for ANYTHING that sounds even slightly human.
+  requireLiveAgent && !awaitingHumanConfirmation && !awaitingHumanClarification
+    ? `⚠️ requireLiveAgent=true: this call REQUIRES confirming a live human before any transfer. On FIRST-HEARING conversational speech that is NOT a clearly-automated IVR menu/hold/disclaimer, return maybe_human — even when the speaker is asking a question like "How can I help you?" or "What's your name?". Do NOT shortcut to answering with the call purpose; the confirmation question MUST be asked before purpose. This rule overrides step 5 below for first-hearing human-style speech.\n\n`
+    : ''
+}${
+      awaitingHumanConfirmation
+        ? `⚠️ CRITICAL — awaitingHumanConfirmation=true: We already asked "Am I speaking with a live agent?" Default is human_detected for ANYTHING that sounds even slightly human.
 - Human-sounding responses (→ human_detected): "Yes", "Yeah", "Yep", "Sure", "No", "Hello", "Hi", "Hey", "Who is this?", "What?", "Huh?", "I'm here", "Can you hold", "Yes can you hold on", "Uh yeah sorry", "What are you calling about", "Are you a live agent", any sentence with real English words — even short, hesitant, or confused speech. ERR GENEROUSLY toward human_detected.
 - ONLY these override the human_detected bias:
   * Clear IVR menu: "press 1 for X, press 2 for Y" → press_digit
@@ -433,8 +437,8 @@ ${
   * Bot self-ID: "I'm a virtual assistant", "I am an automated system", "I'm an AI" → speak/wait (not human)
   * Pure non-word sound with NO real words ("mmhm", "mm", "uh", "hm", "um", trailing "..." only) → maybe_human_unclear
 - When in doubt: human_detected. A caller asking "can you hold on" IS a human — transfer them.`
-    : ''
-}
+        : ''
+    }
 ${awaitingHumanClarification ? `⚠️ CRITICAL — awaitingHumanClarification=true: We already asked TWICE. ANY response that is not clearly an automated IVR system MUST return human_detected. Be extremely generous — if there's any chance it's a human, use human_detected.` : ''}
 
 ${actionSchema}
