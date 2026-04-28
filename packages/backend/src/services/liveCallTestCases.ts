@@ -46,7 +46,7 @@ const SIMULATOR_CASES: LiveCallTestCase[] = process.env.TELNYX_SIMULATOR_NUMBER
         expectedOutcome: {
           shouldReachHuman: true,
           requireConfirmedTransfer: true,
-          maxDurationSeconds: 60,
+          maxDurationSeconds: 90,
         },
       },
     ]

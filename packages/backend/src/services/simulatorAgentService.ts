@@ -207,7 +207,12 @@ export function pickSimulatorScript(): SimulatorScript {
     ),
     confirmation: withFiller(confirmation),
     followup: withFiller(followup),
-    pickupDelayMs: randomBetween(800, 2000),
+    // Pickup delay also acts as the audio-bridge warmup. The AI-leg's
+    // Telnyx → Deepgram pipeline has a ~2-3s settle window during which
+    // it intermittently drops the WS with code=1011 — if the greeting
+    // plays during that window the AI never sees the transcript. Wait
+    // 3-4s before answering so the bridge stabilizes first.
+    pickupDelayMs: randomBetween(3000, 4500),
     // Fallback timer: if we never see a confirmation-question keyword in
     // the AI caller's transcript, dispatch the confirmation anyway after
     // this window so the test still completes the pipeline. Padded to
@@ -354,7 +359,7 @@ export function handleSimulatorSpeakEnded(callControlId: string): void {
 export async function runSimulatorFlow(callControlId: string): Promise<void> {
   const script = pickSimulatorScript();
   const startedAt = Date.now();
-  const HARD_CAP_MS = 45_000;
+  const HARD_CAP_MS = 55_000;
 
   let confirmationTriggered = () => {};
   const awaitConfirmation = new Promise<void>(resolve => {
