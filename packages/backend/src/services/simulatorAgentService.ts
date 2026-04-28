@@ -214,15 +214,16 @@ export function pickSimulatorScript(): SimulatorScript {
     // 3-4s before answering so the bridge stabilizes first.
     pickupDelayMs: randomBetween(3000, 4500),
     // Fallback timer: if we never see a confirmation-question keyword in
-    // the AI caller's transcript, dispatch the confirmation anyway after
-    // this window so the test still completes the pipeline. Padded to
-    // cover the full AI-side turn AFTER the greeting playback finishes:
-    // Deepgram endpointing (~1-2s) + occasional WS reconnect (~0.5-2s)
-    // + LLM decision (~3s) + TTS dispatch (~1s) = up to ~8s under
-    // realistic conditions. We start the timer AFTER `call.speak.ended`
-    // for the greeting (see speakAndAwait), so 9-13s is the actual
-    // post-greeting window the AI has to ask its confirmation question.
-    greetingToConfirmationMs: randomBetween(9000, 13000),
+    // the AI caller's transcript and never see the AI-leg's
+    // `call.speak.started`, dispatch the confirmation anyway after this
+    // window so the test still completes the pipeline. Live measurements:
+    // utterance_end_ms gating (~1.8s) + LLM decision (~3-4s) + streaming
+    // TTS dispatch + canned-question stopSpeak/speakAndLog (~3-5s) =
+    // 12-18s total post-greeting. The window also rearms while
+    // `aiLegSpeaking` is true (see runSimulatorFlow), so the timer is
+    // really only a last resort for cases where the AI never spoke at
+    // all. 18-25s gives plenty of slack without blowing the HARD_CAP.
+    greetingToConfirmationMs: randomBetween(18000, 25000),
     confirmationToFollowupMs: randomBetween(4000, 6000),
   };
 }
@@ -398,7 +399,7 @@ export function handleSimulatorSpeakEnded(callControlId: string): void {
 export async function runSimulatorFlow(callControlId: string): Promise<void> {
   const script = pickSimulatorScript();
   const startedAt = Date.now();
-  const HARD_CAP_MS = 55_000;
+  const HARD_CAP_MS = 70_000;
 
   let confirmationTriggered = () => {};
   const awaitConfirmation = new Promise<void>(resolve => {

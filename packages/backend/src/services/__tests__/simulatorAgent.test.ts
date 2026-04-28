@@ -41,8 +41,8 @@ describe('pickSimulatorScript', () => {
       expect(script.followup.length).toBeGreaterThan(5);
       expect(script.pickupDelayMs).toBeGreaterThanOrEqual(3000);
       expect(script.pickupDelayMs).toBeLessThan(5000);
-      expect(script.greetingToConfirmationMs).toBeGreaterThanOrEqual(9000);
-      expect(script.greetingToConfirmationMs).toBeLessThan(13500);
+      expect(script.greetingToConfirmationMs).toBeGreaterThanOrEqual(18000);
+      expect(script.greetingToConfirmationMs).toBeLessThan(25500);
       expect(script.confirmationToFollowupMs).toBeGreaterThanOrEqual(4000);
       expect(script.confirmationToFollowupMs).toBeLessThan(6500);
     }
