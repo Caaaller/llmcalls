@@ -235,8 +235,42 @@ describe('handleSimulatorTranscript', () => {
     expect(() => handleSimulatorSpeakEnded(callControlId)).not.toThrow();
   });
 
-  it('handleSimulatorSpeakEnded is a no-op for unknown call ids', () => {
+  it('handleSimulatorSpeakEnded is a no-op for unknown call ids when no simulator is active', () => {
     expect(() => handleSimulatorSpeakEnded('unknown-id')).not.toThrow();
+  });
+
+  it('handleSimulatorSpeakEnded on an UNRELATED leg triggers confirmation when sim is awaiting', () => {
+    let triggered = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'awaiting-confirmation-question',
+      confirmationTriggered: () => {
+        triggered = true;
+      },
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+    });
+    // A `call.speak.ended` from a DIFFERENT call_control_id (the AI-caller
+    // leg of the same self-call pair) should trigger confirmation.
+    handleSimulatorSpeakEnded('other-leg-id');
+    expect(triggered).toBe(true);
+  });
+
+  it('handleSimulatorSpeakEnded on an UNRELATED leg is a no-op when sim is past awaiting', () => {
+    let triggered = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'confirmation-spoken',
+      confirmationTriggered: () => {
+        triggered = true;
+      },
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+    });
+    handleSimulatorSpeakEnded('other-leg-id');
+    expect(triggered).toBe(false);
   });
 
   it('reports active simulator calls correctly', () => {

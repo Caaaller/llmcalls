@@ -285,22 +285,54 @@ export function handleSimulatorTranscript(
 }
 
 /**
- * Notify the simulator that Telnyx fired `call.speak.ended` for this call
- * leg. The orchestrator awaits this between phases so the next step doesn't
- * race ahead while the previous TTS is still on the wire — `speakText`
- * itself returns as soon as Telnyx accepts the request, NOT when playback
- * finishes.
+ * Notify the simulator that Telnyx fired `call.speak.ended` for some call
+ * leg. Two distinct uses:
  *
- * No-op for non-simulator calls. Safe to call from voiceRoutes for every
- * `call.speak.ended` webhook.
+ *  1. `call.speak.ended` on the SIMULATOR leg: resolves the orchestrator's
+ *     `pendingSpeakEnded` waiter so the next phase doesn't race ahead
+ *     while the previous TTS is still on the wire. (`speakText` itself
+ *     returns as soon as Telnyx accepts the request, not when playback
+ *     finishes.)
+ *
+ *  2. `call.speak.ended` on the AI-CALLER leg: when an active simulator
+ *     is still awaiting the confirmation question, treat the AI's TTS
+ *     completion as the signal. The AI just spoke — almost certainly the
+ *     "Am I speaking with a live agent?" prompt — and we can dispatch
+ *     the confirmation reply without depending on Deepgram transcribing
+ *     the AI's audio on the simulator leg. This is a structural signal
+ *     (Telnyx webhook) that's independent of STT reliability, which has
+ *     been intermittently failing with code=1011 closures during live
+ *     tests. The keyword-matched and fallback-timer paths still apply
+ *     for cases where this signal doesn't fire.
+ *
+ * No-op for ids unrelated to any active simulator call.
  */
 export function handleSimulatorSpeakEnded(callControlId: string): void {
   const state = activeSimulatorCalls.get(callControlId);
-  if (!state) return;
-  const resolver = state.pendingSpeakEnded;
-  if (!resolver) return;
-  state.pendingSpeakEnded = null;
-  resolver();
+  if (state) {
+    // Case 1: speak.ended on the simulator's own leg.
+    const resolver = state.pendingSpeakEnded;
+    if (resolver) {
+      state.pendingSpeakEnded = null;
+      resolver();
+    }
+    return;
+  }
+
+  // Case 2: speak.ended on a DIFFERENT leg while a simulator call is
+  // active and still awaiting the confirmation question. The "different
+  // leg" is the AI-caller leg of the same self-call pair — when its TTS
+  // ends, that's our high-signal cue that the AI just finished asking
+  // its confirmation question.
+  for (const [, simState] of activeSimulatorCalls) {
+    if (simState.stage === 'awaiting-confirmation-question') {
+      console.log(
+        `[SIM] AI-leg speak.ended detected (${callControlId.slice(-20)}) — ` +
+          `triggering confirmation on simulator awaiting-state`
+      );
+      simState.confirmationTriggered();
+    }
+  }
 }
 
 /**
