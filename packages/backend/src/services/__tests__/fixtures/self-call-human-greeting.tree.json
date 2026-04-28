@@ -1,0 +1,39 @@
+{
+  "version": 2,
+  "id": "self-call-human-greeting",
+  "testCaseId": "self-call-human-greeting",
+  "lastRecordedAt": "2026-04-28T21:15:46.119Z",
+  "config": {
+    "callPurpose": "Test call to the simulator agent"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "Hey. Thanks for calling in today. This is Jamie's support team. How can I help you?",
+    "children": [
+      {
+        "aiAction": {
+          "action": "speak",
+          "speech": "Test call to the simulator agent",
+          "reason": "",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-28T21:15:46.119Z",
+        "isLatestPath": true,
+        "child": {
+          "terminal": true,
+          "finalStatus": "initiated",
+          "durationSeconds": 29,
+          "reachedHuman": false,
+          "dtmfDigits": []
+        }
+      }
+    ]
+  }
+}
