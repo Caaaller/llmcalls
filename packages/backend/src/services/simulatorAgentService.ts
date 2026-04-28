@@ -234,6 +234,13 @@ interface SimulatorCallState {
   confirmationTriggered: () => void;
   /** Promise that resolves once `confirmationTriggered` has been called. */
   awaitConfirmation: Promise<void>;
+  /**
+   * Set to a resolver while the orchestrator is waiting for a
+   * `call.speak.ended` webhook on this leg. Cleared once fired (so a
+   * second speak.ended later in the call can't accidentally unblock a
+   * future awaiter for a different phase).
+   */
+  pendingSpeakEnded: (() => void) | null;
 }
 
 const activeSimulatorCalls = new Map<string, SimulatorCallState>();
@@ -273,6 +280,25 @@ export function handleSimulatorTranscript(
 }
 
 /**
+ * Notify the simulator that Telnyx fired `call.speak.ended` for this call
+ * leg. The orchestrator awaits this between phases so the next step doesn't
+ * race ahead while the previous TTS is still on the wire — `speakText`
+ * itself returns as soon as Telnyx accepts the request, NOT when playback
+ * finishes.
+ *
+ * No-op for non-simulator calls. Safe to call from voiceRoutes for every
+ * `call.speak.ended` webhook.
+ */
+export function handleSimulatorSpeakEnded(callControlId: string): void {
+  const state = activeSimulatorCalls.get(callControlId);
+  if (!state) return;
+  const resolver = state.pendingSpeakEnded;
+  if (!resolver) return;
+  state.pendingSpeakEnded = null;
+  resolver();
+}
+
+/**
  * Orchestrates the scripted human-agent flow on an inbound call leg.
  *
  *   1. Answer the call
@@ -304,8 +330,39 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     stage: 'awaiting-confirmation-question',
     confirmationTriggered,
     awaitConfirmation,
+    pendingSpeakEnded: null,
   };
   activeSimulatorCalls.set(callControlId, state);
+
+  /**
+   * Speaks `text` and resolves AFTER Telnyx fires `call.speak.ended` for
+   * this leg, OR after `maxWaitMs` has elapsed (whichever comes first).
+   * The Telnyx SDK's `speak` returns as soon as the request is accepted;
+   * if we don't wait for the actual playback to finish, the next phase
+   * (e.g. the confirmation timer) starts racing while the greeting is
+   * still on the wire and the AI hasn't even heard it yet.
+   *
+   * `maxWaitMs` is a safety net for cases where Telnyx never fires
+   * speak.ended (network blip, malformed TTS, etc.) — the simulator
+   * keeps moving so the test can complete.
+   */
+  const speakAndAwait = async (
+    text: string,
+    voice: string,
+    maxWaitMs: number
+  ): Promise<void> => {
+    let resolveSpeakEnded: () => void = () => {};
+    const speakEnded = new Promise<void>(r => {
+      resolveSpeakEnded = r;
+    });
+    state.pendingSpeakEnded = resolveSpeakEnded;
+    await telnyxService.speakText(callControlId, text, voice);
+    await raceWithTimeout(speakEnded, maxWaitMs);
+    // Clear in case the timeout won — a stale resolver could otherwise be
+    // kept alive in `pendingSpeakEnded` and absorb a later speak.ended
+    // event meant for the next phase.
+    state.pendingSpeakEnded = null;
+  };
 
   console.log(
     `[SIM] Starting simulator flow for ${callControlId.slice(-20)} ` +
@@ -317,7 +374,12 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
 
     await sleep(script.pickupDelayMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
-    await telnyxService.speakText(callControlId, script.greeting, script.voice);
+    // Wait for the greeting playback to actually finish before starting
+    // the confirmation timer — otherwise the timer fires while the
+    // greeting is still on the wire and the AI never hears it.
+    // Greetings cap around 6-8s of TTS; 12s is comfortable headroom.
+    await speakAndAwait(script.greeting, script.voice, 12_000);
+    if (Date.now() - startedAt > HARD_CAP_MS) return;
 
     // Race the keyword-match path against a fallback timer. Whichever
     // resolves first wins. The fallback ensures we still complete the
@@ -327,11 +389,11 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     if (Date.now() - startedAt > HARD_CAP_MS) return;
 
     state.stage = 'confirmation-spoken';
-    await telnyxService.speakText(
-      callControlId,
-      script.confirmation,
-      script.voice
-    );
+    // Wait for confirmation playback to actually finish so the AI hears
+    // the full "yes, I'm a real person" before we start the post-confirm
+    // pause. Without this we sleep on top of the still-playing audio
+    // and the AI's human_detected → transfer turn races our followup.
+    await speakAndAwait(script.confirmation, script.voice, 8_000);
 
     // Give the AI ~5-7s to react: fire human_detected → kick off the
     // bridge transfer. The transfer logic dials a third leg; once that
@@ -339,7 +401,7 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     // without disrupting the bridge.
     await sleep(script.confirmationToFollowupMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
-    await telnyxService.speakText(callControlId, script.followup, script.voice);
+    await speakAndAwait(script.followup, script.voice, 6_000);
 
     // Let the followup play, then hang up if we're still within the cap.
     const remaining = HARD_CAP_MS - (Date.now() - startedAt);

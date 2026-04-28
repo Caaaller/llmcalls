@@ -14,7 +14,10 @@ import callStateManager from '../services/callStateManager';
 import callHistoryService from '../services/callHistoryService';
 import { EndReason } from '../models/CallHistory';
 import telnyxService from '../services/telnyxService';
-import { runSimulatorFlow } from '../services/simulatorAgentService';
+import {
+  runSimulatorFlow,
+  handleSimulatorSpeakEnded,
+} from '../services/simulatorAgentService';
 import transferConfig from '../config/transfer-config';
 import { TransferConfig as TransferConfigType } from '../config/transfer-config';
 import { logOnError } from '../utils/logOnError';
@@ -567,6 +570,9 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
             isSpeaking: false,
           });
         }
+        // Notify the self-call simulator orchestrator so it can advance
+        // past the current TTS phase. No-op on non-simulator calls.
+        handleSimulatorSpeakEnded(callControlId);
         break;
       }
       default:

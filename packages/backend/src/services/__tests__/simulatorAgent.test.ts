@@ -27,6 +27,7 @@ import {
   matchesConfirmationQuestion,
   isActiveSimulatorCall,
   handleSimulatorTranscript,
+  handleSimulatorSpeakEnded,
   __testing,
 } from '../simulatorAgentService';
 
@@ -156,6 +157,7 @@ describe('handleSimulatorTranscript', () => {
         triggered = true;
       },
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
     });
 
     handleSimulatorTranscript(
@@ -175,6 +177,7 @@ describe('handleSimulatorTranscript', () => {
         triggered = true;
       },
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
     });
 
     handleSimulatorTranscript(
@@ -194,10 +197,46 @@ describe('handleSimulatorTranscript', () => {
         triggered = true;
       },
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
     });
 
     handleSimulatorTranscript(callControlId, 'Please hold for one moment.');
     expect(triggered).toBe(false);
+  });
+
+  it('handleSimulatorSpeakEnded resolves a pending waiter and clears it', () => {
+    let resolved = false;
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'awaiting-confirmation-question',
+      confirmationTriggered: () => {},
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: () => {
+        resolved = true;
+      },
+    });
+    handleSimulatorSpeakEnded(callControlId);
+    expect(resolved).toBe(true);
+    expect(
+      __testing.activeSimulatorCalls.get(callControlId)?.pendingSpeakEnded
+    ).toBe(null);
+  });
+
+  it('handleSimulatorSpeakEnded is a no-op when no waiter pending', () => {
+    __testing.activeSimulatorCalls.set(callControlId, {
+      script: pickSimulatorScript(),
+      startedAt: Date.now(),
+      stage: 'confirmation-spoken',
+      confirmationTriggered: () => {},
+      awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
+    });
+    expect(() => handleSimulatorSpeakEnded(callControlId)).not.toThrow();
+  });
+
+  it('handleSimulatorSpeakEnded is a no-op for unknown call ids', () => {
+    expect(() => handleSimulatorSpeakEnded('unknown-id')).not.toThrow();
   });
 
   it('reports active simulator calls correctly', () => {
@@ -208,6 +247,7 @@ describe('handleSimulatorTranscript', () => {
       stage: 'awaiting-confirmation-question',
       confirmationTriggered: () => {},
       awaitConfirmation: Promise.resolve(),
+      pendingSpeakEnded: null,
     });
     expect(isActiveSimulatorCall(callControlId)).toBe(true);
   });
