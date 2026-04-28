@@ -56,6 +56,34 @@ maybeDescribe('human-detection pipeline (real LLM, no phone)', () => {
     expect(action).toBe('maybe_human');
   }, 30_000);
 
+  it('treats Deepgram possessive transcription "{name}\'s {team}" as a name intro', async () => {
+    // Regression: Deepgram routinely transcribes the simulator's spoken
+    // "this is {name} with the support team" as the possessive form
+    // "this is {name}'s support team". The IVR-navigator prompt must
+    // still classify this as maybe_human (humanIntroDetected:true), not
+    // a generic conversational entity — otherwise the confirmation
+    // question never fires and the test call hangs up at 29s.
+    const possessiveCallSid = 'test-possessive-' + Date.now();
+    callStateManager.getCallState(possessiveCallSid);
+
+    try {
+      const result = await processSpeech({
+        callSid: possessiveCallSid,
+        speechResult: "this is Jamie's support team. How can I help you?",
+        isFirstCall: false,
+        baseUrl: 'http://localhost:8068',
+        transferNumber,
+        callPurpose: 'speak with a representative',
+        testMode: true,
+      });
+
+      const action = result.aiAction || '';
+      expect(action).toBe('maybe_human');
+    } finally {
+      callStateManager.clearCallState(possessiveCallSid);
+    }
+  }, 30_000);
+
   it('marks human_detected after hearing confirmation', async () => {
     // Update call state to reflect that confirmation is now being awaited —
     // matches the production flow after the first turn fired maybe_human.

@@ -202,7 +202,9 @@ STEP 3: If awaitingHumanConfirmation=true OR awaitingHumanClarification=true (we
 EXAMPLES (NO confirmation pending, first hearing):
 - "Thank you for calling. My name is Jeremy. May I have your name?" → maybe_human (ignore the question; name triggers confirmation flow). Do NOT human_detected.
 - "Hi, this is Sarah from customer service" → maybe_human.
+- "This is Jamie's support team. How can I help you?" → maybe_human + humanIntroDetected: true (possessive "{name}'s {team}" is an STT artifact for "{name} with the {team}" — proper name still triggers name-intro flow).
 - "Hi, this is customer service" → maybe_human (role only, no name).
+- "This is Jamie's support team. How can I help you?" → maybe_human + humanIntroDetected: true. The "{name}'s {team}" possessive form is a common STT transcription artifact for the spoken phrase "{name} with the {team}" — treat it as a name intro, not a generic entity. The proper given name ("Jamie") is the human-ish signal; the possessive 's is noise.
 - "Hello, are you still there?" → maybe_human.
 
 EXAMPLES (awaitingHumanConfirmation=true):

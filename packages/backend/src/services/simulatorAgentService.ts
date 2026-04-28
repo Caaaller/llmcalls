@@ -73,9 +73,19 @@ const GREETING_TEMPLATES = [
   // Longer single-utterance greetings help Deepgram lock onto an
   // is_final with real text. Short greetings like "{name} speaking"
   // were getting chopped by endpointing=500 before words solidified.
+  //
+  // AVOID the "this is {name} with the {team}" pattern: Deepgram
+  // routinely transcribes that as "this is {name}'s {team}"
+  // (possessive), which Haiku then classifies as a generic
+  // conversational entity rather than a name intro. Stick to
+  // "{name} speaking", "{name} here", and "my name is {name}" —
+  // all of which Deepgram preserves as a clean PROPER NAME token
+  // that the IVR-navigator prompt's name-intro example matches.
   'Hi, thanks for calling customer service, this is {name} speaking, how can I help you today?',
   "Hello, you've reached our support team, {name} here on the line, what can I do for you today?",
-  'Hey, thanks for calling in today, this is {name} with the support team, how can I help you?',
+  'Hello, this is {name} speaking. How can I help you today?',
+  'Hi, my name is {name}. How can I help you today?',
+  'Thanks for calling, {name} here — what can I do for you today?',
   'Good {timeOfDay}, thanks for reaching out, this is {name} speaking, what can I help you with today?',
 ];
 
