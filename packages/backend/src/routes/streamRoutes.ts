@@ -29,6 +29,17 @@ import {
   resetWatcherFields,
   shouldForceReprocess,
 } from '../services/postDTMFLoopWatcher';
+import {
+  createHoldAudioMonitor,
+  HoldAudioMonitor,
+  WakeReason,
+} from '../services/holdAudioMonitor';
+
+// Per-call hold-mode audio monitors. Keyed by callControlId. Created on entry
+// to LOW_POWER, destroyed on exit or stream stop.
+const holdAudioMonitors = new Map<string, HoldAudioMonitor>();
+// How many ~20ms PCMU frames to keep in the resume ring buffer (~3s of audio).
+const RESUME_BUFFER_FRAME_CAP = 150;
 
 // Endpointing dropped from 1800 → 500ms to shrink the "user stopped → Deepgram
 // declares speech_final" window. Combined with a semantic completeness check
@@ -803,6 +814,58 @@ export function attachStreamServer(httpServer: Server): void {
         if (!payload) return;
 
         const pcmuBytes = Buffer.from(payload, 'base64');
+
+        // Hold low-power mode: while active, do NOT forward inbound audio
+        // to Deepgram. Run the local audio monitor instead and resume on
+        // wake triggers (silence-break, speech-onset, periodic-probe).
+        const callControlIdForHold = state.callControlId;
+        const callStateForHold =
+          callStateManager.getCallState(callControlIdForHold);
+        if (callStateForHold.holdLowPowerActive) {
+          // Lazily create the monitor on first frame after entry.
+          let monitor = holdAudioMonitors.get(callControlIdForHold);
+          if (!monitor) {
+            monitor = createHoldAudioMonitor(
+              callStateForHold.holdLowPowerEnteredAt ?? Date.now()
+            );
+            holdAudioMonitors.set(callControlIdForHold, monitor);
+          }
+
+          // Maintain a small ring buffer of the most-recent frames so that
+          // when we wake we can re-feed ~3s of audio to Deepgram and the
+          // first agent words aren't clipped.
+          const ringBuf = callStateForHold.holdAudioRingBuffer ?? [];
+          ringBuf.push(pcmuBytes);
+          if (ringBuf.length > RESUME_BUFFER_FRAME_CAP) ringBuf.shift();
+          callStateForHold.holdAudioRingBuffer = ringBuf;
+
+          const wake: WakeReason | null = monitor.pushFrame(
+            pcmuBytes,
+            Date.now()
+          );
+          if (wake) {
+            console.log(
+              `📡 Hold low-power exit (${wake}) for ${callControlIdForHold.slice(-20)} — resuming Deepgram forwarding`
+            );
+            // Replay buffered audio to Deepgram so first words aren't clipped.
+            if (state.dgWs?.readyState === WS.OPEN) {
+              for (const chunk of ringBuf) state.dgWs.send(chunk);
+            } else {
+              for (const chunk of ringBuf) state.audioBuffer.push(chunk);
+            }
+            // Clear hold low-power state and the monitor.
+            callStateManager.updateCallState(callControlIdForHold, {
+              holdLowPowerActive: false,
+              holdLowPowerEnteredAt: undefined,
+              holdAudioRingBuffer: undefined,
+            });
+            holdAudioMonitors.delete(callControlIdForHold);
+          }
+          // Whether we woke or not, do NOT forward this frame to Deepgram —
+          // it's already been buffered (or replayed) above.
+          return;
+        }
+
         if (state.dgWs?.readyState === WS.OPEN) {
           state.dgWs.send(pcmuBytes);
         } else {
@@ -844,6 +907,7 @@ export function attachStreamServer(httpServer: Server): void {
         if (state.semanticWaitTimer) clearTimeout(state.semanticWaitTimer);
         silentHoldResetters.delete(state.callControlId);
         silentHoldTimers.delete(state.callControlId);
+        holdAudioMonitors.delete(state.callControlId);
         state.expectedClose = true;
         if (state.reconnectTimer) clearTimeout(state.reconnectTimer);
         if (state.dgWs?.readyState === WS.OPEN) {
@@ -866,6 +930,7 @@ export function attachStreamServer(httpServer: Server): void {
         // Unconditional cleanup (fixes memory leak on abnormal disconnect where dgWs may already be closed)
         silentHoldResetters.delete(state.callControlId);
         silentHoldTimers.delete(state.callControlId);
+        holdAudioMonitors.delete(state.callControlId);
         if (state.silentHoldTimer) clearTimeout(state.silentHoldTimer);
         if (state.semanticWaitTimer) clearTimeout(state.semanticWaitTimer);
         state.expectedClose = true;
