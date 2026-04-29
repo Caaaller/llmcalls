@@ -399,13 +399,32 @@ export function hasTelnyxCreds(): boolean {
  *
  * Criteria: call ended cleanly (status 'completed' or 'hangup'), no transfer
  * fired, no hold queue reached, not timed out, not business_closed.
+ *
+ * Self-call note: a self-call's simulator leg is torn down AFTER the AI
+ * caller fires its transfer event (that's the expected bridge-transfer
+ * shutdown sequence). The hangup webhook for the simulator leg can land
+ * before the transfer event finishes committing on the AI-caller's
+ * document, racing this check. Settle for the transfer event before
+ * declaring remote_hangup so a real success isn't misreported.
  */
+const TRANSFER_SETTLE_MS = 3000;
+const TRANSFER_POLL_MS = 500;
+
 export async function isRemoteHangup(
   callSid: string,
   timedOut: boolean
 ): Promise<boolean> {
   if (timedOut) return false;
-  const transferred = await callHistoryService.hasSuccessfulTransfer(callSid);
+  let transferred = await callHistoryService.hasSuccessfulTransfer(callSid);
+  if (!transferred) {
+    // Settle window: the transfer event may still be in flight if the call
+    // ended before async event-write finished. Same pattern as hasBusinessClosed.
+    const deadline = Date.now() + TRANSFER_SETTLE_MS;
+    while (!transferred && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, TRANSFER_POLL_MS));
+      transferred = await callHistoryService.hasSuccessfulTransfer(callSid);
+    }
+  }
   if (transferred) return false;
   const onHold = await callHistoryService.hasReachedHoldQueue(callSid);
   if (onHold) return false;
