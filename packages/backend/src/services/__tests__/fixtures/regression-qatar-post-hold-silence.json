@@ -1,0 +1,511 @@
+{
+  "version": 1,
+  "id": "regression-qatar-post-hold-silence",
+  "description": "Reproducer for Qatar Airways post-hold AI-silence bug. After ~22 min on hold, a human agent (Pushpanjali) greets, but the AI fails to greet/confirm and instead emits the call purpose seed string, then degrades to \"representative\". Captured from real call sid v3:dfzWl63CbyV05TlTNc5PHhjh7huojdx5MafpzIOjis5TrkbdNgQErA on 2026-04-27.",
+  "knownBug": true,
+  "callSid": "v3:dfzWl63CbyV05TlTNc5PHhjh7huojdx5MafpzIOjis5TrkbdNgQErA",
+  "metadata": {
+    "targetNumber": "+18777772827",
+    "callPurpose": "Connect british airways to my avios account",
+    "transferNumber": "7205846358",
+    "startTime": "2026-04-27T16:31:33.592Z",
+    "endTime": "2026-04-27T16:56:01.392Z",
+    "durationMs": 1467800
+  },
+  "humanPickup": {
+    "timestamp": "2026-04-27T16:54:44Z",
+    "userSpeech": "Welcome to Katarai. This is Pushpanjali. How may I assist?",
+    "expectedAiAction": "maybe_human",
+    "actualAiSpeech": "Connect British Airways to my Avios account.",
+    "actualBugSummary": "AI emits the literal callPurpose seed string instead of marking maybe_human + asking the confirmation question. human_detected never fires; the AI later degrades to outputting just the word \"representative\"."
+  },
+  "events": [
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Thank you for calling Qatar Airways. We're currently experiencing a high volume of calls. Which may result in longer wait times. Our teams are working hard to assist all customers as quickly as possible, and we appreciate your patience. To help us support customers traveling soon, if your flight is not within the next forty eight hours, we recommend contacting us closer to your departure. Did you know, for faster service, most travel needs can be managed online without waiting for an agent? Use CATIA Airways mobile app or visit qatarairways.com and use manage booking option to change your existing bookings or request for a refund. You can also check your flight status online at any time. If you still require assistance, please stay on the line and choose from the following options. If you are a member of our privilege club, press 1. If you are a travel agent, press 2. If you are calling with regards to bookings and reservations, press 3.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:32:40.427Z"
+    },
+    {
+      "eventType": "ivr_menu",
+      "menuOptions": [
+        {
+          "digit": "1",
+          "option": "privilege club"
+        },
+        {
+          "digit": "2",
+          "option": "travel agent"
+        },
+        {
+          "digit": "3",
+          "option": "bookings and reservations"
+        }
+      ],
+      "timestamp": "2026-04-27T16:32:53.001Z"
+    },
+    {
+      "eventType": "dtmf",
+      "digit": "3",
+      "reason": "AI selected: The menu options are complete, and option 3 is the best match for my call purpose regarding bookings and reservations.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:32:53.002Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "We have not received your input. Please try again. If you are a member of our privilege club, press 1. If you are a travel agent, press 2. If you are calling with For first and business class bookings, please press 1. For existing bookings. Press 2. For new bookings, press 3. For inquiries, press 4.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:33:08.354Z"
+    },
+    {
+      "eventType": "ivr_menu",
+      "menuOptions": [
+        {
+          "digit": "1",
+          "option": "first and business class bookings"
+        },
+        {
+          "digit": "2",
+          "option": "existing bookings"
+        },
+        {
+          "digit": "3",
+          "option": "new bookings"
+        },
+        {
+          "digit": "4",
+          "option": "inquiries"
+        }
+      ],
+      "timestamp": "2026-04-27T16:33:23.174Z"
+    },
+    {
+      "eventType": "dtmf",
+      "digit": "4",
+      "reason": "AI selected: The menu is complete, and option 4 for inquiries is the best choice to connect regarding my Avios account.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:33:23.174Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "We have not received your input. Please try again. For first and business class bookings, please press 1. For existing bookings. Press 2. For new bookings, press 3.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:33:26.044Z"
+    },
+    {
+      "eventType": "ivr_menu",
+      "menuOptions": [
+        {
+          "digit": "1",
+          "option": "first and business class bookings"
+        },
+        {
+          "digit": "2",
+          "option": "existing bookings"
+        },
+        {
+          "digit": "3",
+          "option": "new bookings"
+        }
+      ],
+      "timestamp": "2026-04-27T16:33:38.159Z"
+    },
+    {
+      "eventType": "dtmf",
+      "digit": "2",
+      "reason": "AI selected: The menu is complete, and I need to select the option for existing bookings to connect to British Airways regarding my Avios account.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:33:38.159Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Please hold. This call will be connected to the next available adviser for assistance. We process your data in accordance with our privacy policy, which can be found at qatarairways.com. For quality and training purposes, your call may be recorded.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:33:44.305Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:33:53.100Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:34:23.101Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "All of our advisers are currently assisting other customers. Your call will be answered shortly. Thank you for your patience.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:34:33.705Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:34:45.726Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "As the global partner, Anna official airline of Formula One, we're driven to perfection. Book your exclusive travel packages today.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:35:17.826Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:35:26.246Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Flying from or through Doha, explore the new Hamad International Airport expansion from luxury shopping and sunsets dining, to strolling through the natural beauty of the Orchard, This is a destination in itself with something for everyone.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:36:08.443Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:36:15.938Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "With more flights than ever, explore the world with us in over a 106 and Dabo, and our second gateway in Tokyo, Haneda. We are offering you more flights and better connections than ever before.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:37:01.322Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:37:05.316Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Join Privilege Club and book your travel to earn avios, spend them on upgrades, award flights, Qatar duty free, and so much more. Visit qatarairways.com today.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:37:48.482Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:37:53.653Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Thank you for your patience as we're currently experiencing a higher than expected number of calls. If your inquiry is in regards to recent events, please visit our Twitter and Facebook page for further updates. If you are not traveling within the next forty eight hours, please consider calling back at a later date.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:38:40.804Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:38:45.471Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Experience the unparalleled privacy, safety, and comfort of Key Suite. With every seat having direct aisle access privacy doors, and a do not disturb feature, relax in a space of your own on our revolutionary business class, upgrade to QSuite at qatarairways.com.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:39:36.123Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:39:40.236Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Travel with the airline you can rely on to take you safely where you need to go, offering the highest standards throughout every step of your journey whether on board, within our lounges, or at our state of the art Hamad International Airport. In Doha, Qatar. So wherever you want to go, whoever you want to see, enjoy an award winning experience from the only airline and hub airport to both hold SkyTrax five star ratings for quality and COVID nineteen safety measures.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:40:43.422Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:40:52.219Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "And requirements when traveling, please visit qatarairways.com/travelinfo.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:41:27.242Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:41:31.420Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:42:01.420Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "All of our advisers are currently assisting other customers. Your call will be answered shortly. Thank you for your patience.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:42:41.603Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:42:46.991Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "As the global partner, an official airline of Formula One, we're driven to perfection. Book your exclusive travel packages today.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:43:26.362Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:43:29.416Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Flying from or through Doha, explore the new Hama International Airport expansion from luxury shopping, and sunsets dining to stroll and through the natural beauty of the Orchard, This is a destination in itself with something for everyone.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:44:16.541Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:44:19.788Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "With more flights than ever, explore the world with us in over a hundred and six and sixty destinations worldwide with resumption of our flights to Greece, Davao, and our second gateway in Tokyo, Haneda. We are offering you more flights and better connections than ever before.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:45:09.283Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:45:13.107Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Join Privilege Club and book your travel to earn Avios, spend them on upgrades, award flights, Qatar duty free, and so much more. Visit kataairways.com today.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:45:56.503Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:46:02.020Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Thank you for your patience as we're currently experiencing a higher than expected number of calls. If your inquiry is in regards to recent events, please visit our Twitter and Facebook page for further updates. If you are not traveling within the next forty eight hours, please consider calling back at a later date.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:46:48.826Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:46:51.926Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Experience the unparalleled privacy, safety, and comfort of Q Suite. With every seat having direct aisle access, privacy doors, and a do not disturb feature, relax in a space of your own on our revolutionary business class, upgrade to QSuite at qatarairways.com.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:47:44.043Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:47:47.124Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:48:17.125Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Travel with the airline you can rely on to take you safely where you need to go. Offering the highest standards throughout every step of your journey. Whether onboard, within our languages, or at our state of the art Hamad International Airport in Doha, Qatar. So wherever you want to go, whoever you want to see, enjoy an award winning experience from the only airline and hub airport to both hold SkyTrak's five star ratings for quality and COVID nineteen safety measures.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:48:52.002Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:48:55.764Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "For the latest safety information and requirements when traveling, please visit qatarairways.com/travelinfo.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:49:35.322Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:49:42.420Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:50:12.420Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "All of our advisers are currently assisting other customers. Your call will be answered shortly. Thank you for your patience.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:50:49.624Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:50:55.767Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "As the global partner, an official airline of Formula One, we're driven to perfection. Book your exclusive travel packages today.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:51:34.422Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:51:38.078Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Flying from or through Doha, explore the new Hamad International Airport expansion. From luxury shopping and sunshares dining to strolling through the natural beauty of the orchard. This is a destination in itself. With something for everyone.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:52:25.502Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:52:29.441Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "With more flights than ever, explore the world with us in over a 106 and Davao, and our second gateway in Tokyo, Haneda. We are offering you more flights and better connections than ever before.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:53:17.142Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Join Privilege Club and book your travel to earn Avios. Spend them on upgrades, award flights, Qatar duty free, and so much more. Visit katahairways.com today.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:54:05.922Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Welcome to Katarai. This is Pushpanjali. How may I assist?",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:54:44.282Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "ai",
+      "text": "Connect British Airways to my Avios account.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:54:48.375Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Am I audible to you?",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:54:52.882Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "ai",
+      "text": "Connect British Airways to my Avios account.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:54:56.910Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Hello? Am I audible?",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:54:57.222Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "ai",
+      "text": "Connect British Airways to my Avios account.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:55:00.964Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Please respond if I'm audible.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:55:28.873Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "ai",
+      "text": "Representative",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:55:32.598Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "If there will be no further response from your end, the call might get disconnected.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:55:38.342Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "If there is no further response from your end, I will have to disconnect the call.",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:55:50.302Z"
+    },
+    {
+      "eventType": "hold",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:55:54.235Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "user",
+      "text": "Since there's no response from your end for a long time,",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:56:01.307Z"
+    },
+    {
+      "eventType": "conversation",
+      "type": "ai",
+      "text": "representative",
+      "menuOptions": [],
+      "timestamp": "2026-04-27T16:56:07.828Z"
+    }
+  ]
+}
