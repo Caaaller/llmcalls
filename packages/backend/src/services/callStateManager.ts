@@ -133,6 +133,19 @@ export interface CallState {
    * re-feed ~3s of audio to Deepgram on resume so the first agent words
    * aren't clipped. Capped to ~3s by holdAudioMonitor wiring. */
   holdAudioRingBuffer?: Buffer[];
+  /** True if the previous AI decision had `holdDetected: true`. Used to
+   * detect the hold→non-hold transition so we can clear conversationHistory
+   * before the next user turn — preventing the LLM from seeing minutes of
+   * pre-hold IVR priming when a human picks up (Qatar Airways post-hold
+   * silence bug). Cleared on the transition turn. */
+  lastTurnWasHold?: boolean;
+  /** True after the post-hold conversationHistory reset has fired for this
+   * call. Diagnostic flag, surfaced in logs and tests. */
+  postHoldResetFired?: boolean;
+  /** Current Deepgram model in use for this stream. Switched between
+   * 'nova-2-phonecall' (default, real-time accuracy) and 'base' (cheaper
+   * tier used during detected hold) when ENABLE_DG_TIER_SWITCH=true. */
+  currentDgModel?: 'nova-2-phonecall' | 'base';
 }
 
 export function createDefaultCallState(callSid: string): CallState {
