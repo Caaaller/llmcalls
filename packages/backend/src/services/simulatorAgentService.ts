@@ -649,6 +649,7 @@ async function dispatchSyntheticToAiLeg(
         `[SIM] Real Deepgram delivered for ${label} on AI leg ` +
           `${aiLegId.slice(-20)} — skipping synthetic injection`
       );
+      recordDgGateOutcome(simulatorCallControlId, label, 'real-dg');
       return;
     }
     await sleep(REAL_DG_POLL_MS);
@@ -666,6 +667,41 @@ async function dispatchSyntheticToAiLeg(
       `falling back to synthetic injection on AI leg ` +
       `${aiLegId.slice(-20)}: "${text.slice(0, 80)}"`
   );
+  recordDgGateOutcome(simulatorCallControlId, label, 'synthetic');
+}
+
+/**
+ * Per-call DG-gate outcome tracking. If BOTH greeting and confirmation
+ * fall back to synthetic, we warn loudly — that means the test passed
+ * without exercising the real Deepgram → speech_final → processSpeech
+ * pipeline at all. A silent regression in DG ingest would degrade
+ * gracefully into "all synthetic" otherwise, and the test would still
+ * pass with the AI never hearing real audio. The warning is the early
+ * signal that real DG coverage has been lost.
+ */
+type DgGateOutcome = 'real-dg' | 'synthetic';
+const dgGateOutcomes = new Map<
+  string,
+  { greeting?: DgGateOutcome; confirmation?: DgGateOutcome }
+>();
+
+function recordDgGateOutcome(
+  simulatorCallControlId: string,
+  label: 'greeting' | 'confirmation',
+  outcome: DgGateOutcome
+): void {
+  const entry = dgGateOutcomes.get(simulatorCallControlId) ?? {};
+  entry[label] = outcome;
+  dgGateOutcomes.set(simulatorCallControlId, entry);
+  if (entry.greeting === 'synthetic' && entry.confirmation === 'synthetic') {
+    console.warn(
+      `[SIM] ⚠️  Both greeting AND confirmation fell back to synthetic ` +
+        `for ${simulatorCallControlId.slice(-20)} — the AI never processed ` +
+        `real Deepgram audio on this run. Test PASSED without exercising ` +
+        `the DG pipeline. If this happens repeatedly, investigate DG ingest ` +
+        `regression on the AI leg.`
+    );
+  }
 }
 
 async function dispatchSyntheticConfirmationToAiLeg(
