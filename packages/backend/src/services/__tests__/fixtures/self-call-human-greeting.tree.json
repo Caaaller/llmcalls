@@ -2,7 +2,7 @@
   "version": 2,
   "id": "self-call-human-greeting",
   "testCaseId": "self-call-human-greeting",
-  "lastRecordedAt": "2026-04-29T05:53:42.034Z",
+  "lastRecordedAt": "2026-04-29T14:33:34.350Z",
   "config": {
     "callPurpose": "Test call to the simulator agent"
   },
@@ -47,7 +47,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-29T05:53:42.034Z",
+        "recordedAt": "2026-04-29T14:33:34.350Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -67,14 +67,36 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-29T05:53:42.034Z",
+              "recordedAt": "2026-04-29T14:33:34.350Z",
               "isLatestPath": true,
               "child": {
-                "terminal": true,
-                "finalStatus": "initiated",
-                "durationSeconds": 52,
-                "reachedHuman": false,
-                "dtmfDigits": []
+                "id": "n2",
+                "ivrSpeech": "Alright, Yes, I'm a live agent, not a bot.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-29T14:33:34.350Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "terminal": true,
+                      "finalStatus": "initiated",
+                      "durationSeconds": 25,
+                      "reachedHuman": true,
+                      "dtmfDigits": []
+                    }
+                  }
+                ]
               }
             }
           ]
