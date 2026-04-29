@@ -116,6 +116,17 @@ const FOLLOWUP_TEMPLATES = [
   'What can I do for you?',
 ];
 
+// Hold-queue phrases the IVR navigator's transfer-prompt classifies as
+// holdDetected:true (see prompts/transfer-prompt.ts:306-315). Variety
+// across messages keeps Deepgram + the LLM from short-circuiting on a
+// single repeated string.
+const HOLD_PHRASE_TEMPLATES = [
+  'Your call is important to us. All representatives are currently assisting other customers. Please continue to hold.',
+  'All of our agents are currently busy. Please stay on the line and the next available representative will be with you shortly.',
+  'Thank you for your patience. You are caller number two. Estimated wait time is approximately three minutes. Please continue to hold.',
+  'Please hold while we connect you to the next available representative.',
+];
+
 // Phrases the AI caller is likely to use when verifying a human picked up.
 // Tolerant keyword set, not exact-string — the AI may phrase this many ways:
 // "Am I speaking with a live agent?", "Is this a real person?", "Are you a
@@ -141,6 +152,16 @@ const CONFIRMATION_KEYWORDS = [
   'human or',
 ];
 
+export interface SimulatorHoldPhase {
+  /** Number of distinct hold-queue TTS messages to play before the greeting. */
+  messageCount: number;
+  /** Sleep between messages (and before the greeting). Roughly the dwell time
+   *  the AI spends in low-power mode between speech-onset triggers. */
+  intervalMs: number;
+  /** Pre-picked phrases — selected up front so unit tests can introspect. */
+  phrases: string[];
+}
+
 export interface SimulatorScript {
   agentName: string;
   voice: string;
@@ -150,6 +171,11 @@ export interface SimulatorScript {
   pickupDelayMs: number;
   greetingToConfirmationMs: number;
   confirmationToFollowupMs: number;
+  /** Optional hold-music-style preamble. When set, the simulator plays
+   *  these messages BEFORE the normal greeting so the AI classifies the
+   *  call as on-hold and (with ENABLE_HOLD_LOW_POWER_MODE=true) flips
+   *  into low-power mode. */
+  holdPhase?: SimulatorHoldPhase;
 }
 
 function pickRandom<T>(arr: ReadonlyArray<T>): T {
@@ -187,6 +213,60 @@ export function matchesConfirmationQuestion(transcript: string): boolean {
 }
 
 /**
+ * Build the optional hold-phase preamble. Returns ONE hold phrase followed
+ * by a long quiet dwell, then the greeting fires (in the main flow). The
+ * quiet dwell is what proves low-power mode is paying off: between
+ * low-power entry and the greeting wake, NO `conversation/user` events
+ * should be written.
+ *
+ * Why single message + long silence (not multiple sequential TTS messages):
+ * The audio monitor's speech-onset wake threshold (rms > rolling × 1.6)
+ * fires on the simulator's OWN second TTS message — low-power exits early,
+ * the rest of the preamble streams to DG, the megablob flushes at end-of-
+ * stream, and the AI's confirmation/transfer turn races past the simulator
+ * hangup. A single hold message keeps the simulator quiet during low-power
+ * dwell so the test cleanly exercises the hold→quiet→greeting wake path.
+ */
+function buildHoldPhase(): SimulatorHoldPhase {
+  // TWO back-to-back hold messages with no inter-message gap. Live test 2
+  // proved single-message hold is fragile: the simulator's first TTS
+  // routinely triggers a Deepgram WS code=1011 closure that drops the
+  // entire hold-message audio, the `holdDetected` classification never
+  // fires, and low-power mode is never entered — the test passes via the
+  // synthetic-injection fallback path on the greeting, which doesn't
+  // exercise hold mode at all.
+  //
+  // With two back-to-back hold messages, even if DG drops the first, the
+  // reconnect typically completes inside the second message and the AI
+  // gets a real hold transcript. Keep the post-loop quiet dwell long
+  // enough to (a) clear the audio-monitor probe interval (30s) and (b)
+  // give the AI's `wait` action time to settle into low-power.
+  const messageCount = 2;
+  const pool = [...HOLD_PHRASE_TEMPLATES];
+  const phrases: string[] = [];
+  for (let i = 0; i < messageCount; i++) {
+    if (pool.length === 0) pool.push(...HOLD_PHRASE_TEMPLATES);
+    const idx = Math.floor(Math.random() * pool.length);
+    phrases.push(pool.splice(idx, 1)[0]);
+  }
+  return {
+    messageCount,
+    intervalMs: 25_000,
+    phrases,
+  };
+}
+
+/**
+ * True when the simulator should run the hold-phase preamble. Gated on its
+ * own env flag (separate from ENABLE_HOLD_LOW_POWER_MODE) so the behaviors
+ * compose: hold-phase ON without the low-power flag = hold detected but no
+ * power-saving (legacy behavior); both ON = full integration test.
+ */
+function isHoldPhaseEnabled(): boolean {
+  return process.env.SIMULATOR_HOLD_PHASE === 'true';
+}
+
+/**
  * Returns a fully-randomized script for one simulator call.
  * Pure function — no side effects. Seed-free; each call genuinely differs.
  */
@@ -220,6 +300,7 @@ export function pickSimulatorScript(): SimulatorScript {
     // it intermittently drops the WS with code=1011 — if the greeting
     // plays during that window the AI never sees the transcript. Wait
     // 3-4s before answering so the bridge stabilizes first.
+    holdPhase: isHoldPhaseEnabled() ? buildHoldPhase() : undefined,
     pickupDelayMs: randomBetween(3000, 4500),
     // Fallback timer: if we never see a confirmation-question keyword in
     // the AI caller's transcript and never see the AI-leg's
@@ -231,8 +312,18 @@ export function pickSimulatorScript(): SimulatorScript {
     // `aiLegSpeaking` is true (see runSimulatorFlow), so the timer is
     // really only a last resort for cases where the AI never spoke at
     // all. 18-25s gives plenty of slack without blowing the HARD_CAP.
-    greetingToConfirmationMs: randomBetween(18000, 25000),
-    confirmationToFollowupMs: randomBetween(4000, 6000),
+    // Hold-phase runs leave the AI's processing pipeline more loaded
+    // (low-power-exit Deepgram replay buffer, then the greeting/
+    // confirmation turn) so its confirmation question and
+    // human_detected → transfer steps can take noticeably longer than
+    // a clean self-call. Bump both windows so the simulator doesn't
+    // hang up before the AI has a chance to fire transfer.
+    greetingToConfirmationMs: isHoldPhaseEnabled()
+      ? randomBetween(28000, 35000)
+      : randomBetween(18000, 25000),
+    confirmationToFollowupMs: isHoldPhaseEnabled()
+      ? randomBetween(12000, 15000)
+      : randomBetween(4000, 6000),
   };
 }
 
@@ -407,7 +498,11 @@ export function handleSimulatorSpeakEnded(callControlId: string): void {
 export async function runSimulatorFlow(callControlId: string): Promise<void> {
   const script = pickSimulatorScript();
   const startedAt = Date.now();
-  const HARD_CAP_MS = 70_000;
+  // Hold-phase runs add ~35s of preamble (2 back-to-back messages + 25s
+  // quiet dwell) PLUS bumped greetingToConfirmation / confirmationToFollowup
+  // windows for the post-hold human flow. Bump the cap so we don't kill
+  // the call partway through the AI's confirmation/transfer turn.
+  const HARD_CAP_MS = script.holdPhase ? 160_000 : 70_000;
 
   let confirmationTriggered = () => {};
   const awaitConfirmation = new Promise<void>(resolve => {
@@ -465,6 +560,36 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
 
     await sleep(script.pickupDelayMs);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
+
+    // Optional hold-phase preamble. Plays N back-to-back hold-queue TTS
+    // messages (no inter-message gap) followed by a long quiet dwell.
+    // Used by the self-call-hold-then-human integration test to drive
+    // the AI into hold low-power mode BEFORE the human greeting arrives.
+    //
+    // Back-to-back (no gap) is intentional: live test 2 showed the
+    // simulator's first TTS routinely triggers a Deepgram code=1011
+    // closure that drops the audio entirely. Chaining two hold messages
+    // gives DG a second shot at delivering a real transcript so the AI
+    // can classify the call as hold and we actually enter low-power mode
+    // (instead of bypassing into the synthetic-injection fallback path).
+    if (script.holdPhase) {
+      console.log(
+        `[SIM] Hold phase: ${script.holdPhase.messageCount} messages back-to-back, ` +
+          `dwellMs=${script.holdPhase.intervalMs}`
+      );
+      for (const phrase of script.holdPhase.phrases) {
+        if (Date.now() - startedAt > HARD_CAP_MS) return;
+        // 8s cap per hold message — phrases run ~5s of TTS; the cap keeps
+        // us moving if Telnyx never fires speak.ended on this leg.
+        await speakAndAwait(phrase, script.voice, 8_000);
+      }
+      // Quiet dwell AFTER the last hold message. This is the window
+      // where low-power mode actually saves STT cost — Deepgram is
+      // paused, the audio monitor watches for wake triggers (probe @
+      // 30s, silence-break, speech-onset). The greeting fires after
+      // this sleep and the wake path resumes Deepgram.
+      await sleep(script.holdPhase.intervalMs);
+    }
     // Wait for the greeting playback to actually finish before starting
     // the confirmation timer — otherwise the timer fires while the
     // greeting is still on the wire and the AI never hears it.

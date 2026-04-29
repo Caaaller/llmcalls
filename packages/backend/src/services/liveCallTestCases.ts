@@ -49,6 +49,22 @@ const SIMULATOR_CASES: LiveCallTestCase[] = process.env.TELNYX_SIMULATOR_NUMBER
           maxDurationSeconds: 90,
         },
       },
+      {
+        id: 'self-call-hold-then-human',
+        name: 'Self-call simulator — hold phase then human greeting',
+        description:
+          'Simulator plays a hold-queue preamble (3 messages × ~10s gaps) BEFORE the human greeting. Requires SIMULATOR_HOLD_PHASE=true (drives the simulator preamble) and ENABLE_HOLD_LOW_POWER_MODE=true (drives Deepgram pause + audio-monitor wake). Validates the full hold → low-power → wake-on-greeting → confirmation → transfer integration.',
+        phoneNumber: process.env.TELNYX_SIMULATOR_NUMBER as string,
+        callPurpose: 'Test call to the simulator agent',
+        expectedOutcome: {
+          shouldReachHuman: true,
+          requireConfirmedTransfer: true,
+          // ~35s preamble (2 back-to-back hold msgs + 25s quiet dwell) +
+          // ~50-60s post-hold flow (greeting + bumped conf-window +
+          // bumped followup-window) + slack.
+          maxDurationSeconds: 200,
+        },
+      },
     ]
   : [];
 
