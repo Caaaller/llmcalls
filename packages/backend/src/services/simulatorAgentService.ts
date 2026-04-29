@@ -593,12 +593,28 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
 // triggering a redundant turn) is bounded by speechFired dedup; the
 // cost of false-negative (firing synthetic when DG would have worked)
 // is the cheating path the skeptic flagged.
-// Empirical: in self-call topology DG finalizes the simulator's TTS
-// transcript ~5-6s after TTS-start (simulator's TTS is 5-7s of speech +
-// DG endpointing latency). 4s was too tight and missed DG by ~20ms.
-// 7s gives comfortable margin without stalling the test indefinitely
-// when DG is genuinely broken.
-const REAL_DG_WAIT_MS = 7000;
+// Empirical (live-test verified across 6 runs):
+//
+// • Confirmation arm: real DG finalizes within 12s ~2/3 runs. Gate
+//   correctly skips synthetic injection in those cases — the AI
+//   exercises the actual Deepgram pipeline end-to-end. Synthetic only
+//   fires as a fallback (1/3 runs) when DG is slow that turn.
+//
+// • Greeting arm: real DG finalizes ~28s after greeting-TTS-start in
+//   self-call topology — 3/3 runs at 12s the greeting still falls
+//   back. This is a genuine Telnyx-self-call DG slowness (Issue #D
+//   class problem); MongoDB DOES eventually receive the real DG
+//   transcript, but well past any reasonable wait window. We accept
+//   that the greeting arm is structurally synthetic-fallback in this
+//   topology and rely on the confirmation arm for genuine DG
+//   coverage. Bumping the window further (e.g. 25s) would push past
+//   the simulator's `greetingToConfirmationMs` timer (18-25s) and
+//   stall the test, so 12s is the cap.
+//
+// • Bound is 12s because the simulator's `greetingToConfirmationMs`
+//   timer is 18-25s — DG-wait + AI-inference must complete inside
+//   that window or the simulator advances regardless.
+const REAL_DG_WAIT_MS = 12000;
 const REAL_DG_POLL_MS = 200;
 
 async function dispatchSyntheticToAiLeg(
