@@ -40,35 +40,37 @@ describe('Deepgram tier-switch — feature flag gating', () => {
     else process.env.ENABLE_DG_TIER_SWITCH = original;
   });
 
-  it('isDgTierSwitchEnabled is false when flag unset', () => {
+  it('isDgTierSwitchEnabled is true when flag unset (default ON, opt-OUT)', () => {
     delete process.env.ENABLE_DG_TIER_SWITCH;
-    expect(isDgTierSwitchEnabled()).toBe(false);
+    expect(isDgTierSwitchEnabled()).toBe(true);
   });
 
-  it('isDgTierSwitchEnabled is true only on exact "true"', () => {
+  it('isDgTierSwitchEnabled is false only on exact "false"', () => {
+    process.env.ENABLE_DG_TIER_SWITCH = 'false';
+    expect(isDgTierSwitchEnabled()).toBe(false);
+    process.env.ENABLE_DG_TIER_SWITCH = '0';
+    expect(isDgTierSwitchEnabled()).toBe(true);
+    process.env.ENABLE_DG_TIER_SWITCH = 'FALSE';
+    expect(isDgTierSwitchEnabled()).toBe(true);
     process.env.ENABLE_DG_TIER_SWITCH = 'true';
     expect(isDgTierSwitchEnabled()).toBe(true);
-    process.env.ENABLE_DG_TIER_SWITCH = '1';
-    expect(isDgTierSwitchEnabled()).toBe(false);
-    process.env.ENABLE_DG_TIER_SWITCH = 'TRUE';
-    expect(isDgTierSwitchEnabled()).toBe(false);
   });
 
-  it('signalHoldStateChange is a no-op when flag is off', () => {
-    delete process.env.ENABLE_DG_TIER_SWITCH;
+  it('signalHoldStateChange is a no-op when explicitly opted out', () => {
+    process.env.ENABLE_DG_TIER_SWITCH = 'false';
     const callSid = `noop-${Date.now()}`;
     expect(signalHoldStateChange(callSid, true)).toBe(false);
     expect(signalHoldStateChange(callSid, false)).toBe(false);
   });
 
   it('signalHoldStateChange is a no-op when no stream state is registered', () => {
-    process.env.ENABLE_DG_TIER_SWITCH = 'true';
+    delete process.env.ENABLE_DG_TIER_SWITCH;
     const callSid = `unknown-${Date.now()}`;
     expect(signalHoldStateChange(callSid, true)).toBe(false);
   });
 
   it('signalHoldStateChange swaps current model and is idempotent at target', () => {
-    process.env.ENABLE_DG_TIER_SWITCH = 'true';
+    delete process.env.ENABLE_DG_TIER_SWITCH;
     const callSid = `swap-${Date.now()}`;
 
     // Inject a minimal fake stream state directly into the registry.

@@ -2,7 +2,7 @@
   "version": 2,
   "id": "hulu-cs",
   "testCaseId": "hulu-cs",
-  "lastRecordedAt": "2026-04-27T03:47:27.233Z",
+  "lastRecordedAt": "2026-04-29T20:18:41.357Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-27T03:47:27.233Z",
+        "recordedAt": "2026-04-29T20:18:41.357Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -42,7 +42,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-27T03:47:27.233Z",
+              "recordedAt": "2026-04-29T20:18:41.357Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -61,7 +61,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-27T03:47:27.233Z",
+                    "recordedAt": "2026-04-29T20:18:41.357Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n3",
@@ -80,36 +80,14 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-27T03:47:27.233Z",
+                          "recordedAt": "2026-04-29T20:18:41.357Z",
                           "isLatestPath": true,
                           "child": {
-                            "id": "n4",
-                            "ivrSpeech": "press 3. For help with playback errors buffering, crashing, or freezing videos, press 4. If you're having trouble loading Hulu, navigating the app, or using features like My Stuff or Cloud DVR, press 5. To learn more about the shows and movies on Hulu, including live TV and premium add ons,",
-                            "children": [
-                              {
-                                "aiAction": {
-                                  "action": "wait",
-                                  "reason": "No action before next speech",
-                                  "detected": {
-                                    "isIVRMenu": false,
-                                    "menuOptions": [],
-                                    "isMenuComplete": false,
-                                    "loopDetected": false,
-                                    "shouldTerminate": false,
-                                    "transferRequested": false
-                                  }
-                                },
-                                "recordedAt": "2026-04-27T03:47:27.233Z",
-                                "isLatestPath": true,
-                                "child": {
-                                  "terminal": true,
-                                  "finalStatus": "initiated",
-                                  "durationSeconds": 77,
-                                  "reachedHuman": true,
-                                  "dtmfDigits": []
-                                }
-                              }
-                            ]
+                            "terminal": true,
+                            "finalStatus": "initiated",
+                            "durationSeconds": 79,
+                            "reachedHuman": true,
+                            "dtmfDigits": []
                           }
                         }
                       ]
