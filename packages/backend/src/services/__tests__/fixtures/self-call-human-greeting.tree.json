@@ -2,7 +2,7 @@
   "version": 2,
   "id": "self-call-human-greeting",
   "testCaseId": "self-call-human-greeting",
-  "lastRecordedAt": "2026-04-29T01:21:03.500Z",
+  "lastRecordedAt": "2026-04-29T05:53:42.034Z",
   "config": {
     "callPurpose": "Test call to the simulator agent"
   },
@@ -24,14 +24,60 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-29T01:21:03.500Z",
-        "isLatestPath": true,
+        "recordedAt": "2026-04-29T04:32:43.489Z",
+        "isLatestPath": false,
         "child": {
           "terminal": true,
           "finalStatus": "initiated",
-          "durationSeconds": 44,
-          "reachedHuman": true,
+          "durationSeconds": 51,
+          "reachedHuman": false,
           "dtmfDigits": []
+        }
+      },
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-29T05:53:42.034Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "Confirmed, you're talking to a real human.",
+          "children": [
+            {
+              "aiAction": {
+                "action": "speak",
+                "speech": "Hi, am I speaking with a live agent?",
+                "reason": "",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-29T05:53:42.034Z",
+              "isLatestPath": true,
+              "child": {
+                "terminal": true,
+                "finalStatus": "initiated",
+                "durationSeconds": 52,
+                "reachedHuman": false,
+                "dtmfDigits": []
+              }
+            }
+          ]
         }
       }
     ]

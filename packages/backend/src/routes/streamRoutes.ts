@@ -214,6 +214,12 @@ function isAbnormalCloseCode(code: number): boolean {
 // to force-close the Deepgram WS and simulate a 1006 disconnect.
 const activeStreamStates = new Map<string, StreamState>();
 
+// Test-only handle on the active-stream registry. Lets unit tests seed a
+// fake stream so they can exercise injectSyntheticTranscript /
+// findAiLegForSimulator without spinning up the Telnyx WS path. Do NOT
+// use this from production code.
+export const __testing__ = { activeStreamStates };
+
 /**
  * Force-close the Deepgram WS for this callSid with a simulated abnormal close.
  * Returns true if a matching stream was found.
@@ -256,6 +262,22 @@ export function injectSyntheticTranscript(
   console.log(
     `[STREAM-STT][SYNTHETIC] "${text.slice(0, 80)}" → ${callSid.slice(-20)}`
   );
+  // Persist the synthetic line as a `conversation/user` event so the
+  // visualizer/transcript reflects what the AI was fed. Without this,
+  // self-call recordings show only the AI's confirmation question with
+  // no visible "user" reply between it and the transfer event — the AI
+  // did process the text via onUtterance, but MongoDB never recorded
+  // that turn. Mirrors the real-final path in speechProcessingService
+  // (which calls addConversation with type='user'). Fire-and-forget;
+  // any DB error is logged but doesn't block the synthetic dispatch.
+  void import('../services/callHistoryService')
+    .then(m => m.default.addConversation(callSid, 'user', text))
+    .catch(err =>
+      console.error(
+        '[STREAM-STT][SYNTHETIC] Error writing conversation/user event:',
+        toError(err).message
+      )
+    );
   // Treat as a fresh utterance: clear any in-flight transcript buffer and
   // mark speechFired so a real DG speech_final arriving moments later
   // doesn't double-fire the same content.

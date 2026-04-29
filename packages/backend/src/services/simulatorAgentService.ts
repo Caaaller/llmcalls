@@ -89,15 +89,23 @@ const GREETING_TEMPLATES = [
   'Good {timeOfDay}, thanks for reaching out, this is {name} speaking, what can I help you with today?',
 ];
 
+// Pure affirmations only — every template MUST start with "Yes",
+// "Yeah", "Yep", "Correct", "Confirmed", or similar agreement marker
+// so the LLM unambiguously reads it as a YES reply to "are you a live
+// agent?" rather than a fresh introduction. NEVER include greeting-
+// style overlap ("human here", "speaking", "How can I help",
+// "How can I assist") — when synthetic injection feeds these to the
+// AI, the AI re-classifies the line as a first-hearing greeting and
+// re-asks the confirmation question instead of advancing to
+// human_detected → transfer.
 const CONFIRMATION_TEMPLATES = [
-  "Yes, I'm a real person — how can I help?",
-  "I'm a live agent, yes. What do you need?",
-  "Absolutely, this is a live rep. Tell me what's going on.",
-  'Yes, human here. How can I assist?',
-  "Correct, you've got a real person. What can I do for you?",
-  "Yeah I'm a real human, not a bot. What's the issue?",
-  "Totally, live person on the line. What's up?",
-  "Yep, I'm a real agent. Go ahead.",
+  'Yes, this is a real person.',
+  "Yes, I'm a live agent, not a bot.",
+  "Correct, you've got a real human on the line.",
+  "Yeah, I'm a real human, not an automated system.",
+  "Yep, I'm a live person.",
+  "Confirmed, you're talking to a real human.",
+  "Yes, I'm a live agent.",
 ];
 
 const FOLLOWUP_TEMPLATES = [
