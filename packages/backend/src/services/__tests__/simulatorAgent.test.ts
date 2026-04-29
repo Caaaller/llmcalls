@@ -319,6 +319,36 @@ describe('handleSimulatorTranscript', () => {
     });
   });
 
+  describe('dispatchSyntheticGreetingToAiLeg', () => {
+    beforeEach(() => {
+      mockFindAiLegForSimulator.mockReset();
+      mockInjectSyntheticTranscript.mockReset();
+    });
+
+    it('injects the greeting text onto the AI-leg stream when one is found', async () => {
+      mockFindAiLegForSimulator.mockReturnValue('ai-leg-id');
+      mockInjectSyntheticTranscript.mockReturnValue(true);
+      await __testing.dispatchSyntheticGreetingToAiLeg(
+        'sim-leg-id',
+        'Good afternoon, this is Maria speaking.'
+      );
+      expect(mockFindAiLegForSimulator).toHaveBeenCalledWith('sim-leg-id');
+      expect(mockInjectSyntheticTranscript).toHaveBeenCalledWith(
+        'ai-leg-id',
+        'Good afternoon, this is Maria speaking.'
+      );
+    });
+
+    it('skips injection when no AI-leg stream is registered', async () => {
+      mockFindAiLegForSimulator.mockReturnValue(null);
+      await __testing.dispatchSyntheticGreetingToAiLeg(
+        'sim-leg-id',
+        'irrelevant greeting'
+      );
+      expect(mockInjectSyntheticTranscript).not.toHaveBeenCalled();
+    });
+  });
+
   it('reports active simulator calls correctly', () => {
     expect(isActiveSimulatorCall(callControlId)).toBe(false);
     __testing.activeSimulatorCalls.set(callControlId, {

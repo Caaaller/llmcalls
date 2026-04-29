@@ -472,6 +472,21 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     await speakAndAwait(script.greeting, script.voice, 12_000);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
 
+    // Symmetric synthetic-injection: mirror the confirmation injection
+    // below by feeding the GREETING text onto the AI-caller leg. In the
+    // self-call topology Deepgram intermittently fails to transcribe the
+    // simulator's greeting on the AI leg — when that happens the AI
+    // never asks the confirmation question, and the later confirmation
+    // injection arrives without a "pending confirmation" state, causing
+    // the human-detection gate in speechProcessingService to downgrade
+    // `human_detected → maybe_human`. Injecting the greeting structurally
+    // (independent of Deepgram) ensures the AI hears the greeting,
+    // classifies as maybe_human, and asks the confirmation question.
+    //
+    // Gated on simulator runs only via the activeSimulatorCalls registry
+    // — production paths cannot reach this code.
+    await dispatchSyntheticGreetingToAiLeg(callControlId, script.greeting);
+
     // Race the keyword-match / cross-leg-speak.ended path against a
     // fallback timer. Whichever resolves first wins. The fallback
     // ensures we still complete the pipeline if every webhook-driven
@@ -569,32 +584,52 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
  * module (handleSimulatorTranscript, etc.), so a static import here
  * would form a cycle.
  */
-async function dispatchSyntheticConfirmationToAiLeg(
+async function dispatchSyntheticToAiLeg(
   simulatorCallControlId: string,
-  confirmationText: string
+  text: string,
+  label: 'greeting' | 'confirmation'
 ): Promise<void> {
   const streamRoutes = await import('../routes/streamRoutes');
   const aiLegId = streamRoutes.findAiLegForSimulator(simulatorCallControlId);
   if (!aiLegId) {
     console.log(
-      `[SIM] Synthetic confirmation skipped — no AI-leg stream found for ` +
+      `[SIM] Synthetic ${label} skipped — no AI-leg stream found for ` +
         `${simulatorCallControlId.slice(-20)}`
     );
     return;
   }
-  const fired = streamRoutes.injectSyntheticTranscript(
-    aiLegId,
-    confirmationText
-  );
+  const fired = streamRoutes.injectSyntheticTranscript(aiLegId, text);
   if (!fired) {
     console.log(
-      `[SIM] Synthetic confirmation injection failed on ${aiLegId.slice(-20)}`
+      `[SIM] Synthetic ${label} injection failed on ${aiLegId.slice(-20)}`
     );
     return;
   }
   console.log(
-    `[SIM] Synthetic confirmation injected on AI leg ${aiLegId.slice(-20)}: ` +
-      `"${confirmationText.slice(0, 80)}"`
+    `[SIM] Synthetic ${label} injected on AI leg ${aiLegId.slice(-20)}: ` +
+      `"${text.slice(0, 80)}"`
+  );
+}
+
+async function dispatchSyntheticConfirmationToAiLeg(
+  simulatorCallControlId: string,
+  confirmationText: string
+): Promise<void> {
+  await dispatchSyntheticToAiLeg(
+    simulatorCallControlId,
+    confirmationText,
+    'confirmation'
+  );
+}
+
+async function dispatchSyntheticGreetingToAiLeg(
+  simulatorCallControlId: string,
+  greetingText: string
+): Promise<void> {
+  await dispatchSyntheticToAiLeg(
+    simulatorCallControlId,
+    greetingText,
+    'greeting'
   );
 }
 
@@ -649,4 +684,5 @@ export const __testing = {
   CONFIRMATION_KEYWORDS,
   activeSimulatorCalls,
   dispatchSyntheticConfirmationToAiLeg,
+  dispatchSyntheticGreetingToAiLeg,
 };
