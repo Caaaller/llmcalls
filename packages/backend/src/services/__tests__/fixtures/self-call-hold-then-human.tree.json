@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "id": "self-call-hold-then-human",
+  "testCaseId": "self-call-hold-then-human",
+  "lastRecordedAt": "2026-04-29T17:12:09.086Z",
+  "config": {
+    "callPurpose": "Test call to the simulator agent"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "Please hold while we connect you to the next available representative.",
+    "children": [
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-29T17:12:09.085Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "Hello, you've reached our support team, Alex here on the line, what can I do for you today?",
+          "children": [
+            {
+              "aiAction": {
+                "action": "speak",
+                "speech": "Hi, am I speaking with a live agent?",
+                "reason": "",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-29T17:12:09.085Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "So, Confirmed, you're talking to a real human.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "wait",
+                      "reason": "No action before next speech",
+                      "detected": {
+                        "isIVRMenu": false,
+                        "menuOptions": [],
+                        "isMenuComplete": false,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-29T17:12:09.086Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "terminal": true,
+                      "finalStatus": "initiated",
+                      "durationSeconds": 90,
+                      "reachedHuman": true,
+                      "dtmfDigits": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
