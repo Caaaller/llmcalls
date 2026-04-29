@@ -570,6 +570,57 @@ export async function processSpeech({
       }
     }
 
+    // ── Post-hold context reset ─────────────────────────────────────────────
+    // Qatar Airways post-hold AI-silence bug fix.
+    //
+    // When the previous turn was hold (AI emitted holdDetected:true) and the
+    // current turn is NOT hold, clear the accumulated conversationHistory
+    // BEFORE the next addToHistory mutation. The LLM that already ran for
+    // this turn saw the full history (and may have produced a wrong action,
+    // protected by the existing humanIntro/maybe_human flag-consistency
+    // overrides above). But every SUBSEQUENT post-hold turn — typically the
+    // AI's confirmation question and the human's reply — should run against
+    // a clean slate so the LLM doesn't re-read 22 minutes of pre-hold IVR
+    // priming and parrot back the call-purpose seed.
+    //
+    // Hold turns themselves don't append to conversationHistory (the action
+    // handler returns early on action==='wait'), so the cleared history is
+    // exactly the pre-hold accumulated content.
+    if (
+      callState.lastTurnWasHold &&
+      !action.detected.holdDetected &&
+      action.action !== 'wait'
+    ) {
+      const clearedCount = (callState.conversationHistory || []).length;
+      if (!testMode) {
+        console.log(
+          `🔄 Post-hold context reset: cleared ${clearedCount} entries from conversationHistory (Qatar fix)`
+        );
+      }
+      callStateManager.updateCallState(callSid, {
+        conversationHistory: [],
+        lastTurnWasHold: false,
+        postHoldResetFired: true,
+      });
+
+      // Signal DG tier switch back to nova on hold-exit. No-op unless
+      // ENABLE_DG_TIER_SWITCH=true. Async-import to avoid a hard
+      // services↔routes coupling at module-load time.
+      if (!testMode) {
+        void import('../routes/streamRoutes')
+          .then(m => m.signalHoldStateChange(callSid, false))
+          .catch(err =>
+            console.error(
+              '[DG] hold-exit tier-switch signal failed:',
+              err instanceof Error ? err.message : String(err)
+            )
+          );
+      }
+    } else if (!action.detected.holdDetected && callState.lastTurnWasHold) {
+      // Transition turn but action is `wait` — leave history intact, the
+      // hold→non-hold reset will fire on the next non-wait turn instead.
+    }
+
     const result = mapActionToProcessingResult(
       action,
       config.callPurpose || 'speak with a representative'
@@ -908,11 +959,29 @@ export async function processSpeech({
 
     // ── 7. Handle wait (incomplete menu, silence, etc.) ──────────────────────
     if (action.action === 'wait') {
+      if (action.detected.holdDetected) {
+        // Mark this turn as hold so the next turn knows to clear
+        // conversationHistory if it transitions out of hold (post-hold
+        // context reset — Qatar Airways bug fix). Set in BOTH live and
+        // testMode so unit tests can drive the state-machine.
+        callStateManager.updateCallState(callSid, { lastTurnWasHold: true });
+      }
       if (action.detected.holdDetected && !testMode) {
         console.log(`📞 Hold queue detected: ${action.reason}`);
         callHistoryService
           .addHoldDetected(callSid)
           .catch(err => console.error('Error adding hold event:', err));
+
+        // Signal DG tier switch to cheaper `base` model. No-op unless
+        // ENABLE_DG_TIER_SWITCH=true.
+        void import('../routes/streamRoutes')
+          .then(m => m.signalHoldStateChange(callSid, true))
+          .catch(err =>
+            console.error(
+              '[DG] hold-entry tier-switch signal failed:',
+              err instanceof Error ? err.message : String(err)
+            )
+          );
 
         // Hold low-power mode (feature-flagged): pause Deepgram forwarding
         // to save STT cost while hold music plays. The audio monitor in

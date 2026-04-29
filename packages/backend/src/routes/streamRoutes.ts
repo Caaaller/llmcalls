@@ -49,18 +49,43 @@ const RESUME_BUFFER_FRAME_CAP = 150;
 // utterance_end_ms stays at 1800 as a safety net — if speech_final repeatedly
 // gets suppressed and the safety timer also misses, UtteranceEnd will still
 // flush the pending transcript ~1800ms after the last final word.
-const DEEPGRAM_URL =
-  'wss://api.deepgram.com/v1/listen' +
-  '?model=nova-2-phonecall' +
-  '&encoding=mulaw' +
-  '&sample_rate=8000' +
-  '&channels=1' +
-  '&language=en-US' +
-  '&smart_format=true' +
-  '&endpointing=500' +
-  '&utterance_end_ms=1800' +
-  '&interim_results=true' +
-  '&vad_events=true';
+export type DeepgramModel = 'nova-2-phonecall' | 'base';
+
+export function buildDeepgramUrl(model: DeepgramModel): string {
+  return (
+    'wss://api.deepgram.com/v1/listen' +
+    `?model=${model}` +
+    '&encoding=mulaw' +
+    '&sample_rate=8000' +
+    '&channels=1' +
+    '&language=en-US' +
+    '&smart_format=true' +
+    '&endpointing=500' +
+    '&utterance_end_ms=1800' +
+    '&interim_results=true' +
+    '&vad_events=true'
+  );
+}
+
+const DEFAULT_DG_MODEL: DeepgramModel = 'nova-2-phonecall';
+
+/**
+ * Tier-switch feature flag. When true, hold detection swaps DG to the
+ * cheaper `base` model and swaps back to `nova-2-phonecall` on the
+ * hold→non-hold transition. Default OFF — must be validated against a
+ * real long-hold IVR before flipping the default. Independent from
+ * ENABLE_HOLD_LOW_POWER_MODE — they're alternative cost optimizations.
+ */
+export function isDgTierSwitchEnabled(): boolean {
+  return process.env.ENABLE_DG_TIER_SWITCH === 'true';
+}
+
+/**
+ * Number of recent audio frames to keep in the per-stream tier-switch
+ * ring buffer. ~150 frames × 20ms = ~3s of replay so the new model has
+ * audio to work with immediately after a swap.
+ */
+const TIER_SWITCH_REPLAY_FRAMES = 150;
 
 // Max time to wait for more speech after we suppress a speech_final as
 // semantically incomplete. If no additional fragments arrive within this
@@ -208,6 +233,17 @@ interface StreamState {
   // call, so the first frame on each unique track logs once. Helps
   // diagnose self-call audio-routing weirdness without flooding logs.
   tracksSeen?: Set<string>;
+  // Current DG model in use. Switched between 'nova-2-phonecall' (default)
+  // and 'base' (cheaper hold-music tier) when ENABLE_DG_TIER_SWITCH=true.
+  currentDgModel: DeepgramModel;
+  // Ring buffer of the most recent inbound frames — used to replay ~3s of
+  // audio after a tier swap so the new model has context immediately and
+  // the first agent words after a swap aren't clipped. Distinct from the
+  // hold low-power ring (which exists only while DG forwarding is paused).
+  tierSwitchRingBuffer: Buffer[];
+  // True while a tier swap is in progress — suppresses the auto-reconnect
+  // loop on the close that we ourselves initiated.
+  tierSwitchInFlight?: boolean;
 }
 
 // Reconnect configuration — exponential backoff with max 3 attempts.
@@ -362,13 +398,75 @@ export function getReconnectTelemetry(
   };
 }
 
+/**
+ * Signal a hold-state change so the Deepgram tier can swap. Called by
+ * speechProcessingService whenever Haiku's holdDetected classification
+ * flips. No-op when ENABLE_DG_TIER_SWITCH is not 'true'.
+ *
+ * isHold=true  → swap to cheaper `base` model (saves ~$0.0022/min during hold)
+ * isHold=false → swap back to `nova-2-phonecall` and replay the recent
+ *                ring buffer so the human's first words aren't clipped.
+ */
+export function signalHoldStateChange(
+  callSid: string,
+  isHold: boolean
+): boolean {
+  if (!isDgTierSwitchEnabled()) return false;
+  const state = activeStreamStates.get(callSid);
+  if (!state) return false;
+
+  const targetModel: DeepgramModel = isHold ? 'base' : 'nova-2-phonecall';
+  if (state.currentDgModel === targetModel) return false;
+
+  console.log(
+    `[DG] tier-switch ${state.currentDgModel} → ${targetModel} for ${callSid.slice(-20)}`
+  );
+
+  state.tierSwitchInFlight = true;
+  state.currentDgModel = targetModel;
+
+  // Close the current WS as an expected close so the auto-reconnect
+  // loop doesn't fight us. The new WS opens immediately below.
+  const oldWs = state.dgWs;
+  state.expectedClose = true;
+  if (oldWs && oldWs.readyState === WS.OPEN) {
+    try {
+      oldWs.close(1000, 'tier-switch');
+    } catch (err) {
+      console.error(
+        '[DG] tier-switch old-ws close error:',
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+  }
+  state.dgWs = null;
+
+  // Re-arm reconnect machinery for the NEW WS (subsequent abnormal
+  // closes should still trigger reconnect).
+  state.expectedClose = false;
+  state.reconnectAttempts = 0;
+
+  // Replay the most-recent buffered audio to the new model so it has
+  // immediate context. On WS open, audioBuffer is drained; queue
+  // recent frames there so the new model gets ~3s of warmup.
+  if (state.onUtterance) {
+    state.audioBuffer.push(...state.tierSwitchRingBuffer);
+    openDeepgram(state, state.onUtterance);
+  }
+
+  state.tierSwitchInFlight = false;
+  return true;
+}
+
 function openDeepgram(
   state: StreamState,
   onUtterance: (text: string) => Promise<void>
 ): void {
   state.onUtterance = onUtterance;
   const key = process.env.DEEPGRAM_API_KEY || '';
-  const url = process.env.DEEPGRAM_WS_URL_OVERRIDE || DEEPGRAM_URL;
+  const url =
+    process.env.DEEPGRAM_WS_URL_OVERRIDE ||
+    buildDeepgramUrl(state.currentDgModel || DEFAULT_DG_MODEL);
   const dgWs = new WS(url, {
     headers: { Authorization: `Token ${key}` },
   });
@@ -688,6 +786,8 @@ export function attachStreamServer(httpServer: Server): void {
           expectedClose: false,
           onUtterance: null,
           semanticWaitTimer: null,
+          currentDgModel: DEFAULT_DG_MODEL,
+          tierSwitchRingBuffer: [],
         };
         activeStreamStates.set(callControlId, state);
 
@@ -864,6 +964,15 @@ export function attachStreamServer(httpServer: Server): void {
           // Whether we woke or not, do NOT forward this frame to Deepgram —
           // it's already been buffered (or replayed) above.
           return;
+        }
+
+        // Maintain the tier-switch replay ring buffer so a future swap can
+        // re-feed ~3s of recent audio to the new DG WS without clipping the
+        // first words after the swap. This runs whether or not the flag is
+        // currently on so the buffer is warm if/when a swap happens.
+        state.tierSwitchRingBuffer.push(pcmuBytes);
+        if (state.tierSwitchRingBuffer.length > TIER_SWITCH_REPLAY_FRAMES) {
+          state.tierSwitchRingBuffer.shift();
         }
 
         if (state.dgWs?.readyState === WS.OPEN) {
