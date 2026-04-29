@@ -123,6 +123,16 @@ export interface CallState {
   /** Running accumulator of Deepgram interim transcript text since the last
    * DTMF press. Cleared on real speech_final / UtteranceEnd / force-dispatch. */
   accumulatedInterimText?: string;
+  /** True while the call is in hold low-power mode — inbound audio frames are
+   * NOT forwarded to Deepgram (saves STT cost). The Deepgram WS stays open
+   * for cheap resume. Gated on ENABLE_HOLD_LOW_POWER_MODE. */
+  holdLowPowerActive?: boolean;
+  /** Epoch ms when low-power mode was entered. */
+  holdLowPowerEnteredAt?: number;
+  /** Ring buffer of the most recent inbound audio frames (mu-law). Used to
+   * re-feed ~3s of audio to Deepgram on resume so the first agent words
+   * aren't clipped. Capped to ~3s by holdAudioMonitor wiring. */
+  holdAudioRingBuffer?: Buffer[];
 }
 
 export function createDefaultCallState(callSid: string): CallState {

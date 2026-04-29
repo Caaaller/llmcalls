@@ -18,6 +18,7 @@ import ivrNavigatorService, {
   StreamingCallbacks,
 } from './ivrNavigatorService';
 import telnyxService from './telnyxService';
+import { isHoldLowPowerEnabled } from './holdAudioMonitor';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
@@ -912,6 +913,22 @@ export async function processSpeech({
         callHistoryService
           .addHoldDetected(callSid)
           .catch(err => console.error('Error adding hold event:', err));
+
+        // Hold low-power mode (feature-flagged): pause Deepgram forwarding
+        // to save STT cost while hold music plays. The audio monitor in
+        // streamRoutes will resume forwarding once it detects a likely
+        // human pickup (silence break, speech onset) or on a periodic probe.
+        if (isHoldLowPowerEnabled()) {
+          const callState = callStateManager.getCallState(callSid);
+          if (!callState.holdLowPowerActive) {
+            console.log(`📵 Entering hold low-power mode for ${callSid}`);
+            callStateManager.updateCallState(callSid, {
+              holdLowPowerActive: true,
+              holdLowPowerEnteredAt: Date.now(),
+              holdAudioRingBuffer: [],
+            });
+          }
+        }
       }
 
       if (action.detected.isIVRMenu && !action.detected.isMenuComplete) {
