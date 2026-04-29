@@ -174,6 +174,48 @@ async function assertOutcome(
     }
   }
 
+  if (expectedOutcome.requireHoldLowPowerDwell) {
+    // Hold-low-power integration assertion. Proves three claims:
+    // (1) hold was detected at all, (2) the dwell window after detection
+    // had no `conversation/user` events (DG paused), AND (3) the dwell
+    // lasted at least MIN_DWELL_S seconds — guarding against the
+    // degenerate "call ended right after hold detection so the dwell
+    // was trivially empty" pass that an unbounded check would allow.
+    const MIN_DWELL_S = 15;
+    const call = await callHistoryService.getCall(result.callSid);
+    const events: Array<{
+      eventType?: string;
+      type?: string;
+      timestamp?: Date | string;
+    }> = call?.events ?? [];
+    const firstHoldIdx = events.findIndex(e => e.eventType === 'hold');
+    expect(firstHoldIdx).toBeGreaterThanOrEqual(0);
+    const firstHoldTs = new Date(events[firstHoldIdx].timestamp!).getTime();
+
+    // Dwell ends at the first AI utterance AFTER firstHold, or at the
+    // call's end timestamp if no such AI event exists.
+    const dwellEndAbsIdx = events
+      .slice(firstHoldIdx + 1)
+      .findIndex(e => e.eventType === 'conversation' && e.type === 'ai');
+    const dwellEndTs =
+      dwellEndAbsIdx === -1
+        ? new Date(call?.endTime ?? call?.updatedAt ?? Date.now()).getTime()
+        : new Date(
+            events[firstHoldIdx + 1 + dwellEndAbsIdx].timestamp!
+          ).getTime();
+    const dwellSeconds = (dwellEndTs - firstHoldTs) / 1000;
+    expect(dwellSeconds).toBeGreaterThanOrEqual(MIN_DWELL_S);
+
+    const dwellEvents =
+      dwellEndAbsIdx === -1
+        ? events.slice(firstHoldIdx + 1)
+        : events.slice(firstHoldIdx + 1, firstHoldIdx + 1 + dwellEndAbsIdx);
+    const userEventsDuringDwell = dwellEvents.filter(
+      e => e.eventType === 'conversation' && e.type === 'user'
+    );
+    expect(userEventsDuringDwell).toEqual([]);
+  }
+
   // Fail on application errors (caused by Telnyx 422 "call already ended" — indicates
   // a bug where we tried to speak/act on a terminated call)
   if (expectedOutcome.failOnApplicationError !== false) {
