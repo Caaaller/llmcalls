@@ -316,6 +316,23 @@ export function findAiLegForSimulator(
 }
 
 /**
+ * Returns true if a real Deepgram utterance has landed on this stream
+ * since `sinceMs`. Used by the simulator's synthetic-injection fallback
+ * to decide whether real audio already delivered for this turn — if it
+ * did, skip the synthetic injection so the test exercises the real
+ * audio path. `lastUtteranceAt` is stamped in the Deepgram-final
+ * handler in `openDeepgram` (above), unconditionally on every utterance.
+ */
+export function hasRealUtteranceSince(
+  callSid: string,
+  sinceMs: number
+): boolean {
+  const state = activeStreamStates.get(callSid);
+  if (!state) return false;
+  return state.lastUtteranceAt > sinceMs;
+}
+
+/**
  * Read the reconnect telemetry for this callSid.
  * Returns null if no stream is currently tracked for this call.
  */
@@ -701,6 +718,13 @@ export function attachStreamServer(httpServer: Server): void {
             return;
           }
 
+          // Stamp the real-utterance time unconditionally on every Deepgram
+          // speech_final, regardless of action-history. The
+          // synthetic-injection fallback path in simulatorAgentService reads
+          // this to decide whether real Deepgram already delivered for this
+          // turn — without this stamp, the very first greeting (when
+          // actionHistory is empty) wouldn't register.
+          if (state) state.lastUtteranceAt = Date.now();
           // Silent-hold timer only starts AFTER we've made at least one action —
           // before that, silence is just initial IVR greeting/intro gaps (Target scenario).
           const cs = callStateManager.getCallState(callControlId);

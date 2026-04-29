@@ -21,11 +21,14 @@ jest.mock('telnyx', () => {
 
 const mockFindAiLegForSimulator = jest.fn();
 const mockInjectSyntheticTranscript = jest.fn();
+const mockHasRealUtteranceSince = jest.fn();
 jest.mock('../../routes/streamRoutes', () => ({
   findAiLegForSimulator: (...args: unknown[]) =>
     mockFindAiLegForSimulator(...args),
   injectSyntheticTranscript: (...args: unknown[]) =>
     mockInjectSyntheticTranscript(...args),
+  hasRealUtteranceSince: (...args: unknown[]) =>
+    mockHasRealUtteranceSince(...args),
 }));
 
 process.env.TELNYX_API_KEY = 'test';
@@ -300,7 +303,8 @@ describe('handleSimulatorTranscript', () => {
       mockInjectSyntheticTranscript.mockReturnValue(true);
       await __testing.dispatchSyntheticConfirmationToAiLeg(
         'sim-leg-id',
-        "Yes, I'm a real person."
+        "Yes, I'm a real person.",
+        Date.now()
       );
       expect(mockFindAiLegForSimulator).toHaveBeenCalledWith('sim-leg-id');
       expect(mockInjectSyntheticTranscript).toHaveBeenCalledWith(
@@ -313,7 +317,8 @@ describe('handleSimulatorTranscript', () => {
       mockFindAiLegForSimulator.mockReturnValue(null);
       await __testing.dispatchSyntheticConfirmationToAiLeg(
         'sim-leg-id',
-        'irrelevant text'
+        'irrelevant text',
+        Date.now()
       );
       expect(mockInjectSyntheticTranscript).not.toHaveBeenCalled();
     });
@@ -330,7 +335,8 @@ describe('handleSimulatorTranscript', () => {
       mockInjectSyntheticTranscript.mockReturnValue(true);
       await __testing.dispatchSyntheticGreetingToAiLeg(
         'sim-leg-id',
-        'Good afternoon, this is Maria speaking.'
+        'Good afternoon, this is Maria speaking.',
+        Date.now()
       );
       expect(mockFindAiLegForSimulator).toHaveBeenCalledWith('sim-leg-id');
       expect(mockInjectSyntheticTranscript).toHaveBeenCalledWith(
@@ -343,7 +349,8 @@ describe('handleSimulatorTranscript', () => {
       mockFindAiLegForSimulator.mockReturnValue(null);
       await __testing.dispatchSyntheticGreetingToAiLeg(
         'sim-leg-id',
-        'irrelevant greeting'
+        'irrelevant greeting',
+        Date.now()
       );
       expect(mockInjectSyntheticTranscript).not.toHaveBeenCalled();
     });
