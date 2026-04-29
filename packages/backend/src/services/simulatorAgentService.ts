@@ -469,23 +469,31 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     // the confirmation timer — otherwise the timer fires while the
     // greeting is still on the wire and the AI never hears it.
     // Greetings cap around 6-8s of TTS; 12s is comfortable headroom.
+    const greetingTtsStartedAt = Date.now();
     await speakAndAwait(script.greeting, script.voice, 12_000);
     if (Date.now() - startedAt > HARD_CAP_MS) return;
 
-    // Symmetric synthetic-injection: mirror the confirmation injection
-    // below by feeding the GREETING text onto the AI-caller leg. In the
-    // self-call topology Deepgram intermittently fails to transcribe the
-    // simulator's greeting on the AI leg — when that happens the AI
-    // never asks the confirmation question, and the later confirmation
-    // injection arrives without a "pending confirmation" state, causing
-    // the human-detection gate in speechProcessingService to downgrade
-    // `human_detected → maybe_human`. Injecting the greeting structurally
-    // (independent of Deepgram) ensures the AI hears the greeting,
-    // classifies as maybe_human, and asks the confirmation question.
+    // Synthetic-injection FALLBACK: only fire if real Deepgram fails to
+    // deliver. The dispatch helper waits up to REAL_DG_WAIT_MS for a
+    // real speech_final to land on the AI leg with `lastUtteranceAt >
+    // greetingTtsStartedAt`. If real DG works, the helper returns early
+    // and the test exercises the actual Deepgram pipeline. If DG fails
+    // (the original Issue #D self-call topology bug), the helper
+    // injects the greeting text synthetically as a fallback so the
+    // pipeline still progresses.
     //
-    // Gated on simulator runs only via the activeSimulatorCalls registry
-    // — production paths cannot reach this code.
-    await dispatchSyntheticGreetingToAiLeg(callControlId, script.greeting);
+    // Anchoring on `greetingTtsStartedAt` (BEFORE speakAndAwait) is
+    // load-bearing — DG often emits speech_final mid-TTS, before
+    // speakAndAwait returns; a gate anchored after speakAndAwait would
+    // miss that and fall back to synthetic even when DG worked.
+    //
+    // Gated on simulator runs only via the activeSimulatorCalls
+    // registry — production paths cannot reach this code.
+    await dispatchSyntheticGreetingToAiLeg(
+      callControlId,
+      script.greeting,
+      greetingTtsStartedAt
+    );
 
     // Race the keyword-match / cross-leg-speak.ended path against a
     // fallback timer. Whichever resolves first wins. The fallback
@@ -517,23 +525,16 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
     // the full "yes, I'm a real person" before we start the post-confirm
     // pause. Without this we sleep on top of the still-playing audio
     // and the AI's human_detected → transfer turn races our followup.
+    const confirmationTtsStartedAt = Date.now();
     await speakAndAwait(script.confirmation, script.voice, 8_000);
 
-    // Synthetic-transcript bypass for the simulator → AI direction.
-    // Deepgram on the AI-caller leg intermittently fails to transcribe
-    // the simulator's confirmation in same-app self-call topology
-    // (see Issue #D). We know exactly what text the simulator spoke —
-    // it's `script.confirmation` — so inject it onto the AI leg's
-    // pipeline as if Deepgram had emitted an `is_final` for it. This is
-    // the mirror of fix #3 (which dispatched the confirmation reply on
-    // AI-leg speak.ended without depending on Deepgram); here we feed
-    // the AI the confirmation TEXT without depending on Deepgram.
-    //
-    // Gated on isActiveSimulatorCall so this code path is dead outside
-    // simulator runs — no production path can synthesize transcripts.
+    // Same fallback semantics as the greeting injection — only fires
+    // if real Deepgram fails to deliver the confirmation reply within
+    // REAL_DG_WAIT_MS. See greeting-injection comment above.
     await dispatchSyntheticConfirmationToAiLeg(
       callControlId,
-      script.confirmation
+      script.confirmation,
+      confirmationTtsStartedAt
     );
 
     // Give the AI ~5-7s to react: fire human_detected → kick off the
@@ -584,10 +585,27 @@ export async function runSimulatorFlow(callControlId: string): Promise<void> {
  * module (handleSimulatorTranscript, etc.), so a static import here
  * would form a cycle.
  */
+// Window after the simulator's TTS finishes to wait for real Deepgram
+// before injecting synthetically. Long enough for typical Deepgram
+// finalization latency (1.5-3s) plus a margin; short enough that a
+// truly-broken Deepgram doesn't stall the simulator's flow. Set
+// generously — the cost of false-positive (real DG ALSO arriving and
+// triggering a redundant turn) is bounded by speechFired dedup; the
+// cost of false-negative (firing synthetic when DG would have worked)
+// is the cheating path the skeptic flagged.
+// Empirical: in self-call topology DG finalizes the simulator's TTS
+// transcript ~5-6s after TTS-start (simulator's TTS is 5-7s of speech +
+// DG endpointing latency). 4s was too tight and missed DG by ~20ms.
+// 7s gives comfortable margin without stalling the test indefinitely
+// when DG is genuinely broken.
+const REAL_DG_WAIT_MS = 7000;
+const REAL_DG_POLL_MS = 200;
+
 async function dispatchSyntheticToAiLeg(
   simulatorCallControlId: string,
   text: string,
-  label: 'greeting' | 'confirmation'
+  label: 'greeting' | 'confirmation',
+  ttsStartedAt: number
 ): Promise<void> {
   const streamRoutes = await import('../routes/streamRoutes');
   const aiLegId = streamRoutes.findAiLegForSimulator(simulatorCallControlId);
@@ -598,6 +616,28 @@ async function dispatchSyntheticToAiLeg(
     );
     return;
   }
+
+  // Fallback gate: only inject synthetically if real Deepgram fails to
+  // deliver. The gate checks for a real Deepgram utterance landing on
+  // the AI leg AFTER `ttsStartedAt` — i.e. since BEFORE the simulator
+  // started speaking. This is critical: Deepgram often emits
+  // speech_final while the simulator is still mid-TTS, so a gate
+  // anchored at `Date.now()` (after speakAndAwait) would miss the
+  // real utterance and incorrectly fall back to synthetic injection.
+  // Without this gate, the test bypasses Deepgram even when it works
+  // and self-call success becomes a tautology (skeptic's reject).
+  const deadline = Date.now() + REAL_DG_WAIT_MS;
+  while (Date.now() < deadline) {
+    if (streamRoutes.hasRealUtteranceSince(aiLegId, ttsStartedAt)) {
+      console.log(
+        `[SIM] Real Deepgram delivered for ${label} on AI leg ` +
+          `${aiLegId.slice(-20)} — skipping synthetic injection`
+      );
+      return;
+    }
+    await sleep(REAL_DG_POLL_MS);
+  }
+
   const fired = streamRoutes.injectSyntheticTranscript(aiLegId, text);
   if (!fired) {
     console.log(
@@ -606,30 +646,35 @@ async function dispatchSyntheticToAiLeg(
     return;
   }
   console.log(
-    `[SIM] Synthetic ${label} injected on AI leg ${aiLegId.slice(-20)}: ` +
-      `"${text.slice(0, 80)}"`
+    `[SIM] Real Deepgram absent for ${label} after ${REAL_DG_WAIT_MS}ms — ` +
+      `falling back to synthetic injection on AI leg ` +
+      `${aiLegId.slice(-20)}: "${text.slice(0, 80)}"`
   );
 }
 
 async function dispatchSyntheticConfirmationToAiLeg(
   simulatorCallControlId: string,
-  confirmationText: string
+  confirmationText: string,
+  ttsStartedAt: number
 ): Promise<void> {
   await dispatchSyntheticToAiLeg(
     simulatorCallControlId,
     confirmationText,
-    'confirmation'
+    'confirmation',
+    ttsStartedAt
   );
 }
 
 async function dispatchSyntheticGreetingToAiLeg(
   simulatorCallControlId: string,
-  greetingText: string
+  greetingText: string,
+  ttsStartedAt: number
 ): Promise<void> {
   await dispatchSyntheticToAiLeg(
     simulatorCallControlId,
     greetingText,
-    'greeting'
+    'greeting',
+    ttsStartedAt
   );
 }
 

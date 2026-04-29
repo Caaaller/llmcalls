@@ -2,7 +2,7 @@
   "version": 2,
   "id": "self-call-human-greeting",
   "testCaseId": "self-call-human-greeting",
-  "lastRecordedAt": "2026-04-29T14:33:34.350Z",
+  "lastRecordedAt": "2026-04-29T14:54:02.827Z",
   "config": {
     "callPurpose": "Test call to the simulator agent"
   },
@@ -47,7 +47,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-29T14:33:34.350Z",
+        "recordedAt": "2026-04-29T14:54:02.827Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -67,11 +67,11 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-29T14:33:34.350Z",
+              "recordedAt": "2026-04-29T14:54:02.827Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
-                "ivrSpeech": "Alright, Yes, I'm a live agent, not a bot.",
+                "ivrSpeech": "Yes, I'm a live agent, not a bot.",
                 "children": [
                   {
                     "aiAction": {
@@ -86,12 +86,12 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-29T14:33:34.350Z",
+                    "recordedAt": "2026-04-29T14:54:02.827Z",
                     "isLatestPath": true,
                     "child": {
                       "terminal": true,
                       "finalStatus": "initiated",
-                      "durationSeconds": 25,
+                      "durationSeconds": 41,
                       "reachedHuman": true,
                       "dtmfDigits": []
                     }
