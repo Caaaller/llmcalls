@@ -70,14 +70,16 @@ export function buildDeepgramUrl(model: DeepgramModel): string {
 const DEFAULT_DG_MODEL: DeepgramModel = 'nova-2-phonecall';
 
 /**
- * Tier-switch feature flag. When true, hold detection swaps DG to the
- * cheaper `base` model and swaps back to `nova-2-phonecall` on the
- * hold→non-hold transition. Default OFF — must be validated against a
- * real long-hold IVR before flipping the default. Independent from
- * ENABLE_HOLD_LOW_POWER_MODE — they're alternative cost optimizations.
+ * Tier-switch feature flag. When enabled, hold detection swaps DG to
+ * the cheaper `base` model and swaps back to `nova-2-phonecall` on the
+ * hold→non-hold transition. Independent from ENABLE_HOLD_LOW_POWER_MODE
+ * — they're alternative cost optimizations.
+ *
+ * DEFAULT: ON (validated 2026-04-28 against a real Hulu hold queue —
+ * see PR #43). To opt OUT, set `ENABLE_DG_TIER_SWITCH=false`.
  */
 export function isDgTierSwitchEnabled(): boolean {
-  return process.env.ENABLE_DG_TIER_SWITCH === 'true';
+  return process.env.ENABLE_DG_TIER_SWITCH !== 'false';
 }
 
 /**

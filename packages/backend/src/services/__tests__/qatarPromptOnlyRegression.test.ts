@@ -1,5 +1,23 @@
 /**
  * REGRESSION REPRODUCER — Qatar Airways post-hold AI-silence bug
+ * (PROMPT-ONLY view — DOES NOT EXERCISE THE PRODUCTION FIX PATH).
+ *
+ * NOTE (2026-04-28): The actual production fix lives in
+ * `processSpeech` (post-hold context reset clears
+ * conversationHistory BEFORE the LLM is called on the
+ * human-greeting turn). This test drives
+ * `ivrNavigatorService.decideAction` IN ISOLATION with a pre-hold
+ * conversationHistory still attached — so it tests prompt behavior
+ * under the PRE-FIX state shape, not the production code path that
+ * actually runs in live calls today.
+ *
+ * TODO: source-of-truth integration test for the fix is
+ *   `qatarPostHoldRealLLM.integration.test.ts` — drives the real
+ *   `processSpeech` end-to-end across the canonical greeting + 6
+ *   ambiguous human-greeting variants and asserts maybe_human in
+ *   5/5 runs per variant. When that test passes consistently the
+ *   Qatar bug is fixed end-to-end; this prompt-only probe is
+ *   secondary.
  *
  * Captured from real call sid:
  *   v3:dfzWl63CbyV05TlTNc5PHhjh7huojdx5MafpzIOjis5TrkbdNgQErA
