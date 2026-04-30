@@ -44,8 +44,6 @@ export interface CallState {
   createdAt: Date;
   previousMenus: MenuOption[][];
   lastPressedDTMF?: string;
-  /** DIAG: set when QATAR_DIAG_FAST_PRESS_DIGIT bypass has fired once on this call. Single-shot. */
-  diagFastPressFired?: boolean;
   /** True if speculative DTMF has fired mid-stream this turn (before
    * decideActionStreaming returned). Used by the press_digit handler to
    * skip the duplicate sendDTMF call. Reset at the start of every turn. */

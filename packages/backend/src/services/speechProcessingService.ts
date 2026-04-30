@@ -432,50 +432,6 @@ export async function processSpeech({
       });
     }
 
-    // ── 1.5. DIAGNOSTIC FAST-PRESS PATH (env-gated, off by default) ─────
-    //
-    // When QATAR_DIAG_FAST_PRESS_DIGIT is set (e.g. "3"), bypass Haiku
-    // entirely on the FIRST press attempt: if the current speech contains
-    // "press <digit>", fire DTMF immediately and return. Used to isolate
-    // whether DTMF first-try failures are caused by Haiku decision
-    // latency vs other factors (Telnyx tone transmission, IVR audio
-    // codec, IVR input window timing). If first-try success rate WITH
-    // this fast path is significantly higher than without, latency is
-    // the bottleneck. If still bad, the bottleneck is downstream.
-    //
-    // Single-shot per call: only fires until the first press lands so we
-    // can observe the IVR's response without re-triggering on retries.
-    const diagFastDigit = process.env.QATAR_DIAG_FAST_PRESS_DIGIT;
-    if (
-      diagFastDigit &&
-      !testMode &&
-      !callState.diagFastPressFired &&
-      new RegExp(`press\\s+${diagFastDigit}\\b`, 'i').test(speechResult)
-    ) {
-      console.log(
-        `⚡ DIAG fast-press: bypassing Haiku, pressing ${diagFastDigit} immediately on speech_final containing "press ${diagFastDigit}"`
-      );
-      callStateManager.updateCallState(callSid, {
-        diagFastPressFired: true,
-        lastPressedDTMF: diagFastDigit,
-      });
-      callHistoryService
-        .addDTMF(
-          callSid,
-          diagFastDigit,
-          `DIAG fast-press: bypassed Haiku (env QATAR_DIAG_FAST_PRESS_DIGIT=${diagFastDigit})`
-        )
-        .catch(err => console.error('Error adding DTMF:', err));
-      await telnyxService.sendDTMF(callSid, diagFastDigit);
-      return {
-        twiml: '',
-        shouldSend: true,
-        processingResult: undefined,
-        aiAction: 'press_digit',
-        digitPressed: diagFastDigit,
-      };
-    }
-
     const actionHistory = callState.actionHistory || [];
 
     // ── 2. AI call (streaming or non-streaming) ─────────────────────────────
@@ -1050,7 +1006,7 @@ export async function processSpeech({
       const forced = unpressed[0] || menuOptions[0];
       if (forced && forced.digit) {
         console.log(
-          `🔁 Loop override: AI said ${action.action} on loopDetected=true (after ${consecutiveWaits + 1} consecutive waits) — forcing press_digit=${forced.digit} (${forced.option})`
+          `🔁 Loop override: AI said ${action.action} on loopDetected=true (after ${consecutiveWaits} consecutive waits including current) — forcing press_digit=${forced.digit} (${forced.option})`
         );
         action.action = 'press_digit';
         action.digit = forced.digit;
@@ -1090,12 +1046,28 @@ export async function processSpeech({
         const speculativeAlreadyFired =
           csPostStream.speculativeDtmfFiredThisTurn &&
           csPostStream.speculativeDtmfDigit === action.digit;
+        const speculativeDigitMismatch =
+          csPostStream.speculativeDtmfFiredThisTurn &&
+          csPostStream.speculativeDtmfDigit !== action.digit;
 
         if (speculativeAlreadyFired) {
           console.log(
             `⚡ Speculative DTMF already fired ${action.digit} mid-stream — skipping duplicate sendDTMF (Haiku confirmed digit post-stream)`
           );
         } else {
+          if (speculativeDigitMismatch) {
+            // Speculative fired digit X mid-stream, but post-stream Haiku
+            // (e.g. after the hallucination guard or other final-pass logic
+            // rewrote action.digit) settled on a different digit Y. We've
+            // already pressed X — pressing Y now means TWO DTMF tones land
+            // on the IVR for one turn. Log a WARN so this divergence is
+            // observable in production. No automatic rollback (no IVR
+            // un-press primitive); the post-DTMF watcher's loop logic
+            // will handle the IVR's response either way.
+            console.warn(
+              `⚠️ Speculative DTMF DIVERGENCE: speculative pressed ${csPostStream.speculativeDtmfDigit} mid-stream, post-stream digit is ${action.digit}. IVR will receive both tones for this turn. (callSid=${callSid.slice(-20)}, reason="${action.reason?.slice(0, 80)}")`
+            );
+          }
           callHistoryService
             .addDTMF(callSid, action.digit, `AI selected: ${action.reason}`)
             .catch(err => console.error('Error adding DTMF:', err));
