@@ -2,7 +2,7 @@
   "version": 2,
   "id": "qatar-airways-avios",
   "testCaseId": "qatar-airways-avios",
-  "lastRecordedAt": "2026-04-30T02:31:50.706Z",
+  "lastRecordedAt": "2026-04-30T15:48:14.923Z",
   "config": {
     "callPurpose": "Connect British Airways to my Avios account"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-30T02:31:50.705Z",
+        "recordedAt": "2026-04-30T15:48:14.922Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -42,7 +42,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-30T02:31:50.705Z",
+              "recordedAt": "2026-04-30T15:48:14.922Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -62,7 +62,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-30T02:31:50.705Z",
+                    "recordedAt": "2026-04-30T15:48:14.923Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n3",
@@ -83,7 +83,7 @@
                             }
                           },
                           "recordedAt": "2026-04-30T02:31:50.706Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n4",
                             "ivrSpeech": "press 1. If you are a travel agent, press 2. If you are If you are calling with If you are calling with regard please If you are calling with regard please enter your nine If you are calling with regard please enter your nine digit proof Privilege Club Privilege Club membership number.",
@@ -102,7 +102,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-30T02:31:50.706Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n5",
                                   "ivrSpeech": "We have not received your input. Please try again. If you are a member of our privilege club, press 1. If you are a travel agent, press 2. If you are calling with regard please enter your nine digit privilege club membership number.",
@@ -122,7 +122,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-30T02:31:50.706Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n6",
                                         "ivrSpeech": "Sorry. This was an invalid input. For first and For first and business",
@@ -142,7 +142,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-30T02:31:50.706Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "id": "n7",
                                               "ivrSpeech": "Sorry. This was an invalid input. For first and business class bookings, please press 1. For existing bookings. Press 2 for new bookings.",
@@ -162,7 +162,7 @@
                                                     }
                                                   },
                                                   "recordedAt": "2026-04-30T02:31:50.706Z",
-                                                  "isLatestPath": true,
+                                                  "isLatestPath": false,
                                                   "child": {
                                                     "id": "n8",
                                                     "ivrSpeech": "available adviser. available adviser for assistance. available adviser for assistance. We process available adviser for assistance. We process your data in a call with our privacy policy.",
@@ -181,7 +181,7 @@
                                                           }
                                                         },
                                                         "recordedAt": "2026-04-30T02:31:50.706Z",
-                                                        "isLatestPath": true,
+                                                        "isLatestPath": false,
                                                         "child": {
                                                           "id": "n9",
                                                           "ivrSpeech": "with our privacy policy, which can be found at Qatar Airways dot with our privacy policy, which can be found at qatarairways.com. with our privacy policy, which can be found at qatarairways.com. For quality and For quality and training purposes,",
@@ -200,7 +200,7 @@
                                                                 }
                                                               },
                                                               "recordedAt": "2026-04-30T02:31:50.706Z",
-                                                              "isLatestPath": true,
+                                                              "isLatestPath": false,
                                                               "child": {
                                                                 "terminal": true,
                                                                 "finalStatus": "initiated",
@@ -232,6 +232,656 @@
                               }
                             ]
                           }
+                        },
+                        {
+                          "aiAction": {
+                            "action": "wait",
+                            "reason": "No action before next speech",
+                            "detected": {
+                              "isIVRMenu": false,
+                              "menuOptions": [],
+                              "isMenuComplete": false,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-30T15:48:14.923Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n10",
+                            "ivrSpeech": "Please try again. If you are a member of our privilege club, press 1. If you are a travel agent, press 2. If you are calling with",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "press_digit",
+                                  "digit": "1",
+                                  "reason": "AI selected: Loop override: Incomplete menu speech. The IVR is mid-sentence ('If you are a member of our privileged') and has not finished presenting all options. The system is repeating the menu from Turn 3 (detected via PREVIOUS MENUS SEEN), but the current utterance is truncated. Wait for the complete menu to be presented before pressing. → force press 1 (member of privilege club)",
+                                  "detected": {
+                                    "isIVRMenu": true,
+                                    "menuOptions": [],
+                                    "isMenuComplete": true,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-30T15:17:50.202Z",
+                                "isLatestPath": false,
+                                "child": {
+                                  "id": "n11",
+                                  "ivrSpeech": "Privilege Club membership number",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "press_digit",
+                                        "digit": "2",
+                                        "reason": "AI selected: Loop override: Menu is incomplete — speech cuts off mid-sentence ('If you are calling with'). System has not finished presenting all options. Wait for the complete menu before pressing. → force press 2 (travel agent)",
+                                        "detected": {
+                                          "isIVRMenu": true,
+                                          "menuOptions": [],
+                                          "isMenuComplete": true,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-30T14:53:33.700Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n12",
+                                        "ivrSpeech": "Sorry. This was an invalid input. For first and business class bookings, please press 1. For existing bookings. Press 2. For new bookings, press 3. For inquiries, press 4.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "press_digit",
+                                              "digit": "4",
+                                              "reason": "AI selected: New menu presented with different options. Previous digit 2 (travel agent) was rejected as invalid. Current menu offers: Press 1 for first/business class bookings, Press 2 for existing bookings, Press 3 for new bookings, Press 4 for inquiries. Call purpose is to connect British Airways to Avios account (a booking/account inquiry). Press 4 (inquiries) is the best match for this purpose.",
+                                              "detected": {
+                                                "isIVRMenu": true,
+                                                "menuOptions": [],
+                                                "isMenuComplete": true,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-30T14:53:33.701Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n13",
+                                              "ivrSpeech": "We have not received your input. Please try again. For first and",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-30T14:53:33.701Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n14",
+                                                    "ivrSpeech": "existing booking. Press 2 for new booking",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "wait",
+                                                          "reason": "No action before next speech",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-30T14:53:33.701Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n15",
+                                                          "ivrSpeech": "We have not received your input. Please try again. For first and business class bookings, please press 1. For existing bookings. Press 2 for new bookings. Press 3. For inquiries, press 4.",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "press_digit",
+                                                                "digit": "2",
+                                                                "reason": "AI selected: Loop detected: Menu 7-10 all present the same options (Press 1 for first and business class bookings, Press 2 for existing bookings, Press 3 for new bookings, Press 4 for inquiries). Last DTMF pressed was 4 (inquiries), which failed with 'We have not received your input.' Pressing 4 again will fail identically. Switching to digit 2 (existing bookings) as the next untried option on this menu. The call purpose is to connect British Airways to Avios account, which relates to existing bookings/account management.",
+                                                                "detected": {
+                                                                  "isIVRMenu": true,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": true,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-30T14:53:33.701Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n16",
+                                                                "ivrSpeech": "Please try again. For first and",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "wait",
+                                                                      "reason": "No action before next speech",
+                                                                      "detected": {
+                                                                        "isIVRMenu": false,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": false,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-30T14:53:33.701Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "id": "n17",
+                                                                      "ivrSpeech": "please press 1. For existing booking, press 2. For",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "wait",
+                                                                            "reason": "No action before next speech",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-30T14:53:33.701Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n18",
+                                                                            "ivrSpeech": "We have not received your input. Please try again. For first and business class bookings, please press 1 for existing booking. Press 2 for new bookings. Press 3 for inquiries. Press 4.",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "press_digit",
+                                                                                  "digit": "1",
+                                                                                  "reason": "AI selected: Loop detected: This is the same menu (Press 1 for first and business class bookings, Press 2 for existing bookings, Press 3 for new bookings, Press 4 for inquiries) that has appeared repeatedly in PREVIOUS MENUS SEEN (Menu 7, 8, 9, 11, 12). The system has rejected my previous DTMF inputs (pressed 4 in Turn 7, pressed 2 in Turn 10, both failed with 'Please try again'). I must now press a DIFFERENT digit. The call purpose is 'Connect British Airways to my Avios account' — this is a booking/account inquiry. Since digits 2 and 4 have failed, I will press 1 (first and business class bookings) as the numerically smallest untried option. If this fails, I will escalate to speaking 'representative'.",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": true,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": true,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-30T14:53:33.701Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "id": "n19",
+                                                                                  "ivrSpeech": "Sorry. This was an invalid input.",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "wait",
+                                                                                        "reason": "No action before next speech",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": false,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": false,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-30T14:53:33.701Z",
+                                                                                      "isLatestPath": false,
+                                                                                      "child": {
+                                                                                        "terminal": true,
+                                                                                        "finalStatus": "initiated",
+                                                                                        "durationSeconds": 180,
+                                                                                        "reachedHuman": true,
+                                                                                        "dtmfDigits": [
+                                                                                          "3",
+                                                                                          "1",
+                                                                                          "2",
+                                                                                          "4",
+                                                                                          "2",
+                                                                                          "1"
+                                                                                        ]
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    {
+                                      "aiAction": {
+                                        "action": "press_digit",
+                                        "digit": "3",
+                                        "reason": "AI selected: Loop detected: same menu (Press 1 for privilege club, Press 2 for travel agent, Press 3 for bookings and reservations) has appeared multiple times in PREVIOUS MENUS SEEN. The system is repeating the menu after rejecting the last input. Call purpose is 'Connect British Airways to my Avios account' which matches 'bookings and reservations' (option 3). Press 3 immediately to proceed.",
+                                        "detected": {
+                                          "isIVRMenu": true,
+                                          "menuOptions": [],
+                                          "isMenuComplete": true,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-30T15:17:50.203Z",
+                                      "isLatestPath": false,
+                                      "child": {
+                                        "id": "n20",
+                                        "ivrSpeech": "Please enter your nine digit Privilege Club membership number.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "speak",
+                                              "speech": "I don't have that information",
+                                              "reason": "",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-30T15:17:50.203Z",
+                                            "isLatestPath": false,
+                                            "child": {
+                                              "id": "n21",
+                                              "ivrSpeech": "Sorry. This was an invalid input. For first and business class bookings, please press 1. For existing bookings. Press 2 for new bookings. Press 3. For inquiries, press 4.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "speak",
+                                                    "speech": "Existing bookings",
+                                                    "reason": "",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                  "isLatestPath": false,
+                                                  "child": {
+                                                    "id": "n22",
+                                                    "ivrSpeech": "For first and business class booking,",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "wait",
+                                                          "reason": "No action before next speech",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                        "isLatestPath": false,
+                                                        "child": {
+                                                          "id": "n23",
+                                                          "ivrSpeech": "existing booking. Press 2 for new booking",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "wait",
+                                                                "reason": "No action before next speech",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                              "isLatestPath": false,
+                                                              "child": {
+                                                                "id": "n24",
+                                                                "ivrSpeech": "We have not received your input. Please try again. For first and business class bookings, please press 1. For existing bookings. Press 2 for new bookings. Press 3. For inquiries, press 4.",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "press_digit",
+                                                                      "digit": "2",
+                                                                      "reason": "AI selected: Loop detected: This is the same menu (Press 1 for first and business class bookings, Press 2 for existing bookings, Press 3 for new bookings, Press 4 for inquiries) that appeared in Turn 8. I pressed 1 in Turn 8, which led to an incomplete/looping submenu. Now the full menu has reappeared. The call purpose is 'Connect British Airways to my Avios account' — this is an existing booking inquiry. Pressing 2 (existing bookings) is the correct match and has not been tried yet on this menu.",
+                                                                      "detected": {
+                                                                        "isIVRMenu": true,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": true,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                                    "isLatestPath": false,
+                                                                    "child": {
+                                                                      "id": "n25",
+                                                                      "ivrSpeech": "Please try again. For first and",
+                                                                      "children": [
+                                                                        {
+                                                                          "aiAction": {
+                                                                            "action": "wait",
+                                                                            "reason": "No action before next speech",
+                                                                            "detected": {
+                                                                              "isIVRMenu": false,
+                                                                              "menuOptions": [],
+                                                                              "isMenuComplete": false,
+                                                                              "loopDetected": false,
+                                                                              "shouldTerminate": false,
+                                                                              "transferRequested": false
+                                                                            }
+                                                                          },
+                                                                          "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                                          "isLatestPath": false,
+                                                                          "child": {
+                                                                            "id": "n26",
+                                                                            "ivrSpeech": "please press 1. For existing booking, press 2. For",
+                                                                            "children": [
+                                                                              {
+                                                                                "aiAction": {
+                                                                                  "action": "wait",
+                                                                                  "reason": "No action before next speech",
+                                                                                  "detected": {
+                                                                                    "isIVRMenu": false,
+                                                                                    "menuOptions": [],
+                                                                                    "isMenuComplete": false,
+                                                                                    "loopDetected": false,
+                                                                                    "shouldTerminate": false,
+                                                                                    "transferRequested": false
+                                                                                  }
+                                                                                },
+                                                                                "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                                                "isLatestPath": false,
+                                                                                "child": {
+                                                                                  "id": "n27",
+                                                                                  "ivrSpeech": "We have not received your input. Please try again. For first and business class bookings, please press 1 for existing booking. Press 2 for new bookings. Press 3 for inquiries. Press 4.",
+                                                                                  "children": [
+                                                                                    {
+                                                                                      "aiAction": {
+                                                                                        "action": "press_digit",
+                                                                                        "digit": "4",
+                                                                                        "reason": "AI selected: Loop detected: Menu 'Press 1 for first and business class bookings, Press 2 for existing bookings, Press 3 for new bookings, Press 4 for inquiries' has appeared multiple times (Menus 8, 9, 12, 13). Last DTMF pressed was 2 (existing bookings), which failed to advance. Current speech repeats the same menu. Pressing 4 (inquiries) as the next untried option to escape the loop and reach a representative or escalation path.",
+                                                                                        "detected": {
+                                                                                          "isIVRMenu": true,
+                                                                                          "menuOptions": [],
+                                                                                          "isMenuComplete": true,
+                                                                                          "loopDetected": false,
+                                                                                          "shouldTerminate": false,
+                                                                                          "transferRequested": false
+                                                                                        }
+                                                                                      },
+                                                                                      "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                                                      "isLatestPath": false,
+                                                                                      "child": {
+                                                                                        "id": "n28",
+                                                                                        "ivrSpeech": "Sorry. This was an invalid input.",
+                                                                                        "children": [
+                                                                                          {
+                                                                                            "aiAction": {
+                                                                                              "action": "wait",
+                                                                                              "reason": "No action before next speech",
+                                                                                              "detected": {
+                                                                                                "isIVRMenu": false,
+                                                                                                "menuOptions": [],
+                                                                                                "isMenuComplete": false,
+                                                                                                "loopDetected": false,
+                                                                                                "shouldTerminate": false,
+                                                                                                "transferRequested": false
+                                                                                              }
+                                                                                            },
+                                                                                            "recordedAt": "2026-04-30T15:17:50.203Z",
+                                                                                            "isLatestPath": false,
+                                                                                            "child": {
+                                                                                              "terminal": true,
+                                                                                              "finalStatus": "initiated",
+                                                                                              "durationSeconds": 180,
+                                                                                              "reachedHuman": true,
+                                                                                              "dtmfDigits": [
+                                                                                                "3",
+                                                                                                "1",
+                                                                                                "3",
+                                                                                                "1",
+                                                                                                "2",
+                                                                                                "4"
+                                                                                              ]
+                                                                                            }
+                                                                                          }
+                                                                                        ]
+                                                                                      }
+                                                                                    }
+                                                                                  ]
+                                                                                }
+                                                                              }
+                                                                            ]
+                                                                          }
+                                                                        }
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              },
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-30T15:48:14.923Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n29",
+                                  "ivrSpeech": "We have not received your input. Please try again. If you are a member of our privilege club, press 1. If you are a travel agent, press 2. If you are calling with regards to bookings and reservations, press 3.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "press_digit",
+                                        "digit": "3",
+                                        "reason": "AI selected: Loop detected: same menu options (Press 1 for privilege club, Press 2 for travel agent, Press 3 for bookings and reservations) presented again. The system says 'We have not received your input' — my previous press of 3 failed. However, 3 is still the correct option for 'bookings and reservations' which matches the call purpose (connecting British Airways to Avios account — a booking/reservation matter). Pressing 3 again immediately per loop detection protocol.",
+                                        "detected": {
+                                          "isIVRMenu": true,
+                                          "menuOptions": [],
+                                          "isMenuComplete": true,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-30T15:48:14.923Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n30",
+                                        "ivrSpeech": "Please try again. If you are a member of our privilege club, press 1.",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "wait",
+                                              "reason": "No action before next speech",
+                                              "detected": {
+                                                "isIVRMenu": false,
+                                                "menuOptions": [],
+                                                "isMenuComplete": false,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-30T15:48:14.923Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n31",
+                                              "ivrSpeech": "If you are a travel agent, press 2. If you are calling with to bookings and",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "wait",
+                                                    "reason": "No action before next speech",
+                                                    "detected": {
+                                                      "isIVRMenu": false,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": false,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-30T15:48:14.923Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "id": "n32",
+                                                    "ivrSpeech": "We have not received your input. Please try again. If you are a member of our privilege club, press 1. If you are a travel agent, press 2. If you are calling with regards to bookings and reservations, press 3.",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "press_digit",
+                                                          "digit": "2",
+                                                          "reason": "AI selected: replaced hallucinated 3 with 2 from AI's own menuOptions",
+                                                          "detected": {
+                                                            "isIVRMenu": true,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": true,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-30T15:48:14.923Z",
+                                                        "isLatestPath": true,
+                                                        "child": {
+                                                          "id": "n33",
+                                                          "ivrSpeech": "Please hold. This call will be connected to the next available adviser for assistance. We process your date",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "wait",
+                                                                "reason": "No action before next speech",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-30T15:48:14.923Z",
+                                                              "isLatestPath": true,
+                                                              "child": {
+                                                                "id": "n34",
+                                                                "ivrSpeech": "Without privacy assistance. We process your data in accordance with our privacy policy. Which can be found",
+                                                                "children": [
+                                                                  {
+                                                                    "aiAction": {
+                                                                      "action": "wait",
+                                                                      "reason": "No action before next speech",
+                                                                      "detected": {
+                                                                        "isIVRMenu": false,
+                                                                        "menuOptions": [],
+                                                                        "isMenuComplete": false,
+                                                                        "loopDetected": false,
+                                                                        "shouldTerminate": false,
+                                                                        "transferRequested": false
+                                                                      }
+                                                                    },
+                                                                    "recordedAt": "2026-04-30T15:48:14.923Z",
+                                                                    "isLatestPath": true,
+                                                                    "child": {
+                                                                      "terminal": true,
+                                                                      "finalStatus": "initiated",
+                                                                      "durationSeconds": 123,
+                                                                      "reachedHuman": true,
+                                                                      "dtmfDigits": [
+                                                                        "3",
+                                                                        "3",
+                                                                        "2",
+                                                                        "3"
+                                                                      ]
+                                                                    }
+                                                                  }
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
                         }
                       ]
                     }
@@ -240,6 +890,30 @@
               }
             }
           ]
+        }
+      },
+      {
+        "aiAction": {
+          "action": "speak",
+          "speech": "Sorry, I'm having some trouble on my end — I'll have to call back. Thanks!",
+          "reason": "",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-30T14:41:10.334Z",
+        "isLatestPath": false,
+        "child": {
+          "terminal": true,
+          "finalStatus": "initiated",
+          "durationSeconds": 30,
+          "reachedHuman": false,
+          "dtmfDigits": []
         }
       }
     ]

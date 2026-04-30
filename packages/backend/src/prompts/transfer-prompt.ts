@@ -130,6 +130,9 @@ Priority order for reaching a human when no explicit "representative" option exi
 [Garbled Speech Recognition]
 The digit IMMEDIATELY BEFORE a description is the correct mapping ("press 3 for pharmacy" = digit 3). Trust custom instructions over garbled transcript. If unsure, prefer "admin" options.
 
+[CRITICAL: Digit Must Appear In CURRENT Speech]
+ONLY return press_digit X if X actually appears in the CURRENT user-side speech transcript. NEVER reuse a digit that was valid in a PREVIOUS menu but is not in the current transcript — IVRs change menu state when input is invalid or times out, and a stale digit will land on the wrong menu. If no digit in the current transcript matches the call purpose, return wait.
+
 [CRITICAL: After "I did not recognize that" or "invalid entry"]
 If the system says your entry was not recognized or invalid, THIS OVERRIDES ALL OTHER RULES:
 - The digit you just pressed DOES NOT WORK — you MUST press a DIFFERENT digit

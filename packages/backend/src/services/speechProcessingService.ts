@@ -20,7 +20,7 @@ import ivrNavigatorService, {
 import telnyxService from './telnyxService';
 import { isHoldLowPowerEnabled } from './holdAudioMonitor';
 import transferConfig from '../config/transfer-config';
-import { MenuOption } from '../types/menu';
+import { MenuOption, sameMenuShape } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
 import { clearSegments } from './transcriptSegmentMerger';
 
@@ -283,6 +283,23 @@ function mapActionToProcessingResult(
     shouldPreventDTMF:
       action.detected.loopDetected && action.action !== 'press_digit',
   };
+}
+
+/**
+ * Count the number of trailing `wait` (or `speak`) actions in
+ * actionHistory — i.e. consecutive non-press turns ending at the
+ * latest. Used by the loop-override gate to require at least one
+ * prior wait before forcing a press, so a single justified wait
+ * (truncated transcript) doesn't get overridden into a stale press.
+ */
+function countTrailingWaits(actionHistory: { action?: string }[]): number {
+  let n = 0;
+  for (let i = actionHistory.length - 1; i >= 0; i--) {
+    const a = actionHistory[i].action;
+    if (a === 'wait' || a === 'speak') n++;
+    else break;
+  }
+  return n;
 }
 
 function getTelnyxVoice(aiVoice?: string): string {
@@ -647,6 +664,37 @@ export async function processSpeech({
     // ── 3b. Store detected menu options for loop detection ───────────────────
     const detectedMenuOptions = action.detected.menuOptions as MenuOption[];
     if (detectedMenuOptions.length > 0) {
+      // Menu-transition context reset (Qatar-class loop hallucination fix).
+      //
+      // When the IVR moves to a NEW menu (different option set than last
+      // turn's), clear conversationHistory so the NEXT turn's LLM call
+      // doesn't see prior-menu digits and hallucinate them. Same pattern
+      // as post-hold reset (PR #42). Without this, Haiku reads e.g.
+      // "press 3 for bookings" from a prior menu and returns press_digit 3
+      // even when the new menu only offers digits 1 and 2 — the existing
+      // "rejected hallucinated digit" override at ivrNavigatorService:625
+      // catches this but is exactly the convoluted-exception logic the
+      // user flagged. Clearing context up-front prevents the hallucination
+      // from happening in the first place.
+      const lastMenu = (callState.previousMenus || []).slice(-1)[0];
+      const transitionedToNewMenu =
+        lastMenu &&
+        !sameMenuShape(lastMenu, detectedMenuOptions) &&
+        action.action !== 'wait';
+      if (transitionedToNewMenu) {
+        const clearedCount = (callState.conversationHistory || []).length;
+        if (!testMode) {
+          console.log(
+            `🔄 Menu-transition context reset: cleared ${clearedCount} entries (new menu: ${detectedMenuOptions
+              .map(o => o.digit)
+              .join('/')} vs prior: ${lastMenu.map(o => o.digit).join('/')})`
+          );
+        }
+        callStateManager.updateCallState(callSid, {
+          conversationHistory: [],
+        });
+      }
+
       callStateManager.updateCallState(callSid, {
         previousMenus: [
           ...(callState.previousMenus || []),
@@ -885,9 +933,22 @@ export async function processSpeech({
     //       the same menu with no silence, so the AI's "wait" is guaranteed to
     //       loop forever. The prompt tells the model to press on loop, but the
     //       model doesn't always obey. This is the safety net.
+    //
+    // Gate: only fire after AT LEAST 3 total consecutive `wait` actions
+    // on the same loop. The current turn IS already in actionHistory at
+    // this point (addActionToHistory ran above at line ~648), so
+    // `consecutiveWaits` includes the current wait. Threshold of 3 means:
+    // 2 prior waits + this one = override. Live Qatar runs showed that 2
+    // total isn't enough — the IVR sometimes takes 2-3 chunks to deliver
+    // a full menu before a complete-menu turn fires. Forcing a press at
+    // the 2-wait mark lands on a stale/wrong menu and pollutes downstream
+    // turns. Costco-style infinite loops still hit this safety net (they
+    // wait many more times than 3), so this doesn't break that scenario.
+    const consecutiveWaits = countTrailingWaits(callState.actionHistory || []);
     if (
       action.detected.loopDetected &&
-      (action.action === 'wait' || action.action === 'speak')
+      (action.action === 'wait' || action.action === 'speak') &&
+      consecutiveWaits >= 3
     ) {
       const menuOptions = (action.detected.menuOptions as MenuOption[]) || [];
       const prevDigit = callState.lastPressedDTMF;
@@ -899,7 +960,7 @@ export async function processSpeech({
       const forced = unpressed[0] || menuOptions[0];
       if (forced && forced.digit) {
         console.log(
-          `🔁 Loop override: AI said ${action.action} on loopDetected=true — forcing press_digit=${forced.digit} (${forced.option})`
+          `🔁 Loop override: AI said ${action.action} on loopDetected=true (after ${consecutiveWaits + 1} consecutive waits) — forcing press_digit=${forced.digit} (${forced.option})`
         );
         action.action = 'press_digit';
         action.digit = forced.digit;
