@@ -503,13 +503,59 @@ export async function processSpeech({
     let speechAlreadyStreamed = false;
 
     if (USE_STREAMING && !testMode) {
+      // Reset per-turn speculative-DTMF state at turn start so a previous
+      // turn's fire flag doesn't leak across turns.
+      callStateManager.updateCallState(callSid, {
+        speculativeDtmfFiredThisTurn: false,
+        speculativeDtmfDigit: undefined,
+      });
+
       const ttsCallbacks = createSentenceBufferedTTS({
         callSid,
         voice: getTelnyxVoice(config.aiSettings.voice),
       });
+
+      // Speculative DTMF: fire the digit as soon as the streaming JSON has
+      // both `"action": "press_digit"` and `"digit": "X"` — usually
+      // 1.5-3s before stream complete. Cuts Haiku-decision latency on the
+      // critical path so IVRs with short input windows (Qatar) accept the
+      // tone first try. Gated behind ENABLE_SPECULATIVE_DTMF (default OFF).
+      const speculativeEnabled = process.env.ENABLE_SPECULATIVE_DTMF === 'true';
+      const callbacks: StreamingCallbacks = speculativeEnabled
+        ? {
+            ...ttsCallbacks,
+            onSpeculativeDigit: (digit: string) => {
+              const cs = callStateManager.getCallState(callSid);
+              if (cs.speculativeDtmfFiredThisTurn) return;
+              callStateManager.updateCallState(callSid, {
+                speculativeDtmfFiredThisTurn: true,
+                speculativeDtmfDigit: digit,
+                lastPressedDTMF: digit,
+              });
+              console.log(
+                `⚡ Speculative DTMF firing: ${digit} (mid-stream, before Haiku decision complete)`
+              );
+              callHistoryService
+                .addDTMF(
+                  callSid,
+                  digit,
+                  `Speculative: fired mid-stream during Haiku decision (ENABLE_SPECULATIVE_DTMF=true)`
+                )
+                .catch(err =>
+                  console.error('Error adding speculative DTMF:', err)
+                );
+              // Fire-and-forget — do NOT await. The whole point is to not
+              // block the streaming loop on the DTMF send.
+              telnyxService.sendDTMF(callSid, digit).catch(err => {
+                console.error('Speculative DTMF send error:', err);
+              });
+            },
+          }
+        : ttsCallbacks;
+
       const streamResult = await ivrNavigatorService.decideActionStreaming({
         ...aiParams,
-        callbacks: ttsCallbacks,
+        callbacks,
         callSid,
       });
       // Fire-and-forget flush: drain the speak chain in the background so
@@ -1036,11 +1082,26 @@ export async function processSpeech({
       });
 
       if (!testMode) {
-        callHistoryService
-          .addDTMF(callSid, action.digit, `AI selected: ${action.reason}`)
-          .catch(err => console.error('Error adding DTMF:', err));
+        // If speculative DTMF already fired this turn for the SAME digit, skip
+        // the duplicate sendDTMF + history entry — they were recorded
+        // mid-stream. Still fall through to the post-DTMF state-update block
+        // below so loop watchers / lastDTMFPressedAt fire normally.
+        const csPostStream = callStateManager.getCallState(callSid);
+        const speculativeAlreadyFired =
+          csPostStream.speculativeDtmfFiredThisTurn &&
+          csPostStream.speculativeDtmfDigit === action.digit;
 
-        await telnyxService.sendDTMF(callSid, action.digit);
+        if (speculativeAlreadyFired) {
+          console.log(
+            `⚡ Speculative DTMF already fired ${action.digit} mid-stream — skipping duplicate sendDTMF (Haiku confirmed digit post-stream)`
+          );
+        } else {
+          callHistoryService
+            .addDTMF(callSid, action.digit, `AI selected: ${action.reason}`)
+            .catch(err => console.error('Error adding DTMF:', err));
+
+          await telnyxService.sendDTMF(callSid, action.digit);
+        }
 
         // Arm the post-DTMF loop watcher. If the IVR continues talking without
         // firing another speech_final (Costco scenario — continuous menu with
