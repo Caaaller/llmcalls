@@ -16,6 +16,10 @@ import {
   mergeSegment,
   renderTranscript,
 } from '../transcriptSegmentMerger';
+import {
+  detectBackToBackDuplication,
+  normalizeForDuplication,
+} from './detectBackToBackDuplication';
 
 function seg(startMs: number, endMs: number, text: string): DGSegment {
   return { startMs, endMs, text };
@@ -119,18 +123,128 @@ describe('transcriptSegmentMerger', () => {
     expect(out).toBe('For award redemption, please press 1.');
 
     // Smoking-gun guard: the same 4-word phrase must not repeat back-to-back.
-    const words = out
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(w => w.length > 0);
-    let dup = false;
-    for (let len = 4; len <= Math.floor(words.length / 2); len++) {
-      for (let i = 0; i + len * 2 <= words.length; i++) {
-        const a = words.slice(i, i + len).join(' ');
-        const b = words.slice(i + len, i + len * 2).join(' ');
-        if (a === b) dup = true;
-      }
+    expect(detectBackToBackDuplication(out)).toEqual({ duplicated: false });
+  });
+
+  it('digit-word normalization catches "press one" / "press 1" mix', () => {
+    // The exact pattern PR #46 was supposed to fix. Without digit-word
+    // normalization the regression guard would miss it (the words don't
+    // match literally — "one" !== "1"). With normalizeForDuplication both
+    // tokens fold to "1" and the duplication is caught.
+    const result = detectBackToBackDuplication(
+      'please press one for sales please press 1 for sales',
+      { normalize: normalizeForDuplication }
+    );
+    expect(result.duplicated).toBe(true);
+  });
+
+  // ── Edge cases (caveat #4 from PR #46 review) ──────────────────────────
+
+  it('subset-shrink: longer text replaced by a same-window shorter text', () => {
+    // Documented behavior: any incoming segment whose [startMs, endMs)
+    // overlaps an existing segment REPLACES that segment, even when the
+    // incoming text is shorter. Latest revision wins — Deepgram routinely
+    // shrinks text on revision (e.g. removing a misheard filler).
+    const state = feed([
+      seg(0, 2000, 'press one for sales'),
+      seg(0, 2000, 'press 1'),
+    ]);
+    expect(state.segments).toHaveLength(1);
+    expect(renderTranscript(state)).toBe('press 1');
+  });
+
+  it('zero-duration segment: kept (start === end is a degenerate but valid window)', () => {
+    // A zero-duration segment (start === end) does not overlap anything by
+    // the strict-inequality rangesOverlap check. We keep it — it costs nothing
+    // and lets Deepgram emit instant-utterance fragments without being dropped.
+    const state = feed([seg(1000, 1000, 'x')]);
+    expect(state.segments).toHaveLength(1);
+    expect(renderTranscript(state)).toBe('x');
+  });
+
+  it('zero-duration adjacent to a full-window segment: both kept (no overlap)', () => {
+    const state = feed([seg(0, 2000, 'first'), seg(2000, 2000, 'tick')]);
+    expect(state.segments).toHaveLength(2);
+    expect(renderTranscript(state)).toBe('first tick');
+  });
+
+  it('identical-timestamp shorter text: latest revision wins', () => {
+    // (0, 2000ms, "Press 2 please") then (0, 2000ms, "Press 2") — second
+    // segment is the latest revision and replaces the first even though it's
+    // shorter. This locks in "latest wins" semantics regardless of length.
+    const state = feed([
+      seg(0, 2000, 'Press 2 please'),
+      seg(0, 2000, 'Press 2'),
+    ]);
+    expect(state.segments).toHaveLength(1);
+    expect(renderTranscript(state)).toBe('Press 2');
+  });
+
+  // ── Telemetry: data-loss warn when a merge drops significantly more text
+  //    than it brings in (caveat #5). The threshold is a heuristic — incoming
+  //    text shorter than half the displaced text suggests either an aggressive
+  //    Deepgram revision OR a regression in the merger silently dropping data.
+  it('warns when a merge replaces significantly more text than it brings in', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const state1 = mergeSegment(
+        clearSegments(),
+        seg(0, 2000, 'a'.repeat(40))
+      );
+      mergeSegment(state1, seg(0, 2000, 'b'.repeat(10))); // 10 < 40 * 0.5
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toMatch(/Significant text loss/);
+    } finally {
+      warn.mockRestore();
     }
-    expect(dup).toBe(false);
+  });
+
+  it('does NOT warn when a merge replaces with text >= 50% of dropped', () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const state1 = mergeSegment(
+        clearSegments(),
+        seg(0, 2000, 'a'.repeat(40))
+      );
+      mergeSegment(state1, seg(0, 2000, 'b'.repeat(20))); // 20 == 40 * 0.5
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  // Qatar regression: render-time safety net for ADJACENT non-overlapping
+  // time windows whose CONTENT overlaps. Deepgram emitted "...for assistance"
+  // then "available adviser for assistance" with non-overlapping time
+  // windows — time-anchored merger correctly keeps both, but a naive
+  // join would produce "for assistance available adviser for assistance"
+  // (trailing-word duplication). renderTranscript must word-align-merge
+  // adjacent segments. Real-world: sid 3ytfoeE6gXiuYSkljMseKNV96K.
+  it('Qatar regression: renderTranscript dedups adjacent segment content overlap', () => {
+    let state = clearSegments();
+    state = mergeSegment(
+      state,
+      seg(
+        0,
+        3000,
+        'Please hold. This call will be connected to the next available adviser for assistance'
+      )
+    );
+    state = mergeSegment(
+      state,
+      seg(3000, 6000, 'available adviser for assistance.')
+    );
+    expect(renderTranscript(state)).toBe(
+      'Please hold. This call will be connected to the next available adviser for assistance.'
+    );
+  });
+
+  it('renderTranscript handles unrelated adjacent segments (no overlap = space concat)', () => {
+    let state = clearSegments();
+    state = mergeSegment(state, seg(0, 1000, 'Press 1 for sales'));
+    state = mergeSegment(state, seg(2000, 3000, 'or wait on the line'));
+    expect(renderTranscript(state)).toBe(
+      'Press 1 for sales or wait on the line'
+    );
   });
 });

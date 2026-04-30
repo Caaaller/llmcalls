@@ -62,17 +62,94 @@ export function mergeSegment(
   if (state.segments.length === 0) {
     return { segments: [incoming] };
   }
+  const replaced = state.segments.filter(s => rangesOverlap(s, incoming));
   const kept = state.segments.filter(s => !rangesOverlap(s, incoming));
+
+  // Production telemetry: warn when a merge drops significantly more text
+  // than it brings in. Either Deepgram revised aggressively, or a future
+  // regression is silently degrading the merger. Heuristic: incoming length
+  // < half the combined replaced length. Catches a pattern that would
+  // otherwise look like "merger working" while quietly losing audio.
+  if (replaced.length > 0) {
+    const replacedTextLen = replaced.reduce((sum, s) => sum + s.text.length, 0);
+    if (incoming.text.length < replacedTextLen * 0.5) {
+      console.warn(
+        `[transcriptSegmentMerger] Significant text loss in merge: replaced ${replacedTextLen} chars with ${incoming.text.length} chars at [${incoming.startMs}, ${incoming.endMs}]ms`
+      );
+    }
+  }
+
   return { segments: insertSorted(kept, incoming) };
 }
 
 /**
- * Render the merged transcript by joining segment texts in start-time order.
+ * Find the longest WORD-ALIGNED suffix of `prev` that exactly equals a
+ * prefix of `next`. Returns the merged result. Word-aligned avoids
+ * gluing partial words ("def" + "definitely" stays separate).
+ *
+ * Used by renderTranscript as a safety net for the case where Deepgram
+ * emits two is_final events with NON-overlapping time windows but
+ * overlapping CONTENT (e.g. boundary segment "...for assistance" + next
+ * segment "available adviser for assistance.") — the time-anchored
+ * merger correctly keeps both segments, but joining them with a space
+ * produces "for assistance available adviser for assistance" with
+ * duplicated trailing words. Real-world example from Qatar Airways
+ * call sid 3ytfoeE6gXiuYSkljMseKNV96K_4fTpFgRa5l: hold message played
+ * once but rendered with "available adviser for assistance available
+ * adviser for assistance" because of segment-boundary content overlap.
+ */
+/** Strip leading/trailing punctuation for word-equality comparison. */
+function stripPunct(word: string): string {
+  return word.toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+}
+
+function wordsEqual(a: string, b: string): boolean {
+  return stripPunct(a) === stripPunct(b);
+}
+
+function mergeWordAligned(prev: string, next: string): string {
+  const prevTrim = prev.trim();
+  const nextTrim = next.trim();
+  if (!prevTrim) return nextTrim;
+  if (!nextTrim) return prevTrim;
+  const prevWords = prevTrim.split(/\s+/);
+  const nextWords = nextTrim.split(/\s+/);
+  const maxK = Math.min(prevWords.length, nextWords.length);
+  for (let k = maxK; k > 0; k--) {
+    const prevSuffix = prevWords.slice(-k);
+    const nextPrefix = nextWords.slice(0, k);
+    let allEqual = true;
+    for (let i = 0; i < k; i++) {
+      if (!wordsEqual(prevSuffix[i], nextPrefix[i])) {
+        allEqual = false;
+        break;
+      }
+    }
+    if (allEqual) {
+      // Prefer the next-segment's spellings for the overlapping range —
+      // they're typically the more-finalized version (e.g. "assistance"
+      // → "assistance." with proper end-of-sentence punctuation).
+      return prevWords
+        .slice(0, prevWords.length - k)
+        .concat(nextPrefix)
+        .concat(nextWords.slice(k))
+        .join(' ');
+    }
+  }
+  return `${prevTrim} ${nextTrim}`;
+}
+
+/**
+ * Render the merged transcript by joining segment texts in start-time
+ * order. Adjacent segments are merged with word-aligned suffix-prefix
+ * dedup as a safety net for content-overlap that the time-anchored
+ * merger doesn't catch (touching/non-overlapping time windows but
+ * overlapping content — see mergeWordAligned doc).
  */
 export function renderTranscript(state: SegmentMergerState): string {
-  return state.segments
+  const texts = state.segments
     .map(s => s.text.trim())
-    .filter(t => t.length > 0)
-    .join(' ')
-    .trim();
+    .filter(t => t.length > 0);
+  if (texts.length === 0) return '';
+  return texts.reduce((acc, text) => mergeWordAligned(acc, text), '').trim();
 }

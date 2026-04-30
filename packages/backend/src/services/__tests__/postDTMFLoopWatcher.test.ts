@@ -1,27 +1,45 @@
 /**
  * Post-DTMF loop watcher unit tests.
  *
- * Covers the pure `shouldForceReprocess` predicate + the `appendInterim`
- * accumulator helper. Integration with streamRoutes is tested via live
- * call replays (Costco scenario); these tests lock down the gating logic
- * so we can't regress the dedup / isSpeaking / threshold guards.
+ * Covers the pure `shouldForceReprocess` predicate + the
+ * `appendInterimSegment` / `renderAccumulated` helpers. Integration with
+ * streamRoutes is tested via live call replays (Costco scenario); these
+ * tests lock down the gating logic and the time-anchored merge so we can't
+ * regress the dedup / isSpeaking / threshold guards or reintroduce
+ * string-stitch duplications.
  */
 
 import {
-  appendInterim,
+  appendInterimSegment,
   MIN_ACCUMULATED_CHARS,
   POST_DTMF_LOOP_WATCHER_MS,
+  renderAccumulated,
   resetWatcherFields,
   shouldForceReprocess,
   ShouldForceReprocessInput,
 } from '../postDTMFLoopWatcher';
+import {
+  clearSegments,
+  type DGSegment,
+  type SegmentMergerState,
+} from '../transcriptSegmentMerger';
 
 const DTMF_AT = 1_000_000;
 const AFTER_WINDOW = DTMF_AT + POST_DTMF_LOOP_WATCHER_MS + 10;
 const BEFORE_WINDOW = DTMF_AT + POST_DTMF_LOOP_WATCHER_MS - 50;
 
-function longText(chars = MIN_ACCUMULATED_CHARS + 5): string {
-  return 'x'.repeat(chars);
+function seg(startMs: number, endMs: number, text: string): DGSegment {
+  return { startMs, endMs, text };
+}
+
+function segmentsFromText(text: string): SegmentMergerState {
+  // Build a single-segment state with arbitrary [0, 1000ms] window — the
+  // shouldForceReprocess predicate only cares about the rendered length.
+  return appendInterimSegment(clearSegments(), seg(0, 1000, text));
+}
+
+function longSegments(chars = MIN_ACCUMULATED_CHARS + 5): SegmentMergerState {
+  return segmentsFromText('x'.repeat(chars));
 }
 
 function input(
@@ -29,7 +47,7 @@ function input(
 ): ShouldForceReprocessInput {
   return {
     lastDTMFPressedAt: DTMF_AT,
-    accumulatedInterimText: longText(),
+    accumulatedInterimSegments: longSegments(),
     isSpeaking: false,
     forcedReprocessFiredAt: undefined,
     ...overrides,
@@ -49,7 +67,9 @@ describe('shouldForceReprocess', () => {
     expect(
       shouldForceReprocess(
         input({
-          accumulatedInterimText: 'x'.repeat(MIN_ACCUMULATED_CHARS - 1),
+          accumulatedInterimSegments: segmentsFromText(
+            'x'.repeat(MIN_ACCUMULATED_CHARS - 1)
+          ),
         }),
         AFTER_WINDOW
       )
@@ -58,11 +78,14 @@ describe('shouldForceReprocess', () => {
 
   it('returns false when accumulated interim is empty or undefined', () => {
     expect(
-      shouldForceReprocess(input({ accumulatedInterimText: '' }), AFTER_WINDOW)
+      shouldForceReprocess(
+        input({ accumulatedInterimSegments: clearSegments() }),
+        AFTER_WINDOW
+      )
     ).toBe(false);
     expect(
       shouldForceReprocess(
-        input({ accumulatedInterimText: undefined }),
+        input({ accumulatedInterimSegments: undefined }),
         AFTER_WINDOW
       )
     ).toBe(false);
@@ -94,7 +117,7 @@ describe('shouldForceReprocess', () => {
   });
 
   it('returns true again once the dedup window has elapsed', () => {
-    const oldFire = DTMF_AT; // Fired exactly 5s before "now" = AFTER_WINDOW.
+    const oldFire = DTMF_AT;
     const now = oldFire + POST_DTMF_LOOP_WATCHER_MS + 10;
     expect(
       shouldForceReprocess(
@@ -114,93 +137,66 @@ describe('shouldForceReprocess', () => {
   });
 });
 
-describe('appendInterim', () => {
-  it('returns the new text when existing is empty', () => {
-    expect(appendInterim('', 'hello world')).toBe('hello world');
+describe('appendInterimSegment / renderAccumulated', () => {
+  it('returns initial state when feeding into undefined', () => {
+    const state = appendInterimSegment(undefined, seg(0, 1000, 'hello'));
+    expect(renderAccumulated(state)).toBe('hello');
   });
 
-  it('keeps the longer when new extends existing as prefix', () => {
-    expect(appendInterim('press one for', 'press one for billing')).toBe(
-      'press one for billing'
+  it('replaces same-window revision (Qatar pattern: "press one" → "press 1")', () => {
+    // Empirical Deepgram behavior: interim events over the same time window
+    // refine number formatting. Pre-PR-#46 string stitching produced
+    // "press one press 1" — duplicating the menu prompt. With time-anchored
+    // merging the second segment replaces the first.
+    let state = clearSegments();
+    state = appendInterimSegment(state, seg(0, 2000, 'press one'));
+    state = appendInterimSegment(state, seg(0, 2000, 'press 1'));
+    expect(renderAccumulated(state)).toBe('press 1');
+  });
+
+  it('appends non-overlapping segments in time order', () => {
+    let state = clearSegments();
+    state = appendInterimSegment(state, seg(0, 2000, 'press 1'));
+    state = appendInterimSegment(state, seg(5000, 7000, 'press 2'));
+    expect(renderAccumulated(state)).toBe('press 1 press 2');
+  });
+
+  it('ignores empty / whitespace-only incoming text', () => {
+    let state = appendInterimSegment(undefined, seg(0, 1000, 'press one'));
+    state = appendInterimSegment(state, seg(2000, 3000, '   '));
+    state = appendInterimSegment(state, seg(2000, 3000, ''));
+    expect(renderAccumulated(state)).toBe('press one');
+  });
+
+  it('Qatar regression: cascade of progressive revisions does not duplicate', () => {
+    // Pre-PR-#46 Costco/Qatar pattern: each progressive interim was a longer
+    // revision over the SAME time window. Naive string-concat produced
+    // "If you are a member of our If you are a member of our privilege club..."
+    // Time-anchored merging keeps a single segment at [0, 4000ms].
+    let state = clearSegments();
+    state = appendInterimSegment(
+      state,
+      seg(0, 2000, 'If you are a member of our')
     );
-  });
-
-  it('keeps the longer when existing extends new as prefix', () => {
-    expect(appendInterim('press one for billing', 'press one for')).toBe(
-      'press one for billing'
+    state = appendInterimSegment(
+      state,
+      seg(0, 3000, 'If you are a member of our privilege club, press')
     );
-  });
-
-  it('concatenates with a space when texts are unrelated', () => {
-    expect(appendInterim('press one', 'for billing')).toBe(
-      'press one for billing'
+    state = appendInterimSegment(
+      state,
+      seg(0, 4000, 'If you are a member of our privilege club, press 1')
     );
-  });
-
-  it('trims and ignores empty new text', () => {
-    expect(appendInterim('press one', '   ')).toBe('press one');
-    expect(appendInterim('press one', '')).toBe('press one');
-  });
-
-  it('Qatar regression v2: dedups suffix-prefix word overlap', () => {
-    // Empirical Deepgram pattern observed on Qatar Airways IVR
-    // (sid zvsO3qKJ2J6zI5o3TfOh45q88Xq): each successive is_final
-    // starts with the LAST WORDS of the previous one — not strict
-    // prefix overlap, suffix-prefix overlap. Naive concat produced:
-    //   "We have not received your input. Please Please try again. If
-    //    Please try again. If you are a member Please try again. If
-    //    you are a member of our privileged"
-    let acc = '';
-    acc = appendInterim(acc, 'We have not received your input. Please');
-    acc = appendInterim(acc, 'Please try again. If');
-    acc = appendInterim(acc, 'try again. If you are a member');
-    acc = appendInterim(acc, 'a member of our privileged');
-    expect(acc).toBe(
-      'We have not received your input. Please try again. If you are a member of our privileged'
-    );
-  });
-
-  it('does NOT glue partial words ("def" / "definitely")', () => {
-    // Word-aligned overlap matters: "press def" + "definitely yes"
-    // should NOT become "press definitely yes" by gluing the partial
-    // letters. "def" and "definitely" are different tokens.
-    expect(appendInterim('press def', 'definitely yes')).toBe(
-      'press def definitely yes'
-    );
-  });
-
-  it('handles unrelated phrases with simple concatenation', () => {
-    expect(appendInterim('press 1', 'press 2')).toBe('press 1 press 2');
-  });
-
-  it('Qatar regression: dedups overlapping is_final cascade', () => {
-    // Reproduces the Qatar Airways pattern observed live in PR #44:
-    // Deepgram with interim_results=true emits 3 progressive is_final
-    // events for the same continuous IVR utterance, each extending the
-    // previous one. Naive concatenation produced "If you are a member
-    // of our If you are a member of our If you are a member of our
-    // privilege club, press 1" — which then poisoned loop detection and
-    // DTMF menu mapping. The fix in streamRoutes uses appendInterim
-    // for is_final accumulation; this test locks that in.
-    let acc = '';
-    acc = appendInterim(acc, 'If you are a member of our');
-    acc = appendInterim(
-      acc,
-      'If you are a member of our privilege club, press'
-    );
-    acc = appendInterim(
-      acc,
+    expect(renderAccumulated(state)).toBe(
       'If you are a member of our privilege club, press 1'
     );
-    expect(acc).toBe('If you are a member of our privilege club, press 1');
   });
 });
 
 describe('resetWatcherFields', () => {
-  it('returns all watcher fields cleared', () => {
+  it('returns all watcher fields cleared (segments form)', () => {
     expect(resetWatcherFields()).toEqual({
       lastDTMFPressedAt: undefined,
-      accumulatedInterimText: '',
+      accumulatedInterimSegments: clearSegments(),
       forcedReprocessFiredAt: undefined,
     });
   });
@@ -208,22 +204,26 @@ describe('resetWatcherFields', () => {
 
 describe('DTMF → accumulation → fire scenario', () => {
   it('models the full arming flow: press → interims build → watcher fires once', () => {
-    // t=0: DTMF pressed, state armed.
     let cs: ShouldForceReprocessInput = {
       lastDTMFPressedAt: 0,
-      accumulatedInterimText: '',
+      accumulatedInterimSegments: clearSegments(),
       isSpeaking: false,
     };
     expect(shouldForceReprocess(cs, 0)).toBe(false);
 
     // t=1000: first interim arrives but is too short.
-    cs = { ...cs, accumulatedInterimText: 'welcome' };
+    cs = {
+      ...cs,
+      accumulatedInterimSegments: segmentsFromText('welcome'),
+    };
     expect(shouldForceReprocess(cs, 1000)).toBe(false);
 
     // t=3000: accumulator is long enough but window hasn't elapsed.
     cs = {
       ...cs,
-      accumulatedInterimText: 'welcome to costco press 1 for store hours',
+      accumulatedInterimSegments: segmentsFromText(
+        'welcome to costco press 1 for store hours'
+      ),
     };
     expect(shouldForceReprocess(cs, 3000)).toBe(false);
 
@@ -231,15 +231,20 @@ describe('DTMF → accumulation → fire scenario', () => {
     expect(shouldForceReprocess(cs, 5000)).toBe(true);
 
     // After firing, set forcedReprocessFiredAt and clear accumulator.
-    cs = { ...cs, forcedReprocessFiredAt: 5000, accumulatedInterimText: '' };
-    // t=5500: dedup window active AND accumulator empty — no fire.
+    cs = {
+      ...cs,
+      forcedReprocessFiredAt: 5000,
+      accumulatedInterimSegments: clearSegments(),
+    };
     expect(shouldForceReprocess(cs, 5500)).toBe(false);
 
     // t=11000: accumulator re-grows on a second pass through the same menu
     // loop, dedup window expired → fire again.
     cs = {
       ...cs,
-      accumulatedInterimText: 'welcome to costco press 1 for store hours',
+      accumulatedInterimSegments: segmentsFromText(
+        'welcome to costco press 1 for store hours'
+      ),
     };
     expect(shouldForceReprocess(cs, 11000)).toBe(true);
   });

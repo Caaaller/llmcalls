@@ -22,6 +22,7 @@ import { isHoldLowPowerEnabled } from './holdAudioMonitor';
 import transferConfig from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { DTMFDecision, VoiceProcessingResult } from '../types/voiceProcessing';
+import { clearSegments } from './transcriptSegmentMerger';
 
 // Streaming TTS is now the default. Set USE_STREAMING=false to disable (rollback escape hatch).
 const USE_STREAMING = process.env.USE_STREAMING !== 'false';
@@ -944,7 +945,7 @@ export async function processSpeech({
         callStateManager.updateCallState(callSid, {
           lastDTMFPressedAt: Date.now(),
           lastDTMFDigit: action.digit,
-          accumulatedInterimText: '',
+          accumulatedInterimSegments: clearSegments(),
           forcedReprocessFiredAt: undefined,
         });
       }
