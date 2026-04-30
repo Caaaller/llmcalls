@@ -34,6 +34,12 @@ import {
   HoldAudioMonitor,
   WakeReason,
 } from '../services/holdAudioMonitor';
+import {
+  type SegmentMergerState,
+  clearSegments,
+  mergeSegment,
+  renderTranscript,
+} from '../services/transcriptSegmentMerger';
 
 // Per-call hold-mode audio monitors. Keyed by callControlId. Created on entry
 // to LOW_POWER, destroyed on exit or stream stop.
@@ -214,7 +220,10 @@ interface StreamState {
   callControlId: string;
   dgWs: WS | null;
   audioBuffer: Buffer[];
-  transcript: string;
+  // Time-anchored merged transcript. Each Deepgram is_final is merged
+  // by [startMs, endMs] window — overlapping ranges replace, non-overlapping
+  // ranges append. See transcriptSegmentMerger for details.
+  segments: SegmentMergerState;
   speechFired: boolean;
   lastUtteranceAt: number;
   silentHoldTimer: ReturnType<typeof setTimeout> | null;
@@ -330,7 +339,7 @@ export function injectSyntheticTranscript(
   // Treat as a fresh utterance: clear any in-flight transcript buffer and
   // mark speechFired so a real DG speech_final arriving moments later
   // doesn't double-fire the same content.
-  state.transcript = '';
+  state.segments = clearSegments();
   state.speechFired = true;
   void state.onUtterance(text);
   // Match the real-final path: clear speechFired after a short delay so
@@ -588,14 +597,19 @@ function openDeepgram(
         console.log(
           `[DG] is_final: "${text.substring(0, 80)}" start=${r.start.toFixed(2)}s dur=${r.duration.toFixed(2)}s speech_final=${r.speech_final}`
         );
-        // Deepgram with interim_results=true emits overlapping is_final
-        // events on continuous speech (each one extends the previous
-        // finalized text rather than being a strict delta). Naive
-        // concatenation produces duplications like "If you are a member
-        // If you are a member of our privilege..." which then poisons
-        // loop detection and DTMF menu mapping. appendInterim() handles
-        // the prefix-overlap case by replacing instead of appending.
-        state.transcript = appendInterim(state.transcript, text);
+        // Time-anchored merge: Deepgram with interim_results=true emits
+        // is_finals that REVISE earlier finalizations over the same time
+        // window (e.g. "Press two" → "Press 2", or "class book" →
+        // "class bookings"). String-prefix stitching cannot resolve these
+        // — it produced duplications like "press one press 1". We anchor
+        // each final by [startMs, endMs] and replace overlapping segments.
+        const startMs = Math.round(r.start * 1000);
+        const endMs = Math.round((r.start + r.duration) * 1000);
+        state.segments = mergeSegment(state.segments, {
+          startMs,
+          endMs,
+          text,
+        });
 
         // Any new is_final fragment arrived → user kept talking, so a
         // previously-armed safety timer should start over with fresh text.
@@ -606,7 +620,7 @@ function openDeepgram(
 
         // Fire on speech_final (faster than waiting for UtteranceEnd)
         if (r.speech_final) {
-          const fullText = state.transcript.trim();
+          const fullText = renderTranscript(state.segments);
           if (isIncompleteUtterance(fullText)) {
             console.log(
               `[DG] speech_final suppressed (incomplete): "${fullText.substring(0, 80)}"`
@@ -616,10 +630,10 @@ function openDeepgram(
             // mid-sentence but their last word was a connective).
             state.semanticWaitTimer = setTimeout(() => {
               if (!state) return;
-              const pending = state.transcript.trim();
+              const pending = renderTranscript(state.segments);
               state.semanticWaitTimer = null;
               if (!pending || state.speechFired) return;
-              state.transcript = '';
+              state.segments = clearSegments();
               state.speechFired = true;
               console.log(
                 `[DG] semantic wait expired (${SEMANTIC_WAIT_MAX_MS}ms) → force-firing: "${pending.substring(0, 80)}"`
@@ -635,7 +649,7 @@ function openDeepgram(
             }, SEMANTIC_WAIT_MAX_MS);
             return;
           }
-          state.transcript = '';
+          state.segments = clearSegments();
           state.speechFired = true;
           console.log(
             `[DG] speech_final → firing: "${fullText.substring(0, 80)}"`
@@ -659,20 +673,20 @@ function openDeepgram(
         clearTimeout(state.semanticWaitTimer);
         state.semanticWaitTimer = null;
       }
-      const text = state.transcript.trim();
+      const text = renderTranscript(state.segments);
       console.log(
         `[DG] UtteranceEnd last_word=${msg.last_word_end?.toFixed(2)}s transcript="${text.substring(0, 80)}" speechFired=${state.speechFired}`
       );
       // Only fire if speech_final didn't already handle this utterance
       if (text && !state.speechFired) {
-        state.transcript = '';
+        state.segments = clearSegments();
         callStateManager.updateCallState(
           state.callControlId,
           resetWatcherFields()
         );
         void onUtterance(text);
       } else {
-        state.transcript = '';
+        state.segments = clearSegments();
       }
       state.speechFired = false;
     }
@@ -782,7 +796,7 @@ export function attachStreamServer(httpServer: Server): void {
           callControlId,
           dgWs: null,
           audioBuffer: [],
-          transcript: '',
+          segments: clearSegments(),
           speechFired: false,
           lastUtteranceAt: Date.now(),
           silentHoldTimer: null,
@@ -991,7 +1005,7 @@ export function attachStreamServer(httpServer: Server): void {
         }
       } else if (event === 'stop' && state) {
         // Flush any accumulated transcript that Deepgram hasn't sent UtteranceEnd for
-        const remaining = state.transcript.trim();
+        const remaining = renderTranscript(state.segments);
         if (remaining) {
           console.log(`[STREAM-STT] Flushing on stop: "${remaining}"`);
           const callControlId = state.callControlId;

@@ -236,6 +236,39 @@ async function assertOutcome(
       expectedOutcome.minDurationSeconds
     );
   }
+
+  // Always-on regression guard: scan conversation/user events for duplication
+  // patterns that signal Deepgram is_final stitching is broken. We catch any
+  // 4+ word phrase that repeats back-to-back within a single user event —
+  // that's the smoking-gun shape of the duplication bug fixed by the
+  // time-anchored segment merger (e.g. "press one for sales press 1 for
+  // sales"). If this fires we have regressed back to string stitching.
+  const dupCall = await callHistoryService.getCall(result.callSid);
+  const dupEvents = dupCall?.events ?? [];
+  for (const e of dupEvents) {
+    if (e.eventType !== 'conversation' || e.type !== 'user' || !e.text) {
+      continue;
+    }
+    const words = e.text.split(/\s+/).filter(w => w.length > 0);
+    for (let len = 4; len <= Math.min(8, Math.floor(words.length / 2)); len++) {
+      for (let i = 0; i + len * 2 <= words.length; i++) {
+        const phrase = words
+          .slice(i, i + len)
+          .join(' ')
+          .toLowerCase();
+        const next = words
+          .slice(i + len, i + len * 2)
+          .join(' ')
+          .toLowerCase();
+        if (phrase === next) {
+          throw new Error(
+            `Duplication detected in user event: "${phrase}" repeats back-to-back. ` +
+              `Full event text: "${e.text}"`
+          );
+        }
+      }
+    }
+  }
 }
 
 const ALL_CASES = [...DEFAULT_TEST_CASES, ...TEST_IVR_CASES];
