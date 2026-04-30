@@ -2,6 +2,28 @@ import React from 'react';
 import type { CallEvent } from '../api/client';
 import { getSeekSeconds } from '../hooks/useCallRecording';
 
+const SHOW_AI_REASONING_STORAGE_KEY = 'callTimeline.showAiReasoning';
+
+function readShowAiReasoning(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return (
+      window.localStorage.getItem(SHOW_AI_REASONING_STORAGE_KEY) === 'true'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function writeShowAiReasoning(value: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(SHOW_AI_REASONING_STORAGE_KEY, String(value));
+  } catch {
+    // Ignore storage failures (private mode, quota, etc.)
+  }
+}
+
 function formatTime(date: Date | string | null | undefined): string {
   if (!date) return 'N/A';
   return new Date(date).toLocaleTimeString();
@@ -13,6 +35,7 @@ interface RenderEventOptions {
   seekSeconds: number;
   onSeek: () => void;
   isPostHangup?: boolean;
+  showAiReasoning: boolean;
 }
 
 function renderEvent(
@@ -26,6 +49,7 @@ function renderEvent(
     seekSeconds,
     onSeek,
     isPostHangup = false,
+    showAiReasoning,
   } = options;
   return (
     <div
@@ -49,7 +73,7 @@ function renderEvent(
         {event.eventType === 'dtmf' && (
           <span style={{ color: '#667eea', fontWeight: 600 }}>
             Press {event.digit}
-            {event.reason && (
+            {showAiReasoning && event.reason && (
               <span style={{ fontWeight: 400, color: '#666' }}>
                 {' '}
                 — <em>{event.reason}</em>
@@ -136,11 +160,28 @@ function CallEventTimeline({
   showHangupMarker = false,
   sectionLabel,
 }: CallEventTimelineProps) {
+  const [showAiReasoning, setShowAiReasoning] =
+    React.useState<boolean>(readShowAiReasoning);
+
+  const onToggleAiReasoning = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const next = e.target.checked;
+    setShowAiReasoning(next);
+    writeShowAiReasoning(next);
+  };
+
   // Internal diagnostic events (turn_timing sub-timestamps) are stored
   // alongside transcript events but should not render in the timeline —
   // they have no text body so they would show up as empty rows.
-  const visibleEvents = events.filter(e => e.eventType !== 'turn_timing');
-  if (visibleEvents.length === 0) return null;
+  // When AI reasoning is hidden (default), also hide ivr_menu events —
+  // they're useful for debugging IVR navigation but pollute the user's
+  // view of the actual conversation.
+  const visibleEvents = events.filter(e => {
+    if (e.eventType === 'turn_timing') return false;
+    if (!showAiReasoning && e.eventType === 'ivr_menu') return false;
+    return true;
+  });
+  if (events.filter(e => e.eventType !== 'turn_timing').length === 0)
+    return null;
 
   // Find the INDEX of the first termination event in visibleEvents.
   // That event is the authoritative call-end boundary — anything at or
@@ -221,6 +262,7 @@ function CallEventTimeline({
         seekSeconds: seekSec,
         onSeek: () => onSeek(event.timestamp, startTime),
         isPostHangup,
+        showAiReasoning,
       })
     );
   });
@@ -228,6 +270,26 @@ function CallEventTimeline({
   return (
     <div className="inline-timeline">
       {sectionLabel && <div className="section-label">{sectionLabel}</div>}
+      <label
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: '0.85em',
+          color: '#666',
+          margin: '4px 0 8px',
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+        title="Show internal AI reasoning (DTMF justifications and detected IVR menus). Off by default to keep the transcript focused on the conversation."
+      >
+        <input
+          type="checkbox"
+          checked={showAiReasoning}
+          onChange={onToggleAiReasoning}
+        />
+        Show AI reasoning
+      </label>
       {rendered}
     </div>
   );
