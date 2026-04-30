@@ -266,9 +266,69 @@ export class SpeechFieldExtractor {
   }
 }
 
+/**
+ * Streaming JSON parser that watches for `"action": "press_digit"` AND
+ * `"digit": "X"` in the model's output. Once BOTH are seen with a valid
+ * digit, fires once with the digit so we can fire DTMF speculatively
+ * (~1.5-3s before the stream completes). Single-shot per instance.
+ *
+ * Tolerant of field order: handles either action-then-digit or
+ * digit-then-action. Returns true once the digit is committed; subsequent
+ * extract() calls are no-ops.
+ */
+export class PressDigitExtractor {
+  private fired = false;
+  private actionIsPressDigit: boolean | null = null;
+  private digit: string | null = null;
+  private buffer = '';
+
+  /**
+   * Feed a delta. Returns the digit if BOTH conditions are now satisfied
+   * (this is a press_digit action AND a valid digit has been parsed). Null
+   * otherwise. Once a digit is returned, all subsequent calls return null.
+   */
+  extract(delta: string): string | null {
+    if (this.fired) return null;
+    this.buffer += delta;
+    // Cap buffer to avoid unbounded growth on long streams.
+    if (this.buffer.length > 4096) {
+      this.buffer = this.buffer.slice(-2048);
+    }
+
+    if (this.actionIsPressDigit === null) {
+      const actionMatch = this.buffer.match(/"action"\s*:\s*"([^"]+)"/);
+      if (actionMatch) {
+        this.actionIsPressDigit = actionMatch[1] === 'press_digit';
+      }
+    }
+
+    if (this.digit === null) {
+      const digitMatch = this.buffer.match(/"digit"\s*:\s*"([0-9*#])"/);
+      if (digitMatch) {
+        this.digit = digitMatch[1];
+      }
+    }
+
+    if (this.actionIsPressDigit === true && this.digit !== null) {
+      this.fired = true;
+      return this.digit;
+    }
+    // If action arrived and is NOT press_digit, we can short-circuit and
+    // ignore any digit field that might appear later.
+    if (this.actionIsPressDigit === false) {
+      this.fired = true;
+      return null;
+    }
+    return null;
+  }
+}
+
 export interface StreamingCallbacks {
   onSpeechChunk: (text: string) => void;
   onSpeechDone: () => void;
+  /** Fires when streaming JSON has a confident press_digit + digit BEFORE
+   * the stream completes. Used to fire DTMF speculatively. Single-shot. */
+  onSpeculativeDigit?: (digit: string) => void;
 }
 
 export interface StreamingResult {
@@ -692,6 +752,8 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
     const apiStart = Date.now();
 
     const extractor = new SpeechFieldExtractor();
+    const digitExtractor = new PressDigitExtractor();
+    let speculativeDigitFiredAt: number | null = null;
     let firstTokenAt: number | null = null;
     let speechDoneFiredAt: number | null = null;
     let fullContent = '';
@@ -712,6 +774,16 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       fullContent += delta;
       const extracted = extractor.extract(delta);
       if (extracted) callbacks.onSpeechChunk(extracted);
+      if (callbacks.onSpeculativeDigit && speculativeDigitFiredAt === null) {
+        const speculativeDigit = digitExtractor.extract(delta);
+        if (speculativeDigit) {
+          speculativeDigitFiredAt = Date.now();
+          console.log(
+            `⚡ Speculative DTMF parsed mid-stream: digit=${speculativeDigit} (${speculativeDigitFiredAt - apiStart}ms after stream start)`
+          );
+          callbacks.onSpeculativeDigit(speculativeDigit);
+        }
+      }
       if (extractor.isDone() && speechDoneFiredAt === null) {
         speechDoneFiredAt = Date.now();
         console.log(
