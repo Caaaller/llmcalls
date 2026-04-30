@@ -64,4 +64,27 @@ describe('sameMenuShape', () => {
     // Default to true if digit set matches and no significant words exist.
     expect(sameMenuShape([opt('1', 'a')], [opt('1', 'b')])).toBe(true);
   });
+
+  it('returns false when only IVR boilerplate words overlap', () => {
+    // Staff-review caveat: the original ≥1-word threshold falsely
+    // collapsed two distinct submenus that share only IVR boilerplate
+    // ("press"). After tightening: requires ≥2 content-word overlap
+    // (post-stop-word filter), so these correctly diverge.
+    expect(
+      sameMenuShape(
+        [opt('1', 'for bookings press')],
+        [opt('1', 'for cancellations press')]
+      )
+    ).toBe(false);
+  });
+
+  it('still detects same-shape on real rephrasing with multiple content overlaps', () => {
+    // Two content words overlap ("hours", "weekend") plus possible others.
+    expect(
+      sameMenuShape(
+        [opt('1', 'business hours weekend coverage')],
+        [opt('1', 'extended hours weekend support')]
+      )
+    ).toBe(true);
+  });
 });
