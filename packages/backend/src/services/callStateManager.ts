@@ -44,6 +44,8 @@ export interface CallState {
   createdAt: Date;
   previousMenus: MenuOption[][];
   lastPressedDTMF?: string;
+  /** DIAG: set when QATAR_DIAG_FAST_PRESS_DIGIT bypass has fired once on this call. Single-shot. */
+  diagFastPressFired?: boolean;
   transferConfig?: TransferConfig;
   customInstructions?: string;
   actionHistory: Array<ActionHistoryEntry>;

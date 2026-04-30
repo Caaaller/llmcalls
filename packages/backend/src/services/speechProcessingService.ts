@@ -432,6 +432,50 @@ export async function processSpeech({
       });
     }
 
+    // ── 1.5. DIAGNOSTIC FAST-PRESS PATH (env-gated, off by default) ─────
+    //
+    // When QATAR_DIAG_FAST_PRESS_DIGIT is set (e.g. "3"), bypass Haiku
+    // entirely on the FIRST press attempt: if the current speech contains
+    // "press <digit>", fire DTMF immediately and return. Used to isolate
+    // whether DTMF first-try failures are caused by Haiku decision
+    // latency vs other factors (Telnyx tone transmission, IVR audio
+    // codec, IVR input window timing). If first-try success rate WITH
+    // this fast path is significantly higher than without, latency is
+    // the bottleneck. If still bad, the bottleneck is downstream.
+    //
+    // Single-shot per call: only fires until the first press lands so we
+    // can observe the IVR's response without re-triggering on retries.
+    const diagFastDigit = process.env.QATAR_DIAG_FAST_PRESS_DIGIT;
+    if (
+      diagFastDigit &&
+      !testMode &&
+      !callState.diagFastPressFired &&
+      new RegExp(`press\\s+${diagFastDigit}\\b`, 'i').test(speechResult)
+    ) {
+      console.log(
+        `⚡ DIAG fast-press: bypassing Haiku, pressing ${diagFastDigit} immediately on speech_final containing "press ${diagFastDigit}"`
+      );
+      callStateManager.updateCallState(callSid, {
+        diagFastPressFired: true,
+        lastPressedDTMF: diagFastDigit,
+      });
+      callHistoryService
+        .addDTMF(
+          callSid,
+          diagFastDigit,
+          `DIAG fast-press: bypassed Haiku (env QATAR_DIAG_FAST_PRESS_DIGIT=${diagFastDigit})`
+        )
+        .catch(err => console.error('Error adding DTMF:', err));
+      await telnyxService.sendDTMF(callSid, diagFastDigit);
+      return {
+        twiml: '',
+        shouldSend: true,
+        processingResult: undefined,
+        aiAction: 'press_digit',
+        digitPressed: diagFastDigit,
+      };
+    }
+
     const actionHistory = callState.actionHistory || [];
 
     // ── 2. AI call (streaming or non-streaming) ─────────────────────────────
