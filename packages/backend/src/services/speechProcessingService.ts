@@ -27,6 +27,36 @@ import { clearSegments } from './transcriptSegmentMerger';
 // Streaming TTS is now the default. Set USE_STREAMING=false to disable (rollback escape hatch).
 const USE_STREAMING = process.env.USE_STREAMING !== 'false';
 
+// DTMF settle delay — how long we wait after the IVR's last speech_final
+// before pressing a tone. Deepgram emits speech_final after a brief silence,
+// but the IVR audio is often still streaming through the carrier when the
+// transcript lands on our side. Pressing immediately can land the DTMF
+// during the IVR prompt, before its input window opens (Qatar Airways
+// "did not receive your input" failure mode). 400ms gives the IVR time to
+// finish the prompt audio and open the listener.
+const DTMF_SETTLE_MS = 400;
+
+const sleep = (ms: number) =>
+  new Promise<void>(resolve => setTimeout(resolve, ms));
+
+/**
+ * Wait until at least DTMF_SETTLE_MS has elapsed since the IVR's last
+ * speech_final. Anchored on `userSpeechEndedAt` (set in streamRoutes when
+ * Deepgram declares the IVR audio segment over).
+ */
+async function waitForDTMFSettle(callSid: string): Promise<void> {
+  const cs = callStateManager.getCallState(callSid);
+  const lastSpeechAt = cs.userSpeechEndedAt;
+  if (!lastSpeechAt) return;
+  const elapsed = Date.now() - lastSpeechAt;
+  const remaining = DTMF_SETTLE_MS - elapsed;
+  if (remaining > 0) {
+    await sleep(remaining);
+  }
+}
+
+export const __testing = { DTMF_SETTLE_MS, waitForDTMFSettle };
+
 // Common title abbreviations — if a period follows one of these (case-insensitive), don't split.
 const ABBREVIATIONS =
   /\b(Dr|Mr|Mrs|Ms|St|Ave|Blvd|Rd|Vs|Etc|Jr|Sr|Prof|Gov|Sgt|Cpl|Lt|Capt|Col|Gen|Pres|Rep|Sen)\s*$/i;
@@ -935,6 +965,7 @@ export async function processSpeech({
           .addDTMF(callSid, action.digit, `AI selected: ${action.reason}`)
           .catch(err => console.error('Error adding DTMF:', err));
 
+        await waitForDTMFSettle(callSid);
         await telnyxService.sendDTMF(callSid, action.digit);
 
         // Arm the post-DTMF loop watcher. If the IVR continues talking without
@@ -1046,6 +1077,7 @@ export async function processSpeech({
       const dtmfDigits = extractDTMFDigits(aiResponse.trim());
       if (dtmfDigits && !testMode) {
         console.log(`🔢 Data entry DTMF (streamed): ${dtmfDigits}`);
+        await waitForDTMFSettle(callSid);
         await telnyxService.sendDTMF(callSid, `ww${dtmfDigits}`);
       }
 
@@ -1120,6 +1152,7 @@ export async function processSpeech({
             .addDTMF(callSid, dtmfDigits, 'AI data entry response')
             .catch(err => console.error('Error adding DTMF:', err));
 
+          await waitForDTMFSettle(callSid);
           await telnyxService.sendDTMF(callSid, `ww${dtmfDigits}`);
         }
 
