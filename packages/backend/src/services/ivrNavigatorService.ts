@@ -388,9 +388,117 @@ Action rules:
 ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 }
 
-type LLMProvider = 'anthropic' | 'openai';
+type LLMProvider = 'anthropic' | 'openai' | 'gemini';
 
 const CLAUDE_HAIKU_MODEL = 'claude-haiku-4-5-20251001';
+const GEMINI_DEFAULT_MODEL = 'gemini-2.0-flash';
+
+interface GeminiUsage {
+  promptTokenCount?: number;
+  candidatesTokenCount?: number;
+  totalTokenCount?: number;
+}
+
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+  }>;
+  usageMetadata?: GeminiUsage;
+}
+
+async function callGeminiNonStreaming({
+  apiKey,
+  model,
+  systemMessage,
+  userMessage,
+}: {
+  apiKey: string;
+  model: string;
+  systemMessage: string;
+  userMessage: string;
+}): Promise<{ content: string; usage: GeminiUsage }> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const body = {
+    systemInstruction: { parts: [{ text: systemMessage }] },
+    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 800,
+      responseMimeType: 'application/json',
+    },
+  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Gemini API error ${res.status}: ${text}`);
+  }
+  const data = (await res.json()) as GeminiResponse;
+  const content =
+    data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+  return { content, usage: data.usageMetadata || {} };
+}
+
+async function* streamGemini({
+  apiKey,
+  model,
+  systemMessage,
+  userMessage,
+}: {
+  apiKey: string;
+  model: string;
+  systemMessage: string;
+  userMessage: string;
+}): AsyncGenerator<{ delta?: string; usage?: GeminiUsage }, void, unknown> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+  const body = {
+    systemInstruction: { parts: [{ text: systemMessage }] },
+    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+    generationConfig: {
+      temperature: 0,
+      maxOutputTokens: 800,
+      responseMimeType: 'application/json',
+    },
+  };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Gemini stream error ${res.status}: ${text}`);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('data:')) continue;
+      const payload = trimmed.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(payload) as GeminiResponse;
+        const delta = parsed.candidates?.[0]?.content?.parts
+          ?.map(p => p.text || '')
+          .join('');
+        if (delta) yield { delta };
+        if (parsed.usageMetadata) yield { usage: parsed.usageMetadata };
+      } catch {
+        // ignore malformed line
+      }
+    }
+  }
+}
 
 class IVRNavigatorService {
   private openaiClient: OpenAI;
@@ -409,7 +517,9 @@ class IVRNavigatorService {
 
   private getProvider(): LLMProvider {
     const raw = (process.env.IVR_LLM_PROVIDER || 'anthropic').toLowerCase();
-    return raw === 'openai' ? 'openai' : 'anthropic';
+    if (raw === 'openai') return 'openai';
+    if (raw === 'gemini' || raw === 'google') return 'gemini';
+    return 'anthropic';
   }
 
   /**
@@ -576,6 +686,21 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       );
       const first = response.content[0];
       content = first && first.type === 'text' ? first.text : '';
+    } else if (provider === 'gemini') {
+      const apiKey = process.env.GOOGLE_API_KEY;
+      if (!apiKey)
+        throw new Error('GOOGLE_API_KEY not set for gemini provider');
+      const model = process.env.GEMINI_MODEL_OVERRIDE || GEMINI_DEFAULT_MODEL;
+      const result = await callGeminiNonStreaming({
+        apiKey,
+        model,
+        systemMessage,
+        userMessage,
+      });
+      console.log(
+        `⏱️ API call: ${Date.now() - apiStart}ms | in=${result.usage.promptTokenCount} out=${result.usage.candidatesTokenCount}`
+      );
+      content = result.content;
     } else {
       const response = await this.openaiClient.chat.completions.create({
         model:
@@ -826,6 +951,28 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       const streamCompleteAt = Date.now();
       console.log(
         `⏱️ Stream complete: ${streamCompleteAt - apiStart}ms | in=${finalMessage.usage?.input_tokens} out=${finalMessage.usage?.output_tokens}`
+      );
+      if (callSid) {
+        callStateManager.updateCallState(callSid, { streamCompleteAt });
+      }
+    } else if (provider === 'gemini') {
+      const apiKey = process.env.GOOGLE_API_KEY;
+      if (!apiKey)
+        throw new Error('GOOGLE_API_KEY not set for gemini provider');
+      const model = process.env.GEMINI_MODEL_OVERRIDE || GEMINI_DEFAULT_MODEL;
+      let lastUsage: GeminiUsage = {};
+      for await (const event of streamGemini({
+        apiKey,
+        model,
+        systemMessage,
+        userMessage,
+      })) {
+        if (event.delta) onDelta(event.delta);
+        if (event.usage) lastUsage = event.usage;
+      }
+      const streamCompleteAt = Date.now();
+      console.log(
+        `⏱️ Stream complete: ${streamCompleteAt - apiStart}ms | in=${lastUsage.promptTokenCount} out=${lastUsage.candidatesTokenCount}`
       );
       if (callSid) {
         callStateManager.updateCallState(callSid, { streamCompleteAt });
