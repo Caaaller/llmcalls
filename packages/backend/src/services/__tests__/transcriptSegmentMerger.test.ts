@@ -212,4 +212,39 @@ describe('transcriptSegmentMerger', () => {
       warn.mockRestore();
     }
   });
+
+  // Qatar regression: render-time safety net for ADJACENT non-overlapping
+  // time windows whose CONTENT overlaps. Deepgram emitted "...for assistance"
+  // then "available adviser for assistance" with non-overlapping time
+  // windows — time-anchored merger correctly keeps both, but a naive
+  // join would produce "for assistance available adviser for assistance"
+  // (trailing-word duplication). renderTranscript must word-align-merge
+  // adjacent segments. Real-world: sid 3ytfoeE6gXiuYSkljMseKNV96K.
+  it('Qatar regression: renderTranscript dedups adjacent segment content overlap', () => {
+    let state = clearSegments();
+    state = mergeSegment(
+      state,
+      seg(
+        0,
+        3000,
+        'Please hold. This call will be connected to the next available adviser for assistance'
+      )
+    );
+    state = mergeSegment(
+      state,
+      seg(3000, 6000, 'available adviser for assistance.')
+    );
+    expect(renderTranscript(state)).toBe(
+      'Please hold. This call will be connected to the next available adviser for assistance.'
+    );
+  });
+
+  it('renderTranscript handles unrelated adjacent segments (no overlap = space concat)', () => {
+    let state = clearSegments();
+    state = mergeSegment(state, seg(0, 1000, 'Press 1 for sales'));
+    state = mergeSegment(state, seg(2000, 3000, 'or wait on the line'));
+    expect(renderTranscript(state)).toBe(
+      'Press 1 for sales or wait on the line'
+    );
+  });
 });
