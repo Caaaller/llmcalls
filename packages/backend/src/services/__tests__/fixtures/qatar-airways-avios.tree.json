@@ -1,0 +1,247 @@
+{
+  "version": 2,
+  "id": "qatar-airways-avios",
+  "testCaseId": "qatar-airways-avios",
+  "lastRecordedAt": "2026-04-30T02:31:50.706Z",
+  "config": {
+    "callPurpose": "Connect British Airways to my Avios account"
+  },
+  "root": {
+    "id": "n0",
+    "ivrSpeech": "Thank you for calling Qatar Airways. We're currently experiencing a high volume of calls. Which may result in longer wait times. Our teams are working hard to assist all customers as quickly as possible, and we appreciate your patience. To help us support customers traveling soon, if your flight is not within the next forty eight hours, we recommend contacting us closer to your departure.",
+    "children": [
+      {
+        "aiAction": {
+          "action": "wait",
+          "reason": "No action before next speech",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-30T02:31:50.705Z",
+        "isLatestPath": true,
+        "child": {
+          "id": "n1",
+          "ivrSpeech": "Did you know, for faster service, most travel needs can be managed online without waiting for an agent?",
+          "children": [
+            {
+              "aiAction": {
+                "action": "wait",
+                "reason": "No action before next speech",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-30T02:31:50.705Z",
+              "isLatestPath": true,
+              "child": {
+                "id": "n2",
+                "ivrSpeech": "Use Qatar Airways mobile app or visit qatarairways.com and use manage booking option to change your existing bookings or request for a refund. You can also check your flight status online at any time. If you still require assistance, please stay on the line and choose from the following options. If you are a member of our privileged club, press 1. If you are a travel agent, press 2. If you are calling with regards to bookings and reservations, press 3.",
+                "children": [
+                  {
+                    "aiAction": {
+                      "action": "press_digit",
+                      "digit": "3",
+                      "reason": "AI selected: IVR menu detected with complete options. Call purpose is to connect British Airways to Avios account, which falls under 'bookings and reservations'. Pressing 3 is the best match for this purpose.",
+                      "detected": {
+                        "isIVRMenu": true,
+                        "menuOptions": [],
+                        "isMenuComplete": true,
+                        "loopDetected": false,
+                        "shouldTerminate": false,
+                        "transferRequested": false
+                      }
+                    },
+                    "recordedAt": "2026-04-30T02:31:50.705Z",
+                    "isLatestPath": true,
+                    "child": {
+                      "id": "n3",
+                      "ivrSpeech": "We have not received your input. Please Please try again. If Please try again. If you are a member Please try again. If you are a member of our privileged",
+                      "children": [
+                        {
+                          "aiAction": {
+                            "action": "press_digit",
+                            "digit": "1",
+                            "reason": "AI selected: Loop override: rejected hallucinated press_digit 3: no valid rep-path option in transcript → force press 1 (member of privileged club)",
+                            "detected": {
+                              "isIVRMenu": true,
+                              "menuOptions": [],
+                              "isMenuComplete": true,
+                              "loopDetected": false,
+                              "shouldTerminate": false,
+                              "transferRequested": false
+                            }
+                          },
+                          "recordedAt": "2026-04-30T02:31:50.706Z",
+                          "isLatestPath": true,
+                          "child": {
+                            "id": "n4",
+                            "ivrSpeech": "press 1. If you are a travel agent, press 2. If you are If you are calling with If you are calling with regard please If you are calling with regard please enter your nine If you are calling with regard please enter your nine digit proof Privilege Club Privilege Club membership number.",
+                            "children": [
+                              {
+                                "aiAction": {
+                                  "action": "wait",
+                                  "reason": "No action before next speech",
+                                  "detected": {
+                                    "isIVRMenu": false,
+                                    "menuOptions": [],
+                                    "isMenuComplete": false,
+                                    "loopDetected": false,
+                                    "shouldTerminate": false,
+                                    "transferRequested": false
+                                  }
+                                },
+                                "recordedAt": "2026-04-30T02:31:50.706Z",
+                                "isLatestPath": true,
+                                "child": {
+                                  "id": "n5",
+                                  "ivrSpeech": "We have not received your input. Please try again. If you are a member of our privilege club, press 1. If you are a travel agent, press 2. If you are calling with regard please enter your nine digit privilege club membership number.",
+                                  "children": [
+                                    {
+                                      "aiAction": {
+                                        "action": "press_digit",
+                                        "digit": "2",
+                                        "reason": "AI selected: Loop override: IVR is garbled and repeating the menu with corrupted audio. The system is asking for a 9-digit privilege club membership number, but this is a data entry prompt embedded within a menu loop. The previous DTMF press (1) was not recognized. Waiting for the system to complete its speech and present a clear menu or data entry prompt before responding. → force press 2 (travel agent)",
+                                        "detected": {
+                                          "isIVRMenu": true,
+                                          "menuOptions": [],
+                                          "isMenuComplete": true,
+                                          "loopDetected": false,
+                                          "shouldTerminate": false,
+                                          "transferRequested": false
+                                        }
+                                      },
+                                      "recordedAt": "2026-04-30T02:31:50.706Z",
+                                      "isLatestPath": true,
+                                      "child": {
+                                        "id": "n6",
+                                        "ivrSpeech": "Sorry. This was an invalid input. For first and For first and business",
+                                        "children": [
+                                          {
+                                            "aiAction": {
+                                              "action": "press_digit",
+                                              "digit": "1",
+                                              "reason": "AI selected: Loop override: rejected hallucinated press_digit 1: no valid rep-path option in transcript → force press 1 (member of privileged club)",
+                                              "detected": {
+                                                "isIVRMenu": true,
+                                                "menuOptions": [],
+                                                "isMenuComplete": true,
+                                                "loopDetected": false,
+                                                "shouldTerminate": false,
+                                                "transferRequested": false
+                                              }
+                                            },
+                                            "recordedAt": "2026-04-30T02:31:50.706Z",
+                                            "isLatestPath": true,
+                                            "child": {
+                                              "id": "n7",
+                                              "ivrSpeech": "Sorry. This was an invalid input. For first and business class bookings, please press 1. For existing bookings. Press 2 for new bookings.",
+                                              "children": [
+                                                {
+                                                  "aiAction": {
+                                                    "action": "press_digit",
+                                                    "digit": "2",
+                                                    "reason": "AI selected: IVR menu detected with new options: Press 1 for first/business class bookings, Press 2 for existing bookings, Press 3 for new bookings. Call purpose is to connect British Airways to Avios account (existing booking management). Press 2 matches 'existing bookings'. Last DTMF pressed was 1 (which failed with 'invalid input'), so pressing a different digit (2) now.",
+                                                    "detected": {
+                                                      "isIVRMenu": true,
+                                                      "menuOptions": [],
+                                                      "isMenuComplete": true,
+                                                      "loopDetected": false,
+                                                      "shouldTerminate": false,
+                                                      "transferRequested": false
+                                                    }
+                                                  },
+                                                  "recordedAt": "2026-04-30T02:31:50.706Z",
+                                                  "isLatestPath": true,
+                                                  "child": {
+                                                    "id": "n8",
+                                                    "ivrSpeech": "available adviser. available adviser for assistance. available adviser for assistance. We process available adviser for assistance. We process your data in a call with our privacy policy.",
+                                                    "children": [
+                                                      {
+                                                        "aiAction": {
+                                                          "action": "wait",
+                                                          "reason": "No action before next speech",
+                                                          "detected": {
+                                                            "isIVRMenu": false,
+                                                            "menuOptions": [],
+                                                            "isMenuComplete": false,
+                                                            "loopDetected": false,
+                                                            "shouldTerminate": false,
+                                                            "transferRequested": false
+                                                          }
+                                                        },
+                                                        "recordedAt": "2026-04-30T02:31:50.706Z",
+                                                        "isLatestPath": true,
+                                                        "child": {
+                                                          "id": "n9",
+                                                          "ivrSpeech": "with our privacy policy, which can be found at Qatar Airways dot with our privacy policy, which can be found at qatarairways.com. with our privacy policy, which can be found at qatarairways.com. For quality and For quality and training purposes,",
+                                                          "children": [
+                                                            {
+                                                              "aiAction": {
+                                                                "action": "wait",
+                                                                "reason": "No action before next speech",
+                                                                "detected": {
+                                                                  "isIVRMenu": false,
+                                                                  "menuOptions": [],
+                                                                  "isMenuComplete": false,
+                                                                  "loopDetected": false,
+                                                                  "shouldTerminate": false,
+                                                                  "transferRequested": false
+                                                                }
+                                                              },
+                                                              "recordedAt": "2026-04-30T02:31:50.706Z",
+                                                              "isLatestPath": true,
+                                                              "child": {
+                                                                "terminal": true,
+                                                                "finalStatus": "initiated",
+                                                                "durationSeconds": 127,
+                                                                "reachedHuman": true,
+                                                                "dtmfDigits": [
+                                                                  "3",
+                                                                  "1",
+                                                                  "2",
+                                                                  "1",
+                                                                  "2"
+                                                                ]
+                                                              }
+                                                            }
+                                                          ]
+                                                        }
+                                                      }
+                                                    ]
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          }
+                                        ]
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
