@@ -71,7 +71,7 @@
 import '../../../jest.setup';
 import callStateManager from '../callStateManager';
 import { processSpeech } from '../speechProcessingService';
-import fixture from './fixtures/regression-qatar-post-hold-silence.json';
+import fixture from './fixtures/regression/qatar-post-hold-silence.json';
 
 interface FixtureEvent {
   eventType: string;

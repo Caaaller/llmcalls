@@ -96,7 +96,7 @@ import '../../../jest.setup';
 import ivrNavigatorService from '../ivrNavigatorService';
 import transferConfig from '../../config/transfer-config';
 import type { ActionHistoryEntry } from '../../config/prompts';
-import fixture from './fixtures/regression-qatar-post-hold-silence.json';
+import fixture from './fixtures/regression/qatar-post-hold-silence.json';
 
 interface FixtureEvent {
   eventType: string;
