@@ -177,6 +177,19 @@ export const DEFAULT_TEST_CASES: LiveCallTestCase[] = [
     },
   },
   {
+    id: 'qatar-airways-avios',
+    name: 'Qatar Airways — navigate IVR to reach hold queue for Avios linking',
+    description:
+      "Qatar Airways IVR. AI must navigate the multi-stage menu (privilege club / travel agent / bookings → existing bookings) to reach the hold queue. Reaching hold is the meaningful success criterion — actual hold time is 20+ min so we accept hold-queue-reached as success. Validates that recent fixes (is_final dedup #44, post-hold context reset #42) keep DTMF and loop detection clean across Qatar's notoriously chatty multi-menu IVR.",
+    phoneNumber: '+18777772827',
+    callPurpose: 'Connect British Airways to my Avios account',
+    expectedOutcome: {
+      shouldReachHuman: true,
+      requireConfirmedTransfer: false,
+      maxDurationSeconds: 180,
+    },
+  },
+  {
     id: 'usps-failed-pickup',
     name: 'USPS — report failed package pickup marked as completed',
     description:

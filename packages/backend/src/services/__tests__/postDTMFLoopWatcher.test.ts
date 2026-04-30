@@ -142,6 +142,37 @@ describe('appendInterim', () => {
     expect(appendInterim('press one', '')).toBe('press one');
   });
 
+  it('Qatar regression v2: dedups suffix-prefix word overlap', () => {
+    // Empirical Deepgram pattern observed on Qatar Airways IVR
+    // (sid zvsO3qKJ2J6zI5o3TfOh45q88Xq): each successive is_final
+    // starts with the LAST WORDS of the previous one — not strict
+    // prefix overlap, suffix-prefix overlap. Naive concat produced:
+    //   "We have not received your input. Please Please try again. If
+    //    Please try again. If you are a member Please try again. If
+    //    you are a member of our privileged"
+    let acc = '';
+    acc = appendInterim(acc, 'We have not received your input. Please');
+    acc = appendInterim(acc, 'Please try again. If');
+    acc = appendInterim(acc, 'try again. If you are a member');
+    acc = appendInterim(acc, 'a member of our privileged');
+    expect(acc).toBe(
+      'We have not received your input. Please try again. If you are a member of our privileged'
+    );
+  });
+
+  it('does NOT glue partial words ("def" / "definitely")', () => {
+    // Word-aligned overlap matters: "press def" + "definitely yes"
+    // should NOT become "press definitely yes" by gluing the partial
+    // letters. "def" and "definitely" are different tokens.
+    expect(appendInterim('press def', 'definitely yes')).toBe(
+      'press def definitely yes'
+    );
+  });
+
+  it('handles unrelated phrases with simple concatenation', () => {
+    expect(appendInterim('press 1', 'press 2')).toBe('press 1 press 2');
+  });
+
   it('Qatar regression: dedups overlapping is_final cascade', () => {
     // Reproduces the Qatar Airways pattern observed live in PR #44:
     // Deepgram with interim_results=true emits 3 progressive is_final

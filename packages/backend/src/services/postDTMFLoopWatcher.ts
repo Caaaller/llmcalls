@@ -90,6 +90,22 @@ export function appendInterim(existing: string, newInterim: string): string {
   if (next.startsWith(prev) || prev.startsWith(next)) {
     return next.length > prev.length ? next : prev;
   }
+  // Suffix-prefix word overlap: Deepgram routinely emits successive
+  // is_final events where the new event starts with the LAST WORDS of
+  // the previous accumulated text. e.g. prev="...Please", next="Please
+  // try again. If" — strict prefix doesn't match, but "Please" is the
+  // overlap. Find the longest WORD-aligned overlap and merge on it.
+  // Word-aligned avoids gluing partial words ("def" / "definitely").
+  const prevWords = prev.split(/\s+/);
+  const nextWords = next.split(/\s+/);
+  const maxK = Math.min(prevWords.length, nextWords.length);
+  for (let k = maxK; k > 0; k--) {
+    const prevSuffix = prevWords.slice(-k).join(' ');
+    const nextPrefix = nextWords.slice(0, k).join(' ');
+    if (prevSuffix === nextPrefix) {
+      return prevWords.concat(nextWords.slice(k)).join(' ');
+    }
+  }
   return `${prev} ${next}`;
 }
 
