@@ -25,7 +25,8 @@ import {
 } from '../services/simulatorAgentService';
 import { toError } from '../utils/errorUtils';
 import {
-  appendInterim,
+  appendInterimSegment,
+  renderAccumulated,
   resetWatcherFields,
   shouldForceReprocess,
 } from '../services/postDTMFLoopWatcher';
@@ -570,21 +571,33 @@ function openDeepgram(
         // speech-processing entry point so the AI gets a 2nd turn even
         // against continuous-speech IVRs like Costco.
         if (!r.is_final && cs.lastDTMFPressedAt !== undefined) {
-          const merged = appendInterim(cs.accumulatedInterimText ?? '', text);
+          // Time-anchored merge for the interim accumulator: Deepgram interim
+          // events revise mid-utterance (e.g. "press one" → "press 1"), and
+          // string-stitching reintroduces the duplications PR #46 fixed for
+          // is_finals. Use the same merger here.
+          const startMs = Math.round(r.start * 1000);
+          const endMs = Math.round((r.start + r.duration) * 1000);
+          const merged = appendInterimSegment(cs.accumulatedInterimSegments, {
+            startMs,
+            endMs,
+            text,
+          });
           callStateManager.updateCallState(state.callControlId, {
-            accumulatedInterimText: merged,
+            accumulatedInterimSegments: merged,
           });
           const now = Date.now();
           const fresh = callStateManager.getCallState(state.callControlId);
           if (shouldForceReprocess(fresh, now)) {
             const sinceDTMF = now - (fresh.lastDTMFPressedAt ?? now);
-            const textToProcess = fresh.accumulatedInterimText ?? '';
+            const textToProcess = renderAccumulated(
+              fresh.accumulatedInterimSegments
+            );
             console.log(
               `🔁 Post-DTMF loop watcher: forcing reprocess after ${sinceDTMF}ms with accumulated "${textToProcess.slice(0, 80)}…"`
             );
             callStateManager.updateCallState(state.callControlId, {
               forcedReprocessFiredAt: now,
-              accumulatedInterimText: '',
+              accumulatedInterimSegments: clearSegments(),
             });
             if (state.onUtterance) {
               void state.onUtterance(textToProcess);

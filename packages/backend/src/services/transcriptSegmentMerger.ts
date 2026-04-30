@@ -62,7 +62,23 @@ export function mergeSegment(
   if (state.segments.length === 0) {
     return { segments: [incoming] };
   }
+  const replaced = state.segments.filter(s => rangesOverlap(s, incoming));
   const kept = state.segments.filter(s => !rangesOverlap(s, incoming));
+
+  // Production telemetry: warn when a merge drops significantly more text
+  // than it brings in. Either Deepgram revised aggressively, or a future
+  // regression is silently degrading the merger. Heuristic: incoming length
+  // < half the combined replaced length. Catches a pattern that would
+  // otherwise look like "merger working" while quietly losing audio.
+  if (replaced.length > 0) {
+    const replacedTextLen = replaced.reduce((sum, s) => sum + s.text.length, 0);
+    if (incoming.text.length < replacedTextLen * 0.5) {
+      console.warn(
+        `[transcriptSegmentMerger] Significant text loss in merge: replaced ${replacedTextLen} chars with ${incoming.text.length} chars at [${incoming.startMs}, ${incoming.endMs}]ms`
+      );
+    }
+  }
+
   return { segments: insertSorted(kept, incoming) };
 }
 

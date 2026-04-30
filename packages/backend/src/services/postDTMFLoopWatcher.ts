@@ -20,6 +20,13 @@
  */
 
 import type { CallState } from './callStateManager';
+import {
+  type DGSegment,
+  type SegmentMergerState,
+  clearSegments,
+  mergeSegment,
+  renderTranscript,
+} from './transcriptSegmentMerger';
 
 /** Watcher window. After this many ms post-DTMF with no speech_final, we
  * consider the IVR to be talking continuously (no silence gap) and force a
@@ -36,7 +43,7 @@ export const MIN_ACCUMULATED_CHARS = 20;
 export interface ShouldForceReprocessInput {
   lastDTMFPressedAt?: number;
   forcedReprocessFiredAt?: number;
-  accumulatedInterimText?: string;
+  accumulatedInterimSegments?: SegmentMergerState;
   isSpeaking?: boolean;
 }
 
@@ -58,7 +65,7 @@ export function shouldForceReprocess(
   const sinceDTMF = now - cs.lastDTMFPressedAt;
   if (sinceDTMF < POST_DTMF_LOOP_WATCHER_MS) return false;
 
-  const accumulated = cs.accumulatedInterimText ?? '';
+  const accumulated = renderAccumulated(cs.accumulatedInterimSegments);
   if (accumulated.length < MIN_ACCUMULATED_CHARS) return false;
 
   // De-dup: only fire once per watcher window. Second loop iteration will
@@ -73,40 +80,33 @@ export function shouldForceReprocess(
 }
 
 /**
- * Append interim-transcript text to the running accumulator. Caller passes the
- * existing value and the new interim text; returns the new accumulator value.
- * Deepgram interim results repeat and extend each other, so we keep the
- * latest (longest) interim rather than concatenating every partial — otherwise
- * the length check would fire on the first interim alone.
- *
- * Simplest correct approach: if the new interim contains the old interim as a
- * prefix, replace; otherwise append a space-separator.
+ * Render the accumulated interim segments to a single transcript string.
+ * Returns '' when the accumulator is empty / undefined.
  */
-export function appendInterim(existing: string, newInterim: string): string {
-  const prev = existing ?? '';
-  const next = (newInterim ?? '').trim();
-  if (!next) return prev;
-  if (!prev) return next;
-  if (next.startsWith(prev) || prev.startsWith(next)) {
-    return next.length > prev.length ? next : prev;
-  }
-  // Suffix-prefix word overlap: Deepgram routinely emits successive
-  // is_final events where the new event starts with the LAST WORDS of
-  // the previous accumulated text. e.g. prev="...Please", next="Please
-  // try again. If" — strict prefix doesn't match, but "Please" is the
-  // overlap. Find the longest WORD-aligned overlap and merge on it.
-  // Word-aligned avoids gluing partial words ("def" / "definitely").
-  const prevWords = prev.split(/\s+/);
-  const nextWords = next.split(/\s+/);
-  const maxK = Math.min(prevWords.length, nextWords.length);
-  for (let k = maxK; k > 0; k--) {
-    const prevSuffix = prevWords.slice(-k).join(' ');
-    const nextPrefix = nextWords.slice(0, k).join(' ');
-    if (prevSuffix === nextPrefix) {
-      return prevWords.concat(nextWords.slice(k)).join(' ');
-    }
-  }
-  return `${prev} ${next}`;
+export function renderAccumulated(
+  state: SegmentMergerState | undefined
+): string {
+  if (!state) return '';
+  return renderTranscript(state);
+}
+
+/**
+ * Append an interim Deepgram segment to the running accumulator using
+ * time-anchored segment merging. Deepgram interim_results emit successive
+ * events with [start, duration] windows; later events over the same window
+ * REVISE earlier ones (e.g. "press one" → "press 1"). String concatenation
+ * could re-introduce the duplication problem PR #46 fixed for is_finals —
+ * so the interim path now uses the same merger as the is_final path.
+ *
+ * Returns a new SegmentMergerState — does not mutate input.
+ */
+export function appendInterimSegment(
+  existing: SegmentMergerState | undefined,
+  incoming: DGSegment
+): SegmentMergerState {
+  const state = existing ?? clearSegments();
+  if (!incoming.text || !incoming.text.trim()) return state;
+  return mergeSegment(state, incoming);
 }
 
 /**
@@ -115,11 +115,11 @@ export function appendInterim(existing: string, newInterim: string): string {
  */
 export function resetWatcherFields(): Pick<
   CallState,
-  'lastDTMFPressedAt' | 'accumulatedInterimText' | 'forcedReprocessFiredAt'
+  'lastDTMFPressedAt' | 'accumulatedInterimSegments' | 'forcedReprocessFiredAt'
 > {
   return {
     lastDTMFPressedAt: undefined,
-    accumulatedInterimText: '',
+    accumulatedInterimSegments: clearSegments(),
     forcedReprocessFiredAt: undefined,
   };
 }

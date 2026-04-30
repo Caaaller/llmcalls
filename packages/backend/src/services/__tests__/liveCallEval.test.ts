@@ -23,6 +23,10 @@ import {
   hasBusinessClosed,
   isRemoteHangup,
 } from './liveCallRunner';
+import {
+  detectBackToBackDuplication,
+  normalizeForDuplication,
+} from './detectBackToBackDuplication';
 import type { CallResult } from './liveCallRunner';
 import { loadFixture, mergePathIntoTree, saveTreeFixture } from './treeUtils';
 import type { RecordedCallTree } from './recordedCallTypes';
@@ -242,31 +246,23 @@ async function assertOutcome(
   // 4+ word phrase that repeats back-to-back within a single user event —
   // that's the smoking-gun shape of the duplication bug fixed by the
   // time-anchored segment merger (e.g. "press one for sales press 1 for
-  // sales"). If this fires we have regressed back to string stitching.
+  // sales"). The digit-word normalization ensures the exact mixed-formatting
+  // pattern PR #46 fixed ("press one" + "press 1") is caught. If this fires
+  // we have regressed back to string stitching.
   const dupCall = await callHistoryService.getCall(result.callSid);
   const dupEvents = dupCall?.events ?? [];
   for (const e of dupEvents) {
     if (e.eventType !== 'conversation' || e.type !== 'user' || !e.text) {
       continue;
     }
-    const words = e.text.split(/\s+/).filter(w => w.length > 0);
-    for (let len = 4; len <= Math.min(8, Math.floor(words.length / 2)); len++) {
-      for (let i = 0; i + len * 2 <= words.length; i++) {
-        const phrase = words
-          .slice(i, i + len)
-          .join(' ')
-          .toLowerCase();
-        const next = words
-          .slice(i + len, i + len * 2)
-          .join(' ')
-          .toLowerCase();
-        if (phrase === next) {
-          throw new Error(
-            `Duplication detected in user event: "${phrase}" repeats back-to-back. ` +
-              `Full event text: "${e.text}"`
-          );
-        }
-      }
+    const dupResult = detectBackToBackDuplication(e.text, {
+      normalize: normalizeForDuplication,
+    });
+    if (dupResult.duplicated) {
+      throw new Error(
+        `Duplication detected in user event: "${dupResult.phrase}" repeats back-to-back. ` +
+          `Full event text: "${e.text}"`
+      );
     }
   }
 }

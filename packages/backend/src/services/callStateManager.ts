@@ -120,9 +120,12 @@ export interface CallState {
    * transcript to processSpeech. Used to de-dupe — we never fire more often
    * than once per POST_DTMF_LOOP_WATCHER_MS window. */
   forcedReprocessFiredAt?: number;
-  /** Running accumulator of Deepgram interim transcript text since the last
-   * DTMF press. Cleared on real speech_final / UtteranceEnd / force-dispatch. */
-  accumulatedInterimText?: string;
+  /** Running accumulator of Deepgram interim transcript SEGMENTS (time-anchored)
+   * since the last DTMF press. Uses the same merger as is_final (PR #46) so
+   * mid-utterance revisions like "press one" → "press 1" replace overlapping
+   * earlier segments rather than concatenating into duplications.
+   * Cleared on real speech_final / UtteranceEnd / force-dispatch. */
+  accumulatedInterimSegments?: import('./transcriptSegmentMerger').SegmentMergerState;
   /** True while the call is in hold low-power mode — inbound audio frames are
    * NOT forwarded to Deepgram (saves STT cost). The Deepgram WS stays open
    * for cheap resume. Gated on ENABLE_HOLD_LOW_POWER_MODE. */
