@@ -220,11 +220,43 @@ Goal: head-to-head replay-suite comparison of three candidate LLMs for the IVR-n
 - Each provider ran its own pass; logs at `/tmp/llm-bench/{haiku,gpt4omini}.log`.
 - One pre-existing malformed fixture (`regression-qatar-post-hold-silence.json`, events-format not turns-format) was set aside for the run — it was already breaking `treeUtils.convertLinearToTree` in any replay invocation. Restored after the bench.
 
-### BLOCKER: Gemini benchmark not run
+### Update (2026-04-30): Gemini benchmark added
 
-The `GOOGLE_API_KEY` in `~/.claude/tokens.env` returns `403 PERMISSION_DENIED` / `API_KEY_SERVICE_BLOCKED` for `generativelanguage.googleapis.com` (project `512999845960`). Same failure mode as the AI-Studio-blocked Custom Search key noted in `~/.claude/rules/integrations.md`. The Gemini provider code is wired and typechecks cleanly — it will work as soon as the key is rotated to a non-blocked one (create a fresh key directly at https://aistudio.google.com/apikey, not via GCP console).
+`GOOGLE_API_KEY` rotated to a fresh AI-Studio key (project `941094625696`). Gemini 2.0 Flash on this project hits `free_tier_input_token_count limit: 0` — switched the default to `gemini-2.5-flash`, which works on the same key.
 
-Groq Llama 3.3 70B: skipped — no `GROQ_API_KEY` in tokens.env. Add one if you want it benchmarked.
+#### Results — Gemini 2.5 Flash on the same 17-fixture replay suite
+
+- Pass rate: **6/17 (35%)** — same as GPT-4o-mini, one short of Haiku
+- Mean decision latency: **~2,788ms** (n=8 turns sampled from backend log)
+- p50 / p90: **2,762ms / 3,163ms**
+- Mean output tokens: **152**
+- Mean input tokens: **8,994** (no Anthropic-style cache; Gemini implicit caching was not configured)
+- Wallclock: 82s for the full sweep
+
+#### Three-way summary
+
+| Metric              | Haiku 4.5           | GPT-4o-mini      | Gemini 2.5 Flash      |
+| ------------------- | ------------------- | ---------------- | --------------------- |
+| Pass rate           | 7/17 (41%)          | 6/17 (35%)       | 6/17 (35%)            |
+| Mean latency        | 3,436 ms            | 3,695 ms         | **2,788 ms** ← winner |
+| p50 / p90           | 3,352 / 4,568 ms    | 3,293 / 4,530 ms | **2,762 / 3,163 ms**  |
+| Mean output tokens  | 260                 | 146              | 152                   |
+| Cache               | 97% hit (Anthropic) | none             | none                  |
+| Cost / 30-turn call | $0.14               | $0.04            | ~$0.05 (estimate)     |
+
+Gemini 2.5 Flash is **~650ms faster** per decision than Haiku and **~900ms faster** than GPT-4o-mini. Quality ties GPT-4o-mini, slightly under Haiku.
+
+#### Recommendation update
+
+Three viable paths now:
+
+1. **Stay on Haiku** — best quality (7/17), latency neutralized by speculative-DTMF + cache. Conservative.
+2. **Switch to Gemini 2.5 Flash** — ~650ms decision-latency win. Lose 1 of 17 fixtures vs Haiku (Best Buy is the most likely to flip). Speculative DTMF would need re-validation against Gemini's SSE stream chunking; the regex parser may need tuning. Cost neutral.
+3. **Re-record fixtures first.** ~40% pass rate even on the model fixtures were recorded against (Haiku) suggests fixture drift. A clean comparison needs fresh fixtures before claiming any model is "better."
+
+Path 3 is the prerequisite for confidently picking 1 vs 2. Without fresh fixtures we're partially measuring drift, not model quality.
+
+Groq Llama 3.3 70B: still missing — no `GROQ_API_KEY` in tokens.env.
 
 ### Results — Haiku 4.5 vs GPT-4o-mini
 

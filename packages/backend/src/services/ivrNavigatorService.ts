@@ -391,7 +391,10 @@ ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 type LLMProvider = 'anthropic' | 'openai' | 'gemini';
 
 const CLAUDE_HAIKU_MODEL = 'claude-haiku-4-5-20251001';
-const GEMINI_DEFAULT_MODEL = 'gemini-2.0-flash';
+// Gemini 2.5 Flash is the current generally-available Flash model.
+// Gemini 2.0 Flash returned `free_tier_input_token_count limit: 0` on the
+// active project (project 941094625696); 2.5 Flash works on the same key.
+const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
 
 interface GeminiUsage {
   promptTokenCount?: number;
