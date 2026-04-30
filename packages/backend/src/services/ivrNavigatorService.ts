@@ -409,6 +409,15 @@ interface GeminiResponse {
   usageMetadata?: GeminiUsage;
 }
 
+// Parse Google's `Please retry in Xs.` from a 429 body. Returns ms.
+function parseGeminiRetryDelayMs(body: string): number | null {
+  const m = body.match(/retry in ([\d.]+)s/i);
+  if (!m) return null;
+  const seconds = parseFloat(m[1]);
+  if (!isFinite(seconds) || seconds < 0) return null;
+  return Math.ceil(seconds * 1000) + 250;
+}
+
 async function callGeminiNonStreaming({
   apiKey,
   model,
@@ -430,19 +439,32 @@ async function callGeminiNonStreaming({
       responseMimeType: 'application/json',
     },
   };
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
+  const maxRetries = 3;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as GeminiResponse;
+      const content =
+        data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') ||
+        '';
+      return { content, usage: data.usageMetadata || {} };
+    }
     const text = await res.text();
+    if (res.status === 429 && attempt < maxRetries) {
+      const delayMs = parseGeminiRetryDelayMs(text) ?? (attempt + 1) * 5000;
+      console.log(
+        `Gemini 429 — retry ${attempt + 1}/${maxRetries} in ${delayMs}ms`
+      );
+      await new Promise(r => setTimeout(r, delayMs));
+      continue;
+    }
     throw new Error(`Gemini API error ${res.status}: ${text}`);
   }
-  const data = (await res.json()) as GeminiResponse;
-  const content =
-    data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-  return { content, usage: data.usageMetadata || {} };
+  throw new Error('Gemini API: unreachable retry exhaustion');
 }
 
 async function* streamGemini({
@@ -466,14 +488,28 @@ async function* streamGemini({
       responseMimeType: 'application/json',
     },
   };
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok || !res.body) {
+  const maxRetries = 3;
+  let res: Response | null = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok && res.body) break;
     const text = await res.text().catch(() => '');
+    if (res.status === 429 && attempt < maxRetries) {
+      const delayMs = parseGeminiRetryDelayMs(text) ?? (attempt + 1) * 5000;
+      console.log(
+        `Gemini stream 429 — retry ${attempt + 1}/${maxRetries} in ${delayMs}ms`
+      );
+      await new Promise(r => setTimeout(r, delayMs));
+      continue;
+    }
     throw new Error(`Gemini stream error ${res.status}: ${text}`);
+  }
+  if (!res || !res.body) {
+    throw new Error('Gemini stream: no body after retries');
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

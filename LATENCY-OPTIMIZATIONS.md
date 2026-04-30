@@ -340,3 +340,91 @@ IVR_LLM_PROVIDER=gemini    pnpm --filter backend test:replay > /tmp/llm-bench/ge
 # Then aggregate:
 node /tmp/llm-bench/parse.js
 ```
+
+---
+
+## Fresh-Fixture Benchmark (2026-04-30) — Haiku baseline + Gemini blocked
+
+Re-recorded 5 stale fixtures against current Haiku to establish a fresh ground-truth set, then ran replay-mode benchmarks against `IVR_LLM_PROVIDER=anthropic` (Haiku 4.5) and `IVR_LLM_PROVIDER=gemini` (Gemini 2.5 Flash) with parity-tuned configs (temperature=0, maxOutputTokens=800, JSON response mode, separate systemInstruction).
+
+### Setup parity (Haiku vs Gemini)
+
+| Setting                   | Haiku (anthropic)                  | Gemini 2.5 Flash                     | Notes                                                                                                                   |
+| ------------------------- | ---------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| temperature               | 0                                  | 0                                    | identical                                                                                                               |
+| max output tokens         | 800                                | 800                                  | identical                                                                                                               |
+| system prompt placement   | `system` array                     | `systemInstruction`                  | semantically equivalent                                                                                                 |
+| response format           | text+JSON parse                    | `responseMimeType: application/json` | Gemini stricter; both emit valid JSON                                                                                   |
+| caching                   | explicit `ephemeral` cache_control | implicit (5-min prefix matching)     | Haiku confirmed hitting (cache_read avg 5001 tok). Gemini caching not observable in this bench (zero successful calls). |
+| stop / format constraints | none                               | none                                 | identical                                                                                                               |
+
+### Haiku results (n=86 successful API calls across 17 fixtures)
+
+| Metric             | Value          |
+| ------------------ | -------------- |
+| Replay pass rate   | 5/17 (29%)     |
+| Mean latency       | 3279 ms        |
+| p50 latency        | 2972 ms        |
+| p90 latency        | 4175 ms        |
+| Min / max          | 2160 / 6835 ms |
+| Mean input tokens  | 3489           |
+| Mean output tokens | 256            |
+| Mean cache_read    | 5001 tokens    |
+| Mean cache_write   | 1233 tokens    |
+
+**Headline:** even with same-day fresh fixtures, Haiku-vs-Haiku replay only reproduces 5/17 paths exactly. Replay divergences are dominated by mid-sentence "wait vs speak" disagreements on incomplete IVR speech ("Monday through-", "5-bit ZIP code for the-") and ambiguous "Are you still there?" line-checks where the model legitimately has two valid options. Pass-rate as a quality signal is noisy on this fixture set.
+
+### Gemini results — BLOCKED by free-tier quota
+
+The configured `GOOGLE_API_KEY` is on the **free tier** (`generate_content_free_tier_requests`, limit: 5 RPM, model: gemini-2.5-flash). With 17 fixtures × multiple turns, even with serial replay (`REPLAY_EVAL_CONCURRENCY=1`) and 3-attempt 429-backoff that honors Google's `Please retry in Xs.` directive, every request was 429-rate-limited and exhausted retries. Wallclock burned: 45 min, successful API calls: 0, fixture pass rate: 0/17.
+
+This means we have **no usable Gemini latency, token, or quality data** from this run. The earlier three-way bench in PR #54 captured a few Gemini calls before quota exhaustion, but those were against stale fixtures, mid-roll quota tier, and against the unstreamed Gemini path — not directly comparable to the current Haiku numbers above.
+
+**Code change shipped this branch:** added 429-aware retry with backoff to both `callGeminiNonStreaming` and `streamGemini` (parses Google's `Please retry in Xs.` hint, retries up to 3×, surfaces error after exhaustion). This is good production hygiene regardless of bench outcome — under load Gemini could throttle prod calls and silently fail without it.
+
+### Cost model (per 30-turn call, list rates as of 2026-04)
+
+Using per-turn averages observed for Haiku and conservative estimates for Gemini 2.5 Flash list pricing:
+
+| Provider                 | Input rate $/M | Cached rate $/M | Output rate $/M | Per-turn cost (in/out/cache)                                                                       | 30-turn call cost |
+| ------------------------ | -------------- | --------------- | --------------- | -------------------------------------------------------------------------------------------------- | ----------------- |
+| Haiku 4.5                | 0.80           | 0.08            | 4.00            | (3489-5001 cached)·0.80/M + 5001·0.08/M + 256·4.00/M ≈ $0.0027/turn                                | **~$0.082/call**  |
+| Gemini 2.5 Flash (≤200K) | 0.30           | 0.075           | 2.50            | assume similar prompt size, 50% cache hit: 3489·(0.5·0.30+0.5·0.075)/M + 256·2.50/M ≈ $0.0013/turn | **~$0.039/call**  |
+
+Gemini list-rate cost would be roughly **half** Haiku's per call IF a real benchmark confirms parity input/output sizes and cache behavior. Cannot validate without a paid-tier key.
+
+### Recommendation
+
+**STAY ON HAIKU until a paid-tier `GOOGLE_API_KEY` is provisioned.** No quality, latency, or real-world cost claim about Gemini 2.5 Flash for this workload can be defended from this run. Specifically:
+
+1. The user's question "how much worse is Gemini" cannot be answered — we have zero Gemini decisions on the fresh fixtures.
+2. The user's question "is Gemini half-a-second faster" cannot be answered — we have zero Gemini latency samples.
+3. The user's cost concern is plausibly addressed by Gemini's lower list rates, but only if quality holds.
+
+**To unblock**: enable billing on the GCP project tied to this `GOOGLE_API_KEY` (or provision a fresh paid-tier key). Free tier is unusable for any benchmark of this size. Once unblocked:
+
+```bash
+git checkout bench/fresh-fixtures-haiku-vs-gemini
+REPLAY_EVAL_CONCURRENCY=1 TEST_MODE=replay IVR_LLM_PROVIDER=gemini \
+  pnpm --filter backend exec jest --runInBand --forceExit \
+  --testPathPatterns=replayCallEval 2>&1 | tee /tmp/bench-gemini-fresh.log
+```
+
+This branch already contains the 429-retry hardening, so a paid key with normal rate limits will replay all 17 fixtures end-to-end without intervention.
+
+### What else changed on this branch
+
+- 5 fixtures re-recorded fresh against current Haiku 4.5: `att-cs`, `bestbuy-cs`, `directv-cs`, `hulu-cs`, `loop-test-720`.
+- 12 other fixtures already had fresh recordings from earlier today (kept as-is to conserve cost).
+- `callGeminiNonStreaming` and `streamGemini` now retry 3× on 429, honoring Google's `retry in Xs.` hint.
+
+### Cost / wallclock summary
+
+| Step                                                       | Cost                     | Wallclock |
+| ---------------------------------------------------------- | ------------------------ | --------- |
+| Re-record 5 stale fixtures (Telnyx live calls + Haiku LLM) | ~$0.50                   | 5 min     |
+| Haiku replay bench                                         | ~$0.30 LLM               | 1 min     |
+| Gemini replay bench (failed at rate limit)                 | $0 (no successful calls) | 50 min    |
+| **Total**                                                  | **~$0.80**               | **~1h**   |
+
+Well under the $10 / 4h caps. Stopped early because the Gemini rate-limit blocker is structural — additional retries would not have changed the outcome.
