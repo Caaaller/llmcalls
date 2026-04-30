@@ -205,3 +205,106 @@ Both measurements are in the 2000-2100ms median band — result is reproducible,
 - My earlier "2428ms anchor" was cherry-picked from fast turns. Realistic whole-test anchor is **4000-4500ms user-perceived**.
 - **First-turn latency is ~1500ms lower than full-call median.** If a prompt/code change silently breaks turn 2+ and all calls die after turn 1, the latency measurement will look like a massive win (2908ms instead of 4464ms) when it's actually a catastrophic regression. ALWAYS spot-check `conversation/user + conversation/ai` event counts per call before trusting the number — healthy calls have ≥5 turns each.
 - Pipe-truncation of test output: running `pnpm test 2>&1 | tail -15` to a `run_in_background: true` task will truncate jest's detailed failure output to just the crash stack. For replay tests where divergences matter, run without the pipe and read the full output after.
+
+---
+
+## IVR-LLM Benchmark (2026-04-29) — Haiku 4.5 vs GPT-4o-mini vs Gemini 2.0 Flash
+
+Goal: head-to-head replay-suite comparison of three candidate LLMs for the IVR-navigation task. Quality (does the model reproduce the recorded path?) and speed (decision latency, output tokens, cost).
+
+### Setup
+
+- Suite: `pnpm --filter backend test:replay` (strict mode — no live fallback). 17 fixtures.
+- Provider switch: `IVR_LLM_PROVIDER=anthropic|openai|gemini`. Identical prompts and JSON schema across providers — same `buildMessages()` / `buildCallActionSchema()`.
+- Gemini wired via direct REST calls (no SDK install) — `generateContent` + `streamGenerateContent?alt=sse` against `gemini-2.0-flash`.
+- Each provider ran its own pass; logs at `/tmp/llm-bench/{haiku,gpt4omini}.log`.
+- One pre-existing malformed fixture (`regression-qatar-post-hold-silence.json`, events-format not turns-format) was set aside for the run — it was already breaking `treeUtils.convertLinearToTree` in any replay invocation. Restored after the bench.
+
+### BLOCKER: Gemini benchmark not run
+
+The `GOOGLE_API_KEY` in `~/.claude/tokens.env` returns `403 PERMISSION_DENIED` / `API_KEY_SERVICE_BLOCKED` for `generativelanguage.googleapis.com` (project `512999845960`). Same failure mode as the AI-Studio-blocked Custom Search key noted in `~/.claude/rules/integrations.md`. The Gemini provider code is wired and typechecks cleanly — it will work as soon as the key is rotated to a non-blocked one (create a fresh key directly at https://aistudio.google.com/apikey, not via GCP console).
+
+Groq Llama 3.3 70B: skipped — no `GROQ_API_KEY` in tokens.env. Add one if you want it benchmarked.
+
+### Results — Haiku 4.5 vs GPT-4o-mini
+
+Per-fixture pass/fail (PASS = the model reproduced the recorded path; FAIL = diverged from recording, not necessarily a _wrong_ call decision):
+
+| Fixture                       | Haiku 4.5 | GPT-4o-mini |
+| ----------------------------- | --------- | ----------- |
+| AT&T CS                       | PASS      | PASS        |
+| Best Buy CS                   | PASS      | FAIL        |
+| Costco Warehouse (loop)       | PASS      | PASS        |
+| DirecTV CS                    | PASS      | FAIL        |
+| Hulu CS                       | PASS      | FAIL        |
+| Optimum CS                    | FAIL      | FAIL        |
+| Qatar Airways                 | FAIL      | FAIL        |
+| Self-call simulator (confirm) | FAIL      | FAIL        |
+| Self-call simulator (hold)    | FAIL      | FAIL        |
+| T-Mobile CS                   | FAIL      | FAIL        |
+| Target CS                     | FAIL      | FAIL        |
+| UMR Insurance                 | PASS      | PASS        |
+| USPS                          | FAIL      | PASS        |
+| Verizon CS                    | FAIL      | PASS        |
+| Walmart CS                    | FAIL      | FAIL        |
+| Wells Fargo CS                | FAIL      | FAIL        |
+| amazon-cs-long                | PASS      | PASS        |
+| **Total pass**                | **7/17**  | **6/17**    |
+
+| Metric                   | Haiku 4.5         | GPT-4o-mini    |
+| ------------------------ | ----------------- | -------------- |
+| Pass rate                | 7/17 (41%)        | 6/17 (35%)     |
+| Mean decision latency    | 3,436 ms          | 3,695 ms       |
+| p50 latency              | 3,352 ms          | 3,293 ms       |
+| p90 latency              | 4,568 ms          | 4,530 ms       |
+| Mean billed input tokens | 3,523             | 8,745          |
+| Mean cache_read tokens   | 6,036             | 0              |
+| Cache hit rate           | 92/95 calls (97%) | 0 (no caching) |
+| Mean output tokens       | 260               | 146            |
+| Total wallclock          | 342 s             | 299 s          |
+| Total API calls          | 95                | 78             |
+| Cost / call (estimate)   | $0.0048           | $0.0014        |
+| Cost / 30-turn call      | $0.14             | $0.04          |
+
+Cost basis: Haiku 4.5 $1/M input, $5/M output (cache reads cheaper than non-cached input per Anthropic's 90% caching discount). GPT-4o-mini $0.15/M input, $0.60/M output.
+
+### Findings
+
+1. **Latency is essentially a tie.** Haiku 3,436ms vs GPT 3,695ms — within 8%, both above the 1-2s "snappy" bar. Neither model is the speed unlock the project hoped for. The ~3.4s floor is dominated by long generation (260 / 146 output tokens of JSON), not by network or input-side cost.
+
+2. **Haiku output tokens are 78% higher (260 vs 146)** because the recorded prompt encourages verbose `reason` strings and GPT-4o-mini happens to be terser. Output-token count is a proxy for time-to-final-token in streaming — the streaming path's "speech-field-complete" marker would fire earlier on GPT than Haiku, on average. This is the one place GPT might be measurably faster in production despite the slightly worse mean total latency.
+
+3. **GPT-4o-mini is 3.4× cheaper per call** even without prompt caching, because the GPT input rate ($0.15/M) is so low that it absorbs the full uncached prompt cheaper than Haiku's cached prefix.
+
+4. **Both models are at ~40% replay pass rate.** This is the most surprising finding. Even Haiku — the model the fixtures were recorded against — only reproduces 7/17 paths exactly. This means: (a) the recorded fixtures are stale or were captured with a slightly different prompt; (b) temp=0 isn't fully deterministic; (c) some IVR speech genuinely has multiple valid AI responses and the recorded one isn't always the one a fresh decoding picks. **The replay suite as currently constituted is not a clean LLM-quality benchmark** — it's measuring "how closely does this LLM track this recording" and even the recording's source model fails it 60% of the time.
+
+5. **No model dominates qualitatively.** Both pass on the same 5 "easy" fixtures (AT&T, Costco, UMR, amazon-cs-long, plus one each); they disagree on a handful (GPT-only USPS+Verizon, Haiku-only Best Buy/DirecTV/Hulu); they both fail the same 8 hard fixtures.
+
+### Recommendation
+
+**Stay on Haiku 4.5 (do nothing).**
+
+Reasons:
+
+- Pass rate, latency, and qualitative behavior are roughly equivalent.
+- Haiku has 97% prompt-cache hit rate already in production — the speculative-DTMF + cached-prefix architecture is built around this; switching to GPT-4o-mini would lose the cache-warm hit (every call re-processes 6,036 prefix tokens).
+- The 3.4× per-call cost win for GPT-4o-mini is real but small in absolute terms (~$0.10/call saved). Doesn't justify the regression risk on the 5 fixtures Haiku passes that GPT fails.
+- The latency win of either model is nil. If we want sub-2s decisions, the path forward is **prompt slimming + decoupling streaming TTS from JSON completion**, not a model swap.
+
+**What to revisit:**
+
+- Re-record fixtures against current Haiku 4.5 + current prompt before re-running this benchmark. Without fresh recordings, "pass rate" is unreliable.
+- Run the Gemini benchmark once a working `GOOGLE_API_KEY` is in place — Flash family is plausibly faster than both tested models on JSON-mode workloads.
+- Add `GROQ_API_KEY` to bench Llama 3.3 70B — Groq's hardware-level latency advantage could finally break the 3-second floor if quality holds.
+
+### Reproducing this bench
+
+```bash
+# Each provider runs against the same fixtures:
+IVR_LLM_PROVIDER=anthropic pnpm --filter backend test:replay > /tmp/llm-bench/haiku.log 2>&1
+IVR_LLM_PROVIDER=openai    pnpm --filter backend test:replay > /tmp/llm-bench/gpt4omini.log 2>&1
+IVR_LLM_PROVIDER=gemini    pnpm --filter backend test:replay > /tmp/llm-bench/gemini.log 2>&1  # needs working GOOGLE_API_KEY
+
+# Then aggregate:
+node /tmp/llm-bench/parse.js
+```
