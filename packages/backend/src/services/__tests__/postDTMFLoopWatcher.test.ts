@@ -141,6 +141,28 @@ describe('appendInterim', () => {
     expect(appendInterim('press one', '   ')).toBe('press one');
     expect(appendInterim('press one', '')).toBe('press one');
   });
+
+  it('Qatar regression: dedups overlapping is_final cascade', () => {
+    // Reproduces the Qatar Airways pattern observed live in PR #44:
+    // Deepgram with interim_results=true emits 3 progressive is_final
+    // events for the same continuous IVR utterance, each extending the
+    // previous one. Naive concatenation produced "If you are a member
+    // of our If you are a member of our If you are a member of our
+    // privilege club, press 1" — which then poisoned loop detection and
+    // DTMF menu mapping. The fix in streamRoutes uses appendInterim
+    // for is_final accumulation; this test locks that in.
+    let acc = '';
+    acc = appendInterim(acc, 'If you are a member of our');
+    acc = appendInterim(
+      acc,
+      'If you are a member of our privilege club, press'
+    );
+    acc = appendInterim(
+      acc,
+      'If you are a member of our privilege club, press 1'
+    );
+    expect(acc).toBe('If you are a member of our privilege club, press 1');
+  });
 });
 
 describe('resetWatcherFields', () => {
