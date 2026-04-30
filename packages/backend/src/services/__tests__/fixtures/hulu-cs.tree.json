@@ -2,7 +2,7 @@
   "version": 2,
   "id": "hulu-cs",
   "testCaseId": "hulu-cs",
-  "lastRecordedAt": "2026-04-29T20:18:41.357Z",
+  "lastRecordedAt": "2026-04-30T21:11:20.151Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-29T20:18:41.357Z",
+        "recordedAt": "2026-04-30T21:11:20.151Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -43,7 +43,7 @@
                 }
               },
               "recordedAt": "2026-04-29T20:18:41.357Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "If you have questions about your plan, including bundle options, or need help signing up,",
@@ -62,7 +62,7 @@
                       }
                     },
                     "recordedAt": "2026-04-29T20:18:41.357Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "id": "n3",
                       "ivrSpeech": "press 1. For questions about your bill, including switching plans, managing your add ons, updating your payment information, or canceling your account. Press 2. If you have general questions about Hulu, can't log in, or need help with your devices or home network,",
@@ -81,7 +81,7 @@
                             }
                           },
                           "recordedAt": "2026-04-29T20:18:41.357Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "terminal": true,
                             "finalStatus": "initiated",
@@ -94,6 +94,30 @@
                     }
                   }
                 ]
+              }
+            },
+            {
+              "aiAction": {
+                "action": "speak",
+                "speech": "Sorry, I'm having some trouble on my end — I'll have to call back. Thanks!",
+                "reason": "",
+                "detected": {
+                  "isIVRMenu": false,
+                  "menuOptions": [],
+                  "isMenuComplete": false,
+                  "loopDetected": false,
+                  "shouldTerminate": false,
+                  "transferRequested": false
+                }
+              },
+              "recordedAt": "2026-04-30T21:11:20.151Z",
+              "isLatestPath": true,
+              "child": {
+                "terminal": true,
+                "finalStatus": "initiated",
+                "durationSeconds": 28,
+                "reachedHuman": false,
+                "dtmfDigits": []
               }
             }
           ]

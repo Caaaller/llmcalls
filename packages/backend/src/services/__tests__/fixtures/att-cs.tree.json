@@ -2,7 +2,7 @@
   "version": 2,
   "id": "att-cs",
   "testCaseId": "att-cs",
-  "lastRecordedAt": "2026-04-23T01:16:46.492Z",
+  "lastRecordedAt": "2026-04-30T21:11:12.904Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -23,7 +23,7 @@
             "transferRequested": false
           }
         },
-        "recordedAt": "2026-04-23T01:16:46.492Z",
+        "recordedAt": "2026-04-30T21:11:12.904Z",
         "isLatestPath": true,
         "child": {
           "id": "n1",
@@ -43,7 +43,7 @@
                   "transferRequested": false
                 }
               },
-              "recordedAt": "2026-04-23T01:16:46.492Z",
+              "recordedAt": "2026-04-30T21:11:12.904Z",
               "isLatestPath": true,
               "child": {
                 "id": "n2",
@@ -63,7 +63,7 @@
                         "transferRequested": false
                       }
                     },
-                    "recordedAt": "2026-04-23T01:16:46.492Z",
+                    "recordedAt": "2026-04-30T21:11:12.904Z",
                     "isLatestPath": true,
                     "child": {
                       "id": "n3",
@@ -84,7 +84,7 @@
                             }
                           },
                           "recordedAt": "2026-04-23T01:16:46.492Z",
-                          "isLatestPath": true,
+                          "isLatestPath": false,
                           "child": {
                             "id": "n156",
                             "ivrSpeech": "I understand you want to speak to an agent. But without more information, you may reach the wrong agent increasing your time. Now how can I help with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -243,7 +243,7 @@
                                   }
                                 },
                                 "recordedAt": "2026-04-23T01:16:46.492Z",
-                                "isLatestPath": true,
+                                "isLatestPath": false,
                                 "child": {
                                   "id": "n161",
                                   "ivrSpeech": "What help do you need with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -263,7 +263,7 @@
                                         }
                                       },
                                       "recordedAt": "2026-04-23T01:16:46.492Z",
-                                      "isLatestPath": true,
+                                      "isLatestPath": false,
                                       "child": {
                                         "id": "n162",
                                         "ivrSpeech": "If I don't hear something from you soon, I will need to disconnect the call. What help do you need with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -283,7 +283,7 @@
                                               }
                                             },
                                             "recordedAt": "2026-04-23T01:16:46.492Z",
-                                            "isLatestPath": true,
+                                            "isLatestPath": false,
                                             "child": {
                                               "terminal": true,
                                               "finalStatus": "initiated",
@@ -314,8 +314,8 @@
                               "transferRequested": false
                             }
                           },
-                          "recordedAt": "2026-04-05T21:04:14.918Z",
-                          "isLatestPath": false,
+                          "recordedAt": "2026-04-30T21:11:12.904Z",
+                          "isLatestPath": true,
                           "child": {
                             "id": "n35",
                             "ivrSpeech": "I understand you want to speak to an agent. But without more information, you may reach the wrong agent increasing your time. Now how can I help with your service? You can say things like new service, can't connect to the Internet, or pay my bill.",
@@ -334,8 +334,8 @@
                                     "transferRequested": false
                                   }
                                 },
-                                "recordedAt": "2026-04-05T21:04:14.918Z",
-                                "isLatestPath": false,
+                                "recordedAt": "2026-04-30T21:11:12.904Z",
+                                "isLatestPath": true,
                                 "child": {
                                   "id": "n36",
                                   "ivrSpeech": "What help do you",
@@ -446,60 +446,14 @@
                                           "transferRequested": false
                                         }
                                       },
-                                      "recordedAt": "2026-04-05T21:04:14.918Z",
-                                      "isLatestPath": false,
+                                      "recordedAt": "2026-04-30T21:11:12.904Z",
+                                      "isLatestPath": true,
                                       "child": {
-                                        "id": "n40",
-                                        "ivrSpeech": "So I can help you. What's the account number or phone number on the account?",
-                                        "children": [
-                                          {
-                                            "aiAction": {
-                                              "action": "speak",
-                                              "speech": "7 2 0 5 8 4 6 3 5 8",
-                                              "reason": "",
-                                              "detected": {
-                                                "isIVRMenu": false,
-                                                "menuOptions": [],
-                                                "isMenuComplete": false,
-                                                "loopDetected": false,
-                                                "shouldTerminate": false,
-                                                "transferRequested": false
-                                              }
-                                            },
-                                            "recordedAt": "2026-04-05T21:04:14.918Z",
-                                            "isLatestPath": false,
-                                            "child": {
-                                              "id": "n41",
-                                              "ivrSpeech": "Sure. So I can help you with your bill. Can you tell me account number or phone",
-                                              "children": [
-                                                {
-                                                  "aiAction": {
-                                                    "action": "speak",
-                                                    "speech": "7 2 0 5 8 4 6 3 5 8",
-                                                    "reason": "",
-                                                    "detected": {
-                                                      "isIVRMenu": false,
-                                                      "menuOptions": [],
-                                                      "isMenuComplete": false,
-                                                      "loopDetected": false,
-                                                      "shouldTerminate": false,
-                                                      "transferRequested": false
-                                                    }
-                                                  },
-                                                  "recordedAt": "2026-04-05T21:04:14.918Z",
-                                                  "isLatestPath": false,
-                                                  "child": {
-                                                    "terminal": true,
-                                                    "finalStatus": "initiated",
-                                                    "durationSeconds": 141,
-                                                    "reachedHuman": false,
-                                                    "dtmfDigits": []
-                                                  }
-                                                }
-                                              ]
-                                            }
-                                          }
-                                        ]
+                                        "terminal": true,
+                                        "finalStatus": "initiated",
+                                        "durationSeconds": 62,
+                                        "reachedHuman": true,
+                                        "dtmfDigits": []
                                       }
                                     }
                                   ]

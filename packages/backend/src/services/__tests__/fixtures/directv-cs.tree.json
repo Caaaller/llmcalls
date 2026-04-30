@@ -2,7 +2,7 @@
   "version": 2,
   "id": "directv-cs",
   "testCaseId": "directv-cs",
-  "lastRecordedAt": "2026-04-27T03:47:27.904Z",
+  "lastRecordedAt": "2026-04-30T21:11:23.786Z",
   "config": {
     "callPurpose": "speak with a representative"
   },
@@ -24,7 +24,7 @@
           }
         },
         "recordedAt": "2026-04-27T03:47:27.904Z",
-        "isLatestPath": true,
+        "isLatestPath": false,
         "child": {
           "id": "n1",
           "ivrSpeech": "This call is being recorded for quality assurance.",
@@ -43,7 +43,7 @@
                 }
               },
               "recordedAt": "2026-04-27T03:47:27.904Z",
-              "isLatestPath": true,
+              "isLatestPath": false,
               "child": {
                 "id": "n2",
                 "ivrSpeech": "Would you like to speak with a sales agent to establish a new DIRECTV account? Please say yes or no.",
@@ -63,7 +63,7 @@
                       }
                     },
                     "recordedAt": "2026-04-27T03:47:27.904Z",
-                    "isLatestPath": true,
+                    "isLatestPath": false,
                     "child": {
                       "terminal": true,
                       "finalStatus": "initiated",
@@ -76,6 +76,30 @@
               }
             }
           ]
+        }
+      },
+      {
+        "aiAction": {
+          "action": "speak",
+          "speech": "Sorry, I'm having some trouble on my end — I'll have to call back. Thanks!",
+          "reason": "",
+          "detected": {
+            "isIVRMenu": false,
+            "menuOptions": [],
+            "isMenuComplete": false,
+            "loopDetected": false,
+            "shouldTerminate": false,
+            "transferRequested": false
+          }
+        },
+        "recordedAt": "2026-04-30T21:11:23.786Z",
+        "isLatestPath": true,
+        "child": {
+          "terminal": true,
+          "finalStatus": "initiated",
+          "durationSeconds": 14,
+          "reachedHuman": false,
+          "dtmfDigits": []
         }
       }
     ]
