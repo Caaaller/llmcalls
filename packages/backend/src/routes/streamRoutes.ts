@@ -588,7 +588,14 @@ function openDeepgram(
         console.log(
           `[DG] is_final: "${text.substring(0, 80)}" start=${r.start.toFixed(2)}s dur=${r.duration.toFixed(2)}s speech_final=${r.speech_final}`
         );
-        state.transcript += (state.transcript ? ' ' : '') + text;
+        // Deepgram with interim_results=true emits overlapping is_final
+        // events on continuous speech (each one extends the previous
+        // finalized text rather than being a strict delta). Naive
+        // concatenation produces duplications like "If you are a member
+        // If you are a member of our privilege..." which then poisons
+        // loop detection and DTMF menu mapping. appendInterim() handles
+        // the prefix-overlap case by replacing instead of appending.
+        state.transcript = appendInterim(state.transcript, text);
 
         // Any new is_final fragment arrived → user kept talking, so a
         // previously-armed safety timer should start over with fresh text.
