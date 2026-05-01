@@ -1,10 +1,8 @@
-## MANDATORY: Dev Server = Backend 8068 + Frontend 8069 (Both, Always)
+## MANDATORY: Frontend (8069) and Backend (8068) MUST Always Be Running
 
-When the user says "dev server", start BOTH backend and frontend. Never just one.
-Ports are fixed: backend=8068, frontend=8069. Before starting either, check
-`~/.claude/rules/ports.md` and `packages/frontend/.env` PORT value — they must
-match 8069. If PORT is anything else, fix it first. Do NOT trust framework
-defaults. Kill any process on the target port before starting.
+Both servers must be running at ALL times during a session — not just when "dev server" is mentioned. At the start of every response, verify both ports with `lsof -i :8068 -i :8069 | grep LISTEN`. If either is down, restart it silently with `run_in_background: true` (NOT nohup) and verify with curl before continuing. Never end a response with either server down. Never ask the user to start them — just do it.
+
+Ports are fixed: backend=8068, frontend=8069. Check `~/.claude/rules/ports.md` and `packages/frontend/.env` PORT value — they must match 8069. If PORT is anything else, fix it first. Do NOT trust framework defaults.
 
 Commands:
 
