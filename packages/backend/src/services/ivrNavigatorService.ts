@@ -437,6 +437,7 @@ async function callGeminiNonStreaming({
       temperature: 0,
       maxOutputTokens: 800,
       responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
   const maxRetries = 3;
@@ -486,6 +487,7 @@ async function* streamGemini({
       temperature: 0,
       maxOutputTokens: 800,
       responseMimeType: 'application/json',
+      thinkingConfig: { thinkingBudget: 0 },
     },
   };
   const maxRetries = 3;
