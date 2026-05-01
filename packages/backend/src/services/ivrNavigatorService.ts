@@ -389,13 +389,17 @@ Action rules:
 ${skipInfoRequests ? REQUEST_INFO_SKIP_RULE : REQUEST_INFO_RULE}`;
 }
 
-type LLMProvider = 'anthropic' | 'openai' | 'gemini';
+type LLMProvider = 'anthropic' | 'openai' | 'gemini' | 'groq';
 
 const CLAUDE_HAIKU_MODEL = 'claude-haiku-4-5-20251001';
 // Gemini 2.5 Flash is the current generally-available Flash model.
 // Gemini 2.0 Flash returned `free_tier_input_token_count limit: 0` on the
 // active project (project 941094625696); 2.5 Flash works on the same key.
 const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
+// Groq is OpenAI-compatible. Llama 3.3 70B is fast (~250ms wallclock to first
+// SSE chunks for tiny prompts) and supports JSON mode via response_format.
+const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
 interface GeminiUsage {
   promptTokenCount?: number;
@@ -671,6 +675,7 @@ async function* streamGemini({
 class IVRNavigatorService {
   private openaiClient: OpenAI;
   private anthropicClient: Anthropic;
+  private groqClient: OpenAI | null = null;
 
   constructor() {
     this.openaiClient = new OpenAI({
@@ -683,10 +688,24 @@ class IVRNavigatorService {
     });
   }
 
+  private getGroqClient(): OpenAI {
+    if (!this.groqClient) {
+      const apiKey = process.env.GROQ_API_KEY;
+      if (!apiKey) throw new Error('GROQ_API_KEY not set for groq provider');
+      this.groqClient = new OpenAI({
+        apiKey,
+        baseURL: GROQ_BASE_URL,
+        maxRetries: 5,
+      });
+    }
+    return this.groqClient;
+  }
+
   private getProvider(): LLMProvider {
     const raw = (process.env.IVR_LLM_PROVIDER || 'anthropic').toLowerCase();
     if (raw === 'openai') return 'openai';
     if (raw === 'gemini' || raw === 'google') return 'gemini';
+    if (raw === 'groq') return 'groq';
     return 'anthropic';
   }
 
@@ -869,6 +888,22 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
         `⏱️ API call: ${Date.now() - apiStart}ms | in=${result.usage.promptTokenCount} out=${result.usage.candidatesTokenCount}`
       );
       content = result.content;
+    } else if (provider === 'groq') {
+      const model = process.env.GROQ_MODEL_OVERRIDE || GROQ_DEFAULT_MODEL;
+      const response = await this.getGroqClient().chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 800,
+        temperature: 0,
+        response_format: { type: 'json_object' },
+      });
+      console.log(
+        `⏱️ API call: ${Date.now() - apiStart}ms | in=${response.usage?.prompt_tokens} out=${response.usage?.completion_tokens}`
+      );
+      content = response.choices[0]?.message?.content || '';
     } else {
       const response = await this.openaiClient.chat.completions.create({
         model:
@@ -1142,6 +1177,30 @@ Analyze the current speech and decide what to do. Consider IN THIS ORDER:
       console.log(
         `⏱️ Stream complete: ${streamCompleteAt - apiStart}ms | in=${lastUsage.promptTokenCount} out=${lastUsage.candidatesTokenCount}`
       );
+      if (callSid) {
+        callStateManager.updateCallState(callSid, { streamCompleteAt });
+      }
+    } else if (provider === 'groq') {
+      const model = process.env.GROQ_MODEL_OVERRIDE || GROQ_DEFAULT_MODEL;
+      const stream = await this.getGroqClient().chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: 800,
+        temperature: 0,
+        response_format: { type: 'json_object' },
+        stream: true,
+      });
+
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta?.content || '';
+        if (delta) onDelta(delta);
+      }
+
+      const streamCompleteAt = Date.now();
+      console.log(`⏱️ Stream complete: ${streamCompleteAt - apiStart}ms`);
       if (callSid) {
         callStateManager.updateCallState(callSid, { streamCompleteAt });
       }
