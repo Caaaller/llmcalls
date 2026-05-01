@@ -374,32 +374,24 @@ Re-recorded 5 stale fixtures against current Haiku to establish a fresh ground-t
 
 **Headline:** even with same-day fresh fixtures, Haiku-vs-Haiku replay only reproduces 5/17 paths exactly. Replay divergences are dominated by mid-sentence "wait vs speak" disagreements on incomplete IVR speech ("Monday through-", "5-bit ZIP code for the-") and ambiguous "Are you still there?" line-checks where the model legitimately has two valid options. Pass-rate as a quality signal is noisy on this fixture set.
 
-### Update (2026-04-30, billing enabled): Gemini 2.5 Flash head-to-head — Gemini wins
+### Update (2026-04-30, billing enabled + thinking disabled): Gemini 2.5 Flash wins decisively
 
-Billing was enabled on the GCP project tied to `GOOGLE_API_KEY`. Reran Gemini 2.5 Flash on the same fresh-fixture strict-replay suite with parity config (temperature=0, JSON response mode, single-attempt). 61 successful API calls.
+Billing was enabled on the GCP project tied to `GOOGLE_API_KEY`. Initial Gemini bench showed parse errors on prompt-eval edge cases (3 cases returned truncated JSON). Root caused to **Gemini 2.5 Flash's thinking mode consuming the maxOutputTokens budget** — added `thinkingConfig: { thinkingBudget: 0 }` to both streaming and non-streaming Gemini calls. Reran. Result: parse errors gone AND latency dropped further.
 
-| Metric             | Haiku 4.5      | Gemini 2.5 Flash          | Δ                       |
-| ------------------ | -------------- | ------------------------- | ----------------------- |
-| Pass rate          | 5/17           | **7/17**                  | +2 fixtures             |
-| Latency p50        | 2,977ms        | **1,954ms**               | **−1,023ms (−34%)**     |
-| Latency mean       | 3,279ms        | **2,240ms**               | **−1,039ms (−32%)**     |
-| Latency p90        | 4,340ms        | **3,105ms**               | −1,235ms                |
-| Latency min/max    | 2,160 / 6,835  | 1,416 / 5,008             | both faster             |
-| Mean output tokens | 200            | 160                       | −20%                    |
-| Mean input tokens  | 3,357 (cached) | 9,067 (uncached observed) | larger but cheaper rate |
+| Metric                   | Haiku 4.5     | Gemini (thinking ON) | **Gemini (thinking OFF) ✅** |
+| ------------------------ | ------------- | -------------------- | ---------------------------- |
+| Replay p50               | 2,977ms       | 1,954ms              | **1,516ms** (−49% vs Haiku)  |
+| Replay mean              | 3,279ms       | 2,240ms              | **1,538ms**                  |
+| Replay p90               | 4,340ms       | 3,105ms              | **1,769ms** (−59% vs Haiku)  |
+| Replay min/max           | 2,160 / 6,835 | 1,416 / 5,008        | **1,207 / 2,587**            |
+| Replay PASS (n=17)       | 5             | 7                    | **7**                        |
+| Prompt-eval PASS (n=111) | 104           | 102 (3 parse errors) | **104** (zero parse errors)  |
 
-**Quality breakdown (which fixtures passed):**
+**Per-call savings:** ~1.5s × ~6 turns = **~9 seconds shaved off time-to-human**.
 
-- Both passed (5): Best Buy, DirecTV, Hulu, Costco, Walmart
-- Gemini-only passes (2): Qatar Airways, T-Mobile
-- Haiku-only passes (1): amazon-cs-long
-- Both failed (9): AT&T, Optimum, self-call ×2, Target, UMR, USPS, Verizon, Wells Fargo
+**"Half a second is significant" — answered:** Gemini-no-thinking is ~1.5s faster than Haiku at p50 (3× the user's significance threshold). The p90 win is even bigger (~2.6s).
 
-Haiku failing 12/17 of its own fresh recordings means most "failures" are non-determinism (recordings drift between runs), not real quality regressions. Net Gemini wins +2 fixtures.
-
-**"Half a second is significant" — answered:** Gemini is ~1 full second faster at p50 and mean. That's 2× the user's significance threshold.
-
-**Recommendation update:** **Switch the default `IVR_LLM_PROVIDER` to `gemini`.** ~1s faster per turn × ~6 turns/call ≈ 6s end-to-end win, equal-or-better pass rate, comparable cost (~$0.04–0.09/call vs Haiku's ~$0.082). Anthropic stays as fallback.
+**Recommendation:** Switch the production default to `IVR_LLM_PROVIDER=gemini`. One remaining validation step: speculative-DTMF regex was tuned against Haiku's streaming chunking; recommend a short live A/B (3-5 calls) before flipping `.env` default. PR #57 ships the thinking-disabled Gemini provider as a working option without flipping the default.
 
 ### Gemini results (initial run) — BLOCKED by free-tier quota
 
