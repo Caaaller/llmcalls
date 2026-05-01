@@ -374,7 +374,34 @@ Re-recorded 5 stale fixtures against current Haiku to establish a fresh ground-t
 
 **Headline:** even with same-day fresh fixtures, Haiku-vs-Haiku replay only reproduces 5/17 paths exactly. Replay divergences are dominated by mid-sentence "wait vs speak" disagreements on incomplete IVR speech ("Monday through-", "5-bit ZIP code for the-") and ambiguous "Are you still there?" line-checks where the model legitimately has two valid options. Pass-rate as a quality signal is noisy on this fixture set.
 
-### Gemini results — BLOCKED by free-tier quota
+### Update (2026-04-30, billing enabled): Gemini 2.5 Flash head-to-head — Gemini wins
+
+Billing was enabled on the GCP project tied to `GOOGLE_API_KEY`. Reran Gemini 2.5 Flash on the same fresh-fixture strict-replay suite with parity config (temperature=0, JSON response mode, single-attempt). 61 successful API calls.
+
+| Metric             | Haiku 4.5      | Gemini 2.5 Flash          | Δ                       |
+| ------------------ | -------------- | ------------------------- | ----------------------- |
+| Pass rate          | 5/17           | **7/17**                  | +2 fixtures             |
+| Latency p50        | 2,977ms        | **1,954ms**               | **−1,023ms (−34%)**     |
+| Latency mean       | 3,279ms        | **2,240ms**               | **−1,039ms (−32%)**     |
+| Latency p90        | 4,340ms        | **3,105ms**               | −1,235ms                |
+| Latency min/max    | 2,160 / 6,835  | 1,416 / 5,008             | both faster             |
+| Mean output tokens | 200            | 160                       | −20%                    |
+| Mean input tokens  | 3,357 (cached) | 9,067 (uncached observed) | larger but cheaper rate |
+
+**Quality breakdown (which fixtures passed):**
+
+- Both passed (5): Best Buy, DirecTV, Hulu, Costco, Walmart
+- Gemini-only passes (2): Qatar Airways, T-Mobile
+- Haiku-only passes (1): amazon-cs-long
+- Both failed (9): AT&T, Optimum, self-call ×2, Target, UMR, USPS, Verizon, Wells Fargo
+
+Haiku failing 12/17 of its own fresh recordings means most "failures" are non-determinism (recordings drift between runs), not real quality regressions. Net Gemini wins +2 fixtures.
+
+**"Half a second is significant" — answered:** Gemini is ~1 full second faster at p50 and mean. That's 2× the user's significance threshold.
+
+**Recommendation update:** **Switch the default `IVR_LLM_PROVIDER` to `gemini`.** ~1s faster per turn × ~6 turns/call ≈ 6s end-to-end win, equal-or-better pass rate, comparable cost (~$0.04–0.09/call vs Haiku's ~$0.082). Anthropic stays as fallback.
+
+### Gemini results (initial run) — BLOCKED by free-tier quota
 
 The configured `GOOGLE_API_KEY` is on the **free tier** (`generate_content_free_tier_requests`, limit: 5 RPM, model: gemini-2.5-flash). With 17 fixtures × multiple turns, even with serial replay (`REPLAY_EVAL_CONCURRENCY=1`) and 3-attempt 429-backoff that honors Google's `Please retry in Xs.` directive, every request was 429-rate-limited and exhausted retries. Wallclock burned: 45 min, successful API calls: 0, fixture pass rate: 0/17.
 
