@@ -391,7 +391,32 @@ Billing was enabled on the GCP project tied to `GOOGLE_API_KEY`. Initial Gemini 
 
 **"Half a second is significant" — answered:** Gemini-no-thinking is ~1.5s faster than Haiku at p50 (3× the user's significance threshold). The p90 win is even bigger (~2.6s).
 
-**Recommendation:** Switch the production default to `IVR_LLM_PROVIDER=gemini`. One remaining validation step: speculative-DTMF regex was tuned against Haiku's streaming chunking; recommend a short live A/B (3-5 calls) before flipping `.env` default. PR #57 ships the thinking-disabled Gemini provider as a working option without flipping the default.
+**Recommendation (initial, OVERTURNED below):** Switch the production default to `IVR_LLM_PROVIDER=gemini`. One remaining validation step: speculative-DTMF regex was tuned against Haiku's streaming chunking; recommend a short live A/B before flipping `.env` default. PR #57 ships the thinking-disabled Gemini provider as a working option without flipping the default.
+
+### Update (2026-04-30, paired live A/B): Haiku still wins live — bench was misleading
+
+Live data overturned the bench-based recommendation. The replay bench measured **full API call duration**, but live streaming only cares about **TTFT** (time to first token). In live streaming we dispatch the first sentence to TTS the moment it arrives, so total completion time is irrelevant.
+
+**First live run (n=49 turns, Gemini no cache):** TTFT p50 985ms vs Haiku's historical 774ms — Gemini was actually 211ms SLOWER on TTFT live. Root cause: Haiku has Anthropic prompt caching (`cache_control: ephemeral`) reading 5K cached tokens; Gemini was reading 9K uncached every turn.
+
+**Fix attempt — added Gemini explicit context caching (PR #58):** `cachedContents` API with SHA-256-keyed cache, 3600s TTL, fallback to inline if cache create fails.
+
+**Paired live A/B (2026-04-30, same 6 fixtures, back-to-back, full caching both providers):**
+
+| Metric            | Haiku 4.5  | Gemini 2.5 Flash (cached) | Δ                                      |
+| ----------------- | ---------- | ------------------------- | -------------------------------------- |
+| TTFT p50          | **616ms**  | 978ms                     | Gemini +362ms slower                   |
+| perceivedMs p50   | **1903ms** | 2027ms                    | Gemini +124ms slower                   |
+| endToDispatch p50 | **837ms**  | 1113ms                    | Gemini +276ms slower                   |
+| Pass rate         | **5/6**    | 4/6                       | Haiku +1 (Gemini had 2 remote hangups) |
+
+**Why bench numbers didn't translate:** the bench measured full-completion time (Gemini wins by 1.5s). But in streaming, we dispatch on first sentence, not full response. Once the first sentence is out, Telnyx pipeline (~1s) + STT endpointing dominate. Haiku's caching gives faster TTFT → faster first sentence → faster perceived latency. Gemini's full-completion advantage is invisible to users in this pipeline.
+
+**Sample size caveat:** n=10 (Haiku) and n=19 (Gemini) turns. A prior unpaired run had a small Gemini-cached perceivedMs win (1940ms vs 2063ms historical Haiku) but did not replicate when controlled head-to-head — that was sample noise.
+
+**Final recommendation: KEEP `IVR_LLM_PROVIDER=anthropic` AS DEFAULT.** Haiku wins on every metric live (TTFT, perceivedMs, endToDispatch, pass rate). PRs #57 (thinking disabled) and #58 (context cache) shipped to make Gemini a working fallback option, but the production default stays on Haiku.
+
+**Methodology note for future benchmarks:** for streaming voice latency, ALWAYS measure TTFT directly, not full API call duration. Replay benches that measure end-to-end completion will systematically overstate the value of any model that's faster at output streaming but slower to first token.
 
 ### Gemini results (initial run) — BLOCKED by free-tier quota
 
