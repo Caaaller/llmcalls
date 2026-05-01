@@ -418,6 +418,29 @@ Live data overturned the bench-based recommendation. The replay bench measured *
 
 **Methodology note for future benchmarks:** for streaming voice latency, ALWAYS measure TTFT directly, not full API call duration. Replay benches that measure end-to-end completion will systematically overstate the value of any model that's faster at output streaming but slower to first token.
 
+### Update (2026-05-01): Groq Llama 3.3 70B explored — blocked, parked
+
+Tried Groq as a 4th provider since their LPU hardware advertises sub-100ms TTFT. Smoke test confirmed ~250ms wallclock to first SSE chunk for a tiny prompt (~200ms TTFT after subtracting network) — very promising vs Haiku's 616ms.
+
+**Blocker hit on real workload:** Groq free tier is capped at 12,000 tokens/minute. Our system prompt + per-turn user message is ~9-11K tokens. A single turn eats ~95% of the per-minute budget, so the second turn 429s and the OpenAI SDK auto-retries with 30-120s backoff. Effective TTFT degraded to 3-127 seconds; 5/6 calls had remote-side hangups.
+
+**Groq Developer tier is currently disabled** ("temporarily unavailable due to high demand" as of 2026-05-01). Cannot upgrade until it reopens. Scaffolding shipped via PR #59 (`IVR_LLM_PROVIDER=groq`, `llama-3.3-70b-versatile`, OpenAI SDK with `baseURL: 'https://api.groq.com/openai/v1'`); flipping is one env-var change once tier reopens.
+
+**To resume next session:**
+
+1. Check whether Groq Dev tier has reopened: console.groq.com/settings/billing
+2. If yes: enable + set `GROQ_API_KEY` in `.env` + run paired live A/B (~$0.30, ~10 min). The same TEST_FILTER + MongoDB query script pattern used in this session's A/B works as-is (see `/tmp/cc-status/llmcalls/` for the exact recipe, though those are session-temp).
+3. If no: try Cerebras (`cloud.cerebras.ai`) — same architecture, different free-tier limits, OpenAI-compatible API, code change is ~15 min (clone the Groq provider with new baseURL + key).
+4. If neither: pivot to higher-EV non-LLM-swap targets. The `🔬 Researched but NOT tried` table above ranks Deepgram Flux eager-EOT (#1, 150-350ms median win, 4-8h effort, "perfect stack fit") and pre-cached Kokoro filler audio (#2, 100-200ms + eliminates 900ms dispatch→speakStart on matched turns, 4h effort) as the next-best options. **Note:** the LLM-swap optimization budget is hitting diminishing returns — Telnyx pipeline (~1s) + STT endpointing (~300-500ms) cap us at ~1,300ms perceived latency even with TTFT=0.
+
+**What's shipped on main from this exploration arc:**
+
+- PR #57: Gemini thinking-mode disabled (`thinkingBudget: 0`) — fixed parse errors on edge-case prompts
+- PR #58: Gemini explicit context caching (`cachedContents`) — parity with Anthropic's `ephemeral` cache
+- PR #59: Groq provider scaffolding (`IVR_LLM_PROVIDER=groq`) — blocked on Dev tier availability
+
+Default remains `IVR_LLM_PROVIDER=anthropic` (Haiku 4.5). All three alternatives are working fallbacks via env var.
+
 ### Gemini results (initial run) — BLOCKED by free-tier quota
 
 The configured `GOOGLE_API_KEY` is on the **free tier** (`generate_content_free_tier_requests`, limit: 5 RPM, model: gemini-2.5-flash). With 17 fixtures × multiple turns, even with serial replay (`REPLAY_EVAL_CONCURRENCY=1`) and 3-attempt 429-backoff that honors Google's `Please retry in Xs.` directive, every request was 429-rate-limited and exhausted retries. Wallclock burned: 45 min, successful API calls: 0, fixture pass rate: 0/17.
