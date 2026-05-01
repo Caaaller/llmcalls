@@ -6,6 +6,7 @@
 
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { createHash } from 'node:crypto';
 import { TransferConfig } from '../config/transfer-config';
 import { MenuOption } from '../types/menu';
 import { transferPrompt } from '../prompts/transfer-prompt';
@@ -400,6 +401,7 @@ interface GeminiUsage {
   promptTokenCount?: number;
   candidatesTokenCount?: number;
   totalTokenCount?: number;
+  cachedContentTokenCount?: number;
 }
 
 interface GeminiResponse {
@@ -418,6 +420,107 @@ function parseGeminiRetryDelayMs(body: string): number | null {
   return Math.ceil(seconds * 1000) + 250;
 }
 
+// Gemini explicit context cache. Keyed by SHA-256(systemMessage + model)
+// because requireLiveAgent varies the system prompt and we don't want a
+// stale cache to bleed across variants.
+interface GeminiCacheEntry {
+  name: string;
+  expiresAt: number; // ms epoch
+}
+const geminiCacheStore: Map<string, GeminiCacheEntry> = new Map();
+const geminiCacheInflight: Map<string, Promise<string | null>> = new Map();
+const GEMINI_CACHE_TTL_SECONDS = 3600;
+const GEMINI_CACHE_REFRESH_BUFFER_MS = 300_000; // refresh if <5min left
+
+function geminiCacheKey(model: string, systemMessage: string): string {
+  return createHash('sha256')
+    .update(`${model}\n${systemMessage}`)
+    .digest('hex');
+}
+
+async function createGeminiCache({
+  apiKey,
+  model,
+  systemMessage,
+}: {
+  apiKey: string;
+  model: string;
+  systemMessage: string;
+}): Promise<string | null> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/cachedContents?key=${apiKey}`;
+  const body = {
+    model: `models/${model}`,
+    systemInstruction: { parts: [{ text: systemMessage }] },
+    contents: [
+      // The cachedContents API requires a non-empty `contents`. Use a tiny
+      // user turn that's the same across all calls so the cache key is stable.
+      { role: 'user', parts: [{ text: 'ready' }] },
+    ],
+    ttl: `${GEMINI_CACHE_TTL_SECONDS}s`,
+  };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.log(
+        `Gemini cache create failed ${res.status}: ${text.slice(0, 300)} — falling back to inline systemInstruction`
+      );
+      return null;
+    }
+    const data = (await res.json()) as { name?: string };
+    if (!data.name) {
+      console.log('Gemini cache create: response missing name — falling back');
+      return null;
+    }
+    console.log(`Gemini cache created: ${data.name}`);
+    return data.name;
+  } catch (err) {
+    console.log(
+      `Gemini cache create error: ${(err as Error).message} — falling back`
+    );
+    return null;
+  }
+}
+
+async function ensureGeminiCache({
+  apiKey,
+  model,
+  systemMessage,
+}: {
+  apiKey: string;
+  model: string;
+  systemMessage: string;
+}): Promise<string | null> {
+  const key = geminiCacheKey(model, systemMessage);
+  const now = Date.now();
+  const existing = geminiCacheStore.get(key);
+  if (existing && existing.expiresAt - now > GEMINI_CACHE_REFRESH_BUFFER_MS) {
+    return existing.name;
+  }
+  const inflight = geminiCacheInflight.get(key);
+  if (inflight) return inflight;
+  const promise = (async () => {
+    const name = await createGeminiCache({ apiKey, model, systemMessage });
+    if (name) {
+      geminiCacheStore.set(key, {
+        name,
+        expiresAt: Date.now() + GEMINI_CACHE_TTL_SECONDS * 1000,
+      });
+    }
+    return name;
+  })();
+  geminiCacheInflight.set(key, promise);
+  try {
+    return await promise;
+  } finally {
+    geminiCacheInflight.delete(key);
+  }
+}
+
 async function callGeminiNonStreaming({
   apiKey,
   model,
@@ -430,16 +533,28 @@ async function callGeminiNonStreaming({
   userMessage: string;
 }): Promise<{ content: string; usage: GeminiUsage }> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const body = {
-    systemInstruction: { parts: [{ text: systemMessage }] },
-    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-    generationConfig: {
-      temperature: 0,
-      maxOutputTokens: 800,
-      responseMimeType: 'application/json',
-      thinkingConfig: { thinkingBudget: 0 },
-    },
-  };
+  const cacheName = await ensureGeminiCache({ apiKey, model, systemMessage });
+  const body: Record<string, unknown> = cacheName
+    ? {
+        cachedContent: cacheName,
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 800,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }
+    : {
+        systemInstruction: { parts: [{ text: systemMessage }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 800,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      };
   const maxRetries = 3;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const res = await fetch(url, {
@@ -480,16 +595,28 @@ async function* streamGemini({
   userMessage: string;
 }): AsyncGenerator<{ delta?: string; usage?: GeminiUsage }, void, unknown> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-  const body = {
-    systemInstruction: { parts: [{ text: systemMessage }] },
-    contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-    generationConfig: {
-      temperature: 0,
-      maxOutputTokens: 800,
-      responseMimeType: 'application/json',
-      thinkingConfig: { thinkingBudget: 0 },
-    },
-  };
+  const cacheName = await ensureGeminiCache({ apiKey, model, systemMessage });
+  const body: Record<string, unknown> = cacheName
+    ? {
+        cachedContent: cacheName,
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 800,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      }
+    : {
+        systemInstruction: { parts: [{ text: systemMessage }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 800,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      };
   const maxRetries = 3;
   let res: Response | null = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
